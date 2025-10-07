@@ -111,9 +111,9 @@ define flip_over_y_char of_type fn character character as
             underscore to underscore
             grave_accent to single_quote
             lowercase_a to lowercase_a
-            lowercase_b to lowercase_b
+            lowercase_b to lowercase_d
             lowercase_c to lowercase_c
-            lowercase_d to lowercase_d
+            lowercase_d to lowercase_b
             lowercase_e to lowercase_e
             lowercase_f to lowercase_f
             lowercase_g to lowercase_g
@@ -125,8 +125,8 @@ define flip_over_y_char of_type fn character character as
             lowercase_m to lowercase_m
             lowercase_n to lowercase_n
             lowercase_o to lowercase_o
-            lowercase_p to lowercase_p
-            lowercase_q to lowercase_q
+            lowercase_p to lowercase_q
+            lowercase_q to lowercase_p
             lowercase_r to lowercase_r
             lowercase_s to lowercase_s
             lowercase_t to lowercase_t
