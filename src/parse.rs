@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// TODO generics
+// for_all a define id of_type fn a a as lambda x x
+
 use crate::error::{Error, ErrorType, Index, Mark};
 use crate::runtime::{Expression, Pattern};
 use std::collections::{HashMap, HashSet};
@@ -962,12 +965,12 @@ fn build_tokens_from_art(
                 continue;
             }
             output.push(build_token("insert", &mark));
-            output.push(build_token("positive", &mark));
+            output.push(build_token("pos", &mark));
             for _ in 0..x {
                 output.push(build_token("succ", &mark));
             }
             output.push(build_token("one", &mark));
-            output.push(build_token("positive", &mark));
+            output.push(build_token("pos", &mark));
             for _ in 0..y {
                 output.push(build_token("succ", &mark));
             }

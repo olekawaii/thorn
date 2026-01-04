@@ -29,6 +29,7 @@ type grid_cell contains
 
 -- video functions -------------------------------------------------------------
 
+
 define head of_type fn video frame as lambda x match x with
     single f     to f
     prepend f _  to f
@@ -137,14 +138,14 @@ define by of_type fn nat fn fn frame frame fn frame frame as
 
 define move_by of_type fn int fn int fn frame frame as 
     lambda x lambda y lambda f match of_type fn frame frame match x with
-            positive a to by a shift east
-            negative a to by a shift west
-            zero       to id_frame
+            pos a  to by a shift east
+            neg a  to by a shift west
+            zero   to id_frame
         with
             fa to match of_type fn frame frame match y with 
-                    positive a to by a shift north
-                    negative a to by a shift south
-                    zero       to id_frame
+                    pos a to by a shift north
+                    neg a to by a shift south
+                    zero  to id_frame
                 with
                     fb to fa fb f
 
@@ -153,11 +154,11 @@ define move_by of_type fn int fn int fn frame frame as
 define insert of_type fn int fn int fn character fn frame frame as
     lambda x lambda y lambda chr
         lambda frame col_neg col_pos row_zero match y with
-            negative index to frame
+            neg index to frame
                 insert_column x index chr col_neg
                 col_pos
                 row_zero
-            positive index to frame
+            pos index to frame
                 col_neg
                 insert_column x index chr col_pos
                 row_zero
@@ -218,9 +219,9 @@ define empty_horizontal of_type horizontal as
 define insert_horizontal of_type fn int fn character fn horizontal horizontal as
     lambda index lambda chr lambda horizontal z n p
         match index with
-            negative index  to horizontal z insert_row index chr n p
-            positive index  to horizontal z n insert_row index chr p
-            zero            to horizontal full_grid_cell chr n p
+            neg index  to horizontal z insert_row index chr n p
+            pos index  to horizontal z n insert_row index chr p
+            zero       to horizontal full_grid_cell chr n p
 
 define insert_row of_type fn nat fn character fn row row as
     lambda index lambda chr lambda r match r with
@@ -257,9 +258,9 @@ define into_video of_type fn video bad_video as lambda vid match vid with
 define into_frame of_type fn frame bad_frame as
     lambda frame neg_col pos_col zer_col
         uwulayer_frames
-            column_to_frame one negative neg_col
+            column_to_frame one neg neg_col
             uwulayer_frames
-                column_to_frame one positive pos_col
+                column_to_frame one pos pos_col
                 horizontal_to_frame zero zer_col
 
 define horizontal_to_frame of_type fn int fn horizontal bad_frame as
@@ -269,8 +270,8 @@ define horizontal_to_frame of_type fn int fn horizontal bad_frame as
                 full_grid_cell x  to unsafe_cons_cell cell coordinate zero y x
                 empty_grid_cell   to lambda x x
             uwulayer_frames
-                row_to_frame one y negative neg_row
-                row_to_frame one y positive pos_row
+                row_to_frame one y neg neg_row
+                row_to_frame one y pos pos_row
 
 define apply_to_frame of_type
     fn 
