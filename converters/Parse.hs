@@ -89,8 +89,8 @@ parseCoordinate ("coordinate": xs) =
   ((x, y), leftover2)
 
 parse_int :: [String] -> (Int, [String])
-parse_int ("positive" : xs) = parseNat xs
-parse_int ("negative" : xs) = first (* (-1)) (parseNat xs)
+parse_int ("pos" : xs) = parseNat xs
+parse_int ("neg" : xs) = first (* (-1)) (parseNat xs)
 parse_int ("zero" : xs) = (0, xs)
 
 parseNat :: [String] -> (Int, [String])

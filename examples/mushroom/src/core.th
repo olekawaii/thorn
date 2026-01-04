@@ -1,8 +1,8 @@
 -- core types required for the art macro
 
 type int contains
-    negative nat
-    positive nat
+    neg nat
+    pos nat
     zero
 
 type nat contains

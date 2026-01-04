@@ -43,40 +43,40 @@ define sum_coordinate of_type fn coordinate fn coordinate coordinate as
 
 define eq_int of_type fn int fn int bool as
     lambda x lambda y match tuple_int_int x y with
-        tuple_int_int positive a positive b  to eq_nat a b
-        tuple_int_int negative a negative b  to eq_nat a b
-        tuple_int_int zero       zero        to true
-        _                                    to false
+        tuple_int_int pos a pos b  to eq_nat a b
+        tuple_int_int neg a neg b  to eq_nat a b
+        tuple_int_int zero  zero   to true
+        _                          to false
 
 type tuple_int_int contains
     tuple_int_int int int
 
 define sum_int of_type fn int fn int int as 
     lambda x lambda y match x with
-        negative _  to sum_int increment x decrement y 
-        positive _  to sum_int decrement x increment y 
-        zero        to y
+        neg _  to sum_int increment x decrement y 
+        pos _  to sum_int decrement x increment y 
+        zero   to y
 
 define increment of_type fn int int as lambda x match x with
-    positive a       to positive succ a
-    negative succ a  to negative a
-    zero             to positive one
-    negative one     to zero 
+    pos a       to pos succ a
+    neg succ a  to neg a
+    zero        to pos one
+    neg one     to zero 
 
 define decrement of_type fn int int as lambda x match x with
-    negative a       to negative succ a
-    positive succ a  to positive a
-    zero             to negative one
-    positive one     to zero
+    neg a       to neg succ a
+    pos succ a  to pos a
+    zero        to neg one
+    pos one     to zero
 
 define increment_whole of_type fn whole nat as lambda x match x with
     whole x     to succ x
     whole_zero  to one
 
 define decrement_whole of_type fn whole int as lambda x match x with
-    whole succ x  to positive x
+    whole succ x  to pos x
     whole one     to zero
-    whole_zero    to negative one
+    whole_zero    to neg one
 
 define decrement_nat of_type fn nat whole as lambda x match x with
     succ x  to whole x
@@ -157,8 +157,8 @@ define subtract_exactly of_type fn whole fn whole option_whole as
             whole_zero  to some_whole whole_zero
 
 define absolute of_type fn int whole as lambda x match x with
-    positive a to whole a
-    negative a to whole a
+    pos a to whole a
+    neg a to whole a
     zero       to whole_zero
 
 define divide_exactly of_type fn whole fn whole option_whole as
@@ -187,16 +187,16 @@ define product_nat of_type fn nat fn nat nat as
 
 define product_int of_type fn int fn int int as 
     lambda x lambda y match tuple_int_int x y with
-        tuple_int_int positive a positive b  to positive product_nat a b
-        tuple_int_int positive a negative b  to negative product_nat a b
-        tuple_int_int negative a negative b  to positive product_nat a b
-        tuple_int_int zero       _           to zero
-        _                                    to product_int y x
+        tuple_int_int pos a pos b  to pos product_nat a b
+        tuple_int_int pos a neg b  to neg product_nat a b
+        tuple_int_int neg a neg b  to pos product_nat a b
+        tuple_int_int zero  _      to zero
+        _                          to product_int y x
 
 define abselute_value of_type fn int whole as lambda x match x with
-    positive x  to whole x
-    negative x  to whole x
-    zero        to whole_zero
+    pos x  to whole x
+    neg x  to whole x
+    zero   to whole_zero
         
 type list_whole contains
     cons_whole whole list_whole
