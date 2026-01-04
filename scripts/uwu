@@ -50,11 +50,6 @@ make_gif() {
     rm *.png *.ppm
 }
 
-run() {
-    build
-    ./output/short-output.sh
-}
-
 play() {
     build
     ./output/output.sh
@@ -62,17 +57,17 @@ play() {
 
 watch() {
     move_to_root
-    ls src/* .ascr/* | entr sh -c 'clear -x && uwu run'
+    ls src/* .ascr/* | entr sh -c 'clear -x && timeout 5 uwu run'
 }
 
 print_help() {
     printf 'uwu [command]
 commands: 
   new NAME   create a new project named NAME
-  play       play the output file (looping)
-  run        play the short version of the output
+  play       play the output shell script
   watch      recompile and run on changes (requires entr)
   help       show this help message
+  gif        create the gif file
   
 You can also use the first letter of each command.
 These can be run from anywhere in the project.
