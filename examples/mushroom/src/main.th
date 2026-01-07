@@ -1,7 +1,7 @@
 include std video
                                                      
 define main of_type bad_video as into_video single layer_frames 
-    move_by positive xi positive iv title
+    move_by pos xi pos iv title
     layer_frames big_mushroom by x shift east small_mushroom 
 
 define big_mushroom of_type frame as head art xiii viii
