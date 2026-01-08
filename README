@@ -384,6 +384,19 @@ you can have a custom tail tip for example:
     |   t   ..$...   t  ...$..                                 |
     '----------------------------------------------------------'
 
+To layer a variable frame, do the same but with '*' instead. In this example 
+the frame f will be layered on top of both frames with '*' marking (0, 0) 
+of 'f'.
+
+    .----------------------------------------------------------.
+    | define dragon_tail of_type fn frame video as             |
+    |     lambda f art vi iv                                   |
+    |  \   ).6|||6(   / 6|||6.                                 |
+    |   ) / ..6|6. \ (  .6|6..                                 |
+    |  ( /  .6|6..  \ ) ..6|6.                                 |
+    |   f   ..*...   f  ...*..                                 |
+    '----------------------------------------------------------'
+
 note that the character type contains the color as well as the character. Here
 is the implementation in core.th
 

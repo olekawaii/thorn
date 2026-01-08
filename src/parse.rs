@@ -22,6 +22,7 @@ use crate::runtime::{Expression, Pattern};
 use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 use std::sync::{Mutex, Arc};
+use std::rc::Rc;
 
 use crate::runtime::optimize_expression;
 
@@ -195,7 +196,7 @@ pub fn get_tokens(file: Marked<String>, done: &mut HashSet<String>) -> Result<Ve
     };
     eprintln!("including \x1b[95m{file}\x1b[0m");
     done.insert(file.clone());
-    let mut output = tokenize_file(file_contents, &Arc::new(file))?;
+    let mut output = tokenize_file(file_contents, &Rc::new(file))?;
     while matches!(output[0].peek().unwrap().value, Token::NewLine(_)) {
         output[0].next();
     }
@@ -221,9 +222,9 @@ pub fn get_tokens(file: Marked<String>, done: &mut HashSet<String>) -> Result<Ve
     Ok(output)
 }
 
-pub fn tokenize_file(input: String, file_name: &Arc<String>) -> Result<Vec<TokenStream>> {
-    let file_lines: Arc<Vec<String>> =
-        Arc::new(input.lines().map(|x| x.trim_end().to_string()).collect());
+pub fn tokenize_file(input: String, file_name: &Rc<String>) -> Result<Vec<TokenStream>> {
+    let file_lines: Rc<Vec<String>> =
+        Rc::new(input.lines().map(|x| x.trim_end().to_string()).collect());
     let mut output: Vec<TokenStream> = Vec::new();
     let mut current_block: Vec<(usize, String)> = Vec::new();
     let mut file = file_lines.iter().map(|x| x.as_str()).enumerate();
@@ -237,8 +238,8 @@ pub fn tokenize_file(input: String, file_name: &Arc<String>) -> Result<Vec<Token
                 None | Some((_, "")) => {
                     output.push(tokenize(
                         current_block,
-                        Arc::clone(file_name),
-                        Arc::clone(&file_lines),
+                        Rc::clone(file_name),
+                        Rc::clone(&file_lines),
                     )?);
                     current_block = Vec::new();
                     break 'good_lines;
@@ -346,7 +347,7 @@ pub fn parse_expression(
                             }
                         }
                         Ok(Expression::Lambda {
-                            pattern: Arc::new(pattern),
+                            pattern: Rc::new(pattern),
                             body: Box::new(body),
                         })
                     }
@@ -363,7 +364,7 @@ pub fn parse_expression(
                     Token::Word(first_name) => {
                         let root_type = if let Some((_, b, _)) = local_vars.get(&first_name) { b } 
                         else if let Some((_, b, _)) = global_vars.get(&first_name) { b } 
-                        else { return Err(make_error(CompilationError::NotInScope, mark.clone())) };
+                        else { return Err(make_error(CompilationError::NotInScope(first_name.clone()), mark.clone())) };
                         Type::Type(root_type.final_type())
                     }
                     Token::Keyword(_) => return Err(make_error(CompilationError::UnexpectedKeyword, mark)),
@@ -409,7 +410,7 @@ pub fn parse_expression(
                 let (token, _mark) = next_token(tokens)?.destructure();
                 let Token::NewLine(indentation) = token else { panic!("no newline") };
                 let mut branch_tokens = get_with_indentation(tokens, indentation);
-                let mut branches: Vec<(Arc<Pattern>, Expression)> = Vec::with_capacity(branch_tokens.len());
+                let mut branches: Vec<(Rc<Pattern>, Expression)> = Vec::with_capacity(branch_tokens.len());
                 let mut patterns = Vec::new();
                 for branch in branch_tokens.iter_mut() {
                     let (pattern, mark, local_vars_new, local_vars_count) = parse_pattern(
@@ -435,7 +436,7 @@ pub fn parse_expression(
                         }
                     }
                     patterns.push((pattern.clone(), mark));
-                    branches.push((Arc::new(pattern), body))
+                    branches.push((Rc::new(pattern), body))
                 }
                 //validate_patterns(patterns, constructors, global_vars, keyword_mark)?;
                 Ok(Expression::Match {
@@ -459,7 +460,7 @@ pub fn parse_expression(
                     b,
                 )
             } else {
-                return Err(make_error(CompilationError::NotInScope, keyword_mark))
+                return Err(make_error(CompilationError::NotInScope(name.to_owned()), keyword_mark))
             };
             if !root_type.is_possible(&expected_type) {
                 return Err(make_error(
@@ -532,7 +533,7 @@ pub fn parse_art(
     height: usize,
     text: Vec<Vec<Marked<char>>>,
     mark: Mark, // mark of the art keyword
-) -> Result<Vec<Cells>> {
+) -> Result<Vec<Vec<Cells>>> {
     let number_of_lines = text.len();
     if number_of_lines % height != 0 {
         return Err(Error {
@@ -552,18 +553,20 @@ pub fn parse_art(
             });
         }
     }
-    let mut output: Vec<Cells> = Vec::new();
+    let mut output: Vec<Vec<Cells>> = Vec::new();
     let mut current_starting_line = 0;
     let mut current_starting_char = 0;
     loop {
-        let mut current_map = HashMap::new();
-        for x in 0..width {
-            for y in 0..height {
+        let mut current_map = Vec::new();
+        for y in 0..height {
+            let mut temp = Vec::new();
+            for x in 0..width {
                 let line = y + current_starting_line;
                 let art_char = text[line][x + current_starting_char].clone();
                 let color_char = text[line][x + current_starting_char + width].clone();
-                current_map.insert((x as u32, (height - y - 1) as u32), (art_char, color_char));
+                temp.push(((x as u32, (height - y - 1) as u32), (art_char, color_char)));
             }
+            current_map.push(temp);
         }
         output.push(current_map);
         current_starting_char += width * 2;
@@ -632,7 +635,7 @@ pub enum CompilationError {
     ExpectedMoreArguments,
     Custom(String),
     InvalidName,
-    NotInScope,
+    NotInScope(String),
     TypeMismatch(Type, Option<Type>),
     ExpectedRoman,
     UnexpectedKeyword,
@@ -667,7 +670,7 @@ impl ErrorType for CompilationError {
             Self::ExpectedKeyword(_) => "expected a keyword",
             Self::Custom(_) => "",
             Self::InvalidName => "invalid name",
-            Self::NotInScope => "not in scope",
+            Self::NotInScope(_) => "not in scope",
             Self::TypeMismatch(_, _) => "of unexpected type",
             Self::ExpectedRoman => "expected a roman numeral",
             Self::UnexpectedKeyword => "unexpected keyword",
@@ -699,7 +702,7 @@ impl std::fmt::Display for CompilationError {
             Self::BadFile(s) => write!(f, "unable to find {s} in this directory"),
             Self::Custom(s) => write!(f, "{s}"),
             Self::InvalidName => write!(f, "invalid keyword or variable name"),
-            Self::NotInScope => write!(f, "variable not in scope"),
+            Self::NotInScope(x) => write!(f, "variable \x1b[97m{x}\x1b[90m not in scope"),
             Self::BadArtLength { width, got } => write!(
                 f,
                 "expected line length to be divisible hy {}, but it has {got} chars",
@@ -824,8 +827,8 @@ fn get_with_indentation(input: &mut TokenStream, indentation: u32) -> Vec<TokenS
 
 pub fn tokenize(
     input: Vec<(usize, String)>,
-    file_name: Arc<String>,
-    file: Arc<Vec<String>>,
+    file_name: Rc<String>,
+    file: Rc<Vec<String>>,
 ) -> Result<TokenStream> {
     let keywords: HashMap<&str, Keyword> = HashMap::from([
         ( "match",     Keyword::Match     ),
@@ -847,8 +850,8 @@ pub fn tokenize(
         let indentation = indentation_length(&line);
         if indentation % INDENTATION != 0 {
             return Err(make_error(CompilationError::BadIndentation, Mark {
-                file_name: Arc::clone(&file_name),
-                file: Arc::clone(&file),
+                file_name: Rc::clone(&file_name),
+                file: Rc::clone(&file),
                 line: line_number,
                 block: None,
                 word_index: Index::Art(indentation as usize - 1),
@@ -857,8 +860,8 @@ pub fn tokenize(
         if current_indentation.is_none() {
             output.push(Marked::<Token> {
                 mark: Mark {
-                    file_name: Arc::clone(&file_name),
-                    file: Arc::clone(&file),
+                    file_name: Rc::clone(&file_name),
+                    file: Rc::clone(&file),
                     line: line_number,
                     block: None,
                     word_index: Index::EndOfLine,
@@ -871,8 +874,8 @@ pub fn tokenize(
         let mut word_index: usize = 0;
         'words: while let Some(word) = words.next() {
             let mark: Mark = Mark {
-                file_name: Arc::clone(&file_name),
-                file: Arc::clone(&file),
+                file_name: Rc::clone(&file_name),
+                file: Rc::clone(&file),
                 line: line_number,
                 block: None,
                 word_index: Index::Expression(word_index),
@@ -942,194 +945,165 @@ pub fn tokenize(
     Ok(new_tokenstream(output))
 }
 
-fn build_token(name: &'static str, mark: &Mark) -> Marked<Token> {
+fn build_token(name: &str, mark: &Mark) -> Marked<Token> {
     Marked::<Token> {
         value: Token::Word(name.to_string()),
         mark: mark.clone(),
     }
 }
 
-type Cells = HashMap<(u32, u32), (Marked<char>, Marked<char>)>;
+type Cells = Vec<((u32, u32), (Marked<char>, Marked<char>))>;
 
 fn build_tokens_from_art(
     mark: Mark,
-    input: Vec<Cells>,
+    input: Vec<Vec<Cells>>,
 ) -> Result<TokenStream> {
     let mut output = Vec::new();
     for i in input.into_iter() {
+        let mut frame_buffer = Vec::new();
+        let mut frame_commands = Vec::new();
         output.push(build_token("prepend", &mark));
-        for ((x, y), (c1, c2)) in i.into_iter() {
-            let c1_char = c1.value;
-            let c2_char = c2.value;
-            if c1_char == ' ' && c2_char == '.' {
-                continue;
-            }
-            output.push(build_token("insert", &mark));
-            output.push(build_token("pos", &mark));
-            for _ in 0..x {
-                output.push(build_token("succ", &mark));
-            }
-            output.push(build_token("one", &mark));
-            output.push(build_token("pos", &mark));
-            for _ in 0..y {
-                output.push(build_token("succ", &mark));
-            }
-            output.push(build_token("one", &mark));
-            match (c1_char, c2_char) {
-                (_, ' ') => return Err(make_error(CompilationError::InvalidColor, c2.mark)),
-                (' ', '|') => {
-                    output.push(Marked::<Token> {
-                        mark: c1.mark,
-                        value: Token::Word("space".to_string()),
-                    });
+        frame_buffer.push(build_token("frame", &mark));
+        frame_buffer.push(build_token("empty_column", &mark));
+        for line in i.into_iter().rev() {
+            frame_buffer.push(build_token("cons_column", &mark));
+            frame_buffer.push(build_token("horizontal", &mark));
+            frame_buffer.push(build_token("empty_row", &mark));
+            for ((x, y), (c1, c2)) in line.into_iter() {
+                frame_buffer.push(build_token("cons_row", &mark));
+                let c1_char = c1.value;
+                let c2_char = c2.value;
+                if c1_char == ' ' && c2_char == '.' {
+                    frame_buffer.push(build_token("empty_grid_cell", &mark));
+                    continue;
                 }
-                (_, '.') | (_, '|') => return Err(make_error(CompilationError::TranspOnChar, c2.mark)),
-                (c1_char, '$') => {
-                    output.push(Marked::<Token> {
-                        mark: c1.mark,
-                        value: Token::Word(c1_char.to_string()),
-                    });
-                }
-                (c1_char, c2_char) => {
-                    output.push(Marked::<Token> {
-                        mark: mark.clone(),
-                        value: Token::Word("char".to_string()),
-                    });
-                    let character = match c1_char {
-                        '!' => "bang",
-                        '"' => "double_quotes",
-                        '#' => "pound",
-                        '$' => "dollar",
-                        '%' => "percent",
-                        '&' => "ampersand",
-                        '\'' => "single_quote",
-                        '(' => "open_paranthesis",
-                        ')' => "close_paranthesis",
-                        '*' => "asterisk",
-                        '+' => "plus",
-                        ',' => "comma",
-                        '-' => "hyphen",
-                        '.' => "period",
-                        '/' => "slash",
-                        '0' => "digit_zero",
-                        '1' => "digit_one",
-                        '2' => "digit_two",
-                        '3' => "digit_three",
-                        '4' => "digit_four",
-                        '5' => "digit_five",
-                        '6' => "digit_six",
-                        '7' => "digit_seven",
-                        '8' => "digit_eight",
-                        '9' => "digit_nine",
-                        ':' => "colon",
-                        ';' => "semicolon",
-                        '<' => "less_than",
-                        '=' => "equals",
-                        '>' => "greater_than",
-                        '?' => "question_mark",
-                        '@' => "at_sign",
-                        'A' => "uppercase_a",
-                        'B' => "uppercase_b",
-                        'C' => "uppercase_c",
-                        'D' => "uppercase_d",
-                        'E' => "uppercase_e",
-                        'F' => "uppercase_f",
-                        'G' => "uppercase_g",
-                        'H' => "uppercase_h",
-                        'I' => "uppercase_i",
-                        'J' => "uppercase_j",
-                        'K' => "uppercase_k",
-                        'L' => "uppercase_l",
-                        'M' => "uppercase_m",
-                        'N' => "uppercase_n",
-                        'O' => "uppercase_o",
-                        'P' => "uppercase_p",
-                        'Q' => "uppercase_q",
-                        'R' => "uppercase_r",
-                        'S' => "uppercase_s",
-                        'T' => "uppercase_t",
-                        'U' => "uppercase_u",
-                        'V' => "uppercase_v",
-                        'W' => "uppercase_w",
-                        'X' => "uppercase_x",
-                        'Y' => "uppercase_y",
-                        'Z' => "uppercase_z",
-                        '[' => "opening_bracket",
-                        '\\' => "backslash",
-                        ']' => "closing_bracket",
-                        '^' => "caret",
-                        '_' => "underscore",
-                        '`' => "grave_accent",
-                        'a' => "lowercase_a",
-                        'b' => "lowercase_b",
-                        'c' => "lowercase_c",
-                        'd' => "lowercase_d",
-                        'e' => "lowercase_e",
-                        'f' => "lowercase_f",
-                        'g' => "lowercase_g",
-                        'h' => "lowercase_h",
-                        'i' => "lowercase_i",
-                        'j' => "lowercase_j",
-                        'k' => "lowercase_k",
-                        'l' => "lowercase_l",
-                        'm' => "lowercase_m",
-                        'n' => "lowercase_n",
-                        'o' => "lowercase_o",
-                        'p' => "lowercase_p",
-                        'q' => "lowercase_q",
-                        'r' => "lowercase_r",
-                        's' => "lowercase_s",
-                        't' => "lowercase_t",
-                        'u' => "lowercase_u",
-                        'v' => "lowercase_v",
-                        'w' => "lowercase_w",
-                        'x' => "lowercase_x",
-                        'y' => "lowercase_y",
-                        'z' => "lowercase_z",
-                        '{' => "opening_brace",
-                        '|' => "vertical_bar",
-                        '}' => "closing_brace",
-                        '~' => "tilde",
-                        ' ' => {
-                            return Err(Error {
-                                error_type: Box::new(CompilationError::ColorOnSpace),
-                                mark: c2.mark,
-                            });
+                if c2_char == '*' {
+                    frame_buffer.push(build_token("empty_grid_cell", &mark));
+                    frame_commands.push(build_token("layer_frames", &mark));
+                    frame_commands.push(build_token("move_by", &mark));
+                    match x {
+                        0 => frame_commands.push(build_token("zero", &mark)),
+                        x => {
+                            frame_commands.push(build_token("pos", &mark));
+                            for _ in 0..x - 1 {
+                                frame_commands.push(build_token("succ", &mark));
+                            }
+                            frame_commands.push(build_token("one", &mark));
                         }
-                        _ => panic!("bad char"),
                     }
-                    .to_string();
-                    output.push(Marked::<Token> {
-                        mark: mark.clone(),
-                        value: Token::Word(character),
-                    });
-                    let color = match c2_char {
-                        '0' => Ok("black"),
-                        '1' => Ok("red"),
-                        '2' => Ok("green"),
-                        '3' => Ok("yellow"),
-                        '4' => Ok("blue"),
-                        '5' => Ok("magenta"),
-                        '6' => Ok("cyan"),
-                        '7' => Ok("white"),
-                        '8' => Ok("orange"),
-                        '9' => Ok("purple"),
-                        x => Err(x),
-                    };
-                    match color {
-                        Ok(x) => output.push(build_token(x, &mark)),
-                        Err(x) => output.push(Marked::<Token> {
-                            mark: c2.mark,
-                            value: Token::Word(String::from(x)),
-                        }),
-                    };
+                    match y {
+                        0 => frame_commands.push(build_token("zero", &mark)),
+                        x => {
+                            frame_commands.push(build_token("pos", &mark));
+                            for _ in 0..x - 1 {
+                                frame_commands.push(build_token("succ", &mark));
+                            }
+                            frame_commands.push(build_token("one", &mark));
+                        }
+                    }
+                    let s = String::from(c1_char);
+                    frame_commands.push(build_token(&s, &c1.mark));
+                    continue;
+                }
+                frame_buffer.push(build_token("full_grid_cell", &mark));
+                match (c1_char, c2_char) {
+                    (_, ' ') => return Err(make_error(CompilationError::InvalidColor, c2.mark)),
+                    (' ', '|') => frame_buffer.push(build_token("space", &c1.mark)),
+                    (_, '.') | (_, '|') => return Err(make_error(CompilationError::TranspOnChar, c2.mark)),
+                    (c1_char, '$') => {
+                        let s = String::from(c1_char);
+                        frame_buffer.push(build_token(&s, &c1.mark));
+                    }
+                    (c1_char, c2_char) => {
+                        frame_buffer.push(Marked::<Token> {
+                            mark: mark.clone(),
+                            value: Token::Word("char".to_string()),
+                        });
+                        let character = match c1_char {
+                            '!' => "bang",               'P' => "uppercase_p",
+                            '"' => "double_quotes",      'Q' => "uppercase_q",
+                            '#' => "pound",              'R' => "uppercase_r",
+                            '$' => "dollar",             'S' => "uppercase_s",
+                            '%' => "percent",            'T' => "uppercase_t",
+                            '&' => "ampersand",          'U' => "uppercase_u",
+                            '\'' => "single_quote",      'V' => "uppercase_v",
+                            '(' => "open_paranthesis",   'W' => "uppercase_w",
+                            ')' => "close_paranthesis",  'X' => "uppercase_x",
+                            '*' => "asterisk",           'Y' => "uppercase_y",
+                            '+' => "plus",               'Z' => "uppercase_z",
+                            ',' => "comma",              '[' => "opening_bracket",
+                            '-' => "hyphen",             '\\' => "backslash",
+                            '.' => "period",             ']' => "closing_bracket",
+                            '/' => "slash",              '^' => "caret",
+                            '0' => "digit_zero",         '_' => "underscore",
+                            '1' => "digit_one",          '`' => "grave_accent",
+                            '2' => "digit_two",          'a' => "lowercase_a",
+                            '3' => "digit_three",        'b' => "lowercase_b",
+                            '4' => "digit_four",         'c' => "lowercase_c",
+                            '5' => "digit_five",         'd' => "lowercase_d",
+                            '6' => "digit_six",          'e' => "lowercase_e",
+                            '7' => "digit_seven",        'f' => "lowercase_f",
+                            '8' => "digit_eight",        'g' => "lowercase_g",
+                            '9' => "digit_nine",         'h' => "lowercase_h",
+                            ':' => "colon",              'i' => "lowercase_i",
+                            ';' => "semicolon",          'j' => "lowercase_j",
+                            '<' => "less_than",          'k' => "lowercase_k",
+                            '=' => "equals",             'l' => "lowercase_l",
+                            '>' => "greater_than",       'm' => "lowercase_m",
+                            '?' => "question_mark",      'n' => "lowercase_n",
+                            '@' => "at_sign",            'o' => "lowercase_o",
+                            'A' => "uppercase_a",        'p' => "lowercase_p",
+                            'B' => "uppercase_b",        'q' => "lowercase_q",
+                            'C' => "uppercase_c",        'r' => "lowercase_r",
+                            'D' => "uppercase_d",        's' => "lowercase_s",
+                            'E' => "uppercase_e",        't' => "lowercase_t",
+                            'F' => "uppercase_f",        'u' => "lowercase_u",
+                            'G' => "uppercase_g",        'v' => "lowercase_v",
+                            'H' => "uppercase_h",        'w' => "lowercase_w",
+                            'I' => "uppercase_i",        'x' => "lowercase_x",
+                            'J' => "uppercase_j",        'y' => "lowercase_y",
+                            'K' => "uppercase_k",        'z' => "lowercase_z",
+                            'L' => "uppercase_l",        '{' => "opening_brace",
+                            'M' => "uppercase_m",        '|' => "vertical_bar",
+                            'N' => "uppercase_n",        '}' => "closing_brace",
+                            'O' => "uppercase_o",        '~' => "tilde",        
+                            ' ' => {
+                                return Err(Error {
+                                    error_type: Box::new(CompilationError::ColorOnSpace),
+                                    mark: c2.mark,
+                                });
+                            }
+                            _ => panic!("bad char"),
+                        };
+                        frame_buffer.push(build_token(character, &c1.mark));
+                        let color = match c2_char {
+                            '0' => Ok("black"),
+                            '1' => Ok("red"),
+                            '2' => Ok("green"),
+                            '3' => Ok("yellow"),
+                            '4' => Ok("blue"),
+                            '5' => Ok("magenta"),
+                            '6' => Ok("cyan"),
+                            '7' => Ok("white"),
+                            // '8' => Ok("orange"),
+                            // '9' => Ok("purple"),
+                            x => Err(x),
+                        };
+                        match color {
+                            Ok(x) => frame_buffer.push(build_token(x, &mark)),
+                            Err(x) => {
+                                let s = String::from(x);
+                                frame_buffer.push(build_token(&s, &c2.mark));
+                            }
+                        };
+                    }
                 }
             }
+            frame_buffer.push(build_token("empty_row", &mark));
         }
-        output.push(Marked::<Token> {
-            mark: mark.clone(),
-            value: Token::Word("new_frame".to_string()),
-        });
+        frame_buffer.push(build_token("empty_column", &mark));
+        output.append(&mut frame_commands);
+        output.append(&mut frame_buffer);
     }
     let mut i = output.len() - 1;
     loop {
@@ -1202,7 +1176,7 @@ pub fn parse_type(tokens: &mut TokenStream) -> Result<Type> {
             let ptr = TYPES.lock().unwrap();
             let index = ptr.as_ref().unwrap().get(word).ok_or(Error {
                 mark,
-                error_type: Box::new(CompilationError::NotInScope),
+                error_type: Box::new(CompilationError::NotInScope(word.to_owned())),
             })?;
             Ok(Type::Type(*index))
         }

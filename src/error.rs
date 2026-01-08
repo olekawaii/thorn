@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::sync::Arc;
+use std::rc::Rc;
 
 pub trait ErrorType: std::fmt::Display + std::fmt::Debug {
     fn gist(&self) -> &'static str;
@@ -49,10 +50,10 @@ pub enum Index {
 
 #[derive(Debug, Clone)]
 pub struct Mark {
-    pub file_name: Arc<String>,
-    pub file: Arc<Vec<String>>,
+    pub file_name: Rc<String>,
+    pub file: Rc<Vec<String>>,
     pub line: usize,
-    pub block: Option<Arc<String>>,
+    pub block: Option<Rc<String>>,
     pub word_index: Index,
 }
 
