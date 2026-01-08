@@ -57,7 +57,7 @@ play() {
 
 watch() {
     move_to_root
-    ls src/* .ascr/* | entr sh -c 'clear -x && timeout 5 uwu run'
+    ls src/* .ascr/* | entr sh -c 'clear -x && timeout 5 uwu play'
 }
 
 print_help() {

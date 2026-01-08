@@ -663,7 +663,7 @@ impl ErrorType for CompilationError {
             //Self::PartialPattern => "not all patterns covered",
             //Self::RedundantPattern => "redundent pattern",
             Self::ColorOnSpace => "can only be used with non-spaces",
-            Self::TranspOnChar => "can only be used with spaces",
+            Self::TranspOnChar => "can only be used with ' ' or '+'",
             Self::ArtMissingArgs => "art expected more arguments",
             Self::ExpectedMoreArguments => "expected more arguments",
             Self::UnexpectedEnd => "unexpected end",
@@ -954,12 +954,39 @@ fn build_token(name: &str, mark: &Mark) -> Marked<Token> {
 
 type Cells = Vec<((u32, u32), (Marked<char>, Marked<char>))>;
 
+fn build_nat(n: u32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) {
+    for _ in 0 .. n - 1 {
+        buffer.push(build_token("succ", &mark));
+    }
+    buffer.push(build_token("one", &mark));
+}
+
+fn build_int(n: i32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) {
+    match n.cmp(&0) {
+        std::cmp::Ordering::Equal => {
+            buffer.push(build_token("zero", &mark));
+            return
+        }
+        std::cmp::Ordering::Less => buffer.push(build_token("neg", &mark)),
+        std::cmp::Ordering::Greater => buffer.push(build_token("pos", &mark)),
+    }
+    build_nat(n.abs() as u32, buffer, mark);
+}
+
+fn build_move_by(x: i32, y: i32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) {
+    buffer.push(build_token("move_by", &mark));
+    build_int(x, buffer, &mark);
+    build_int(y, buffer, &mark);
+}
+
+
 fn build_tokens_from_art(
     mark: Mark,
     input: Vec<Vec<Cells>>,
 ) -> Result<TokenStream> {
+    let mut video_commands = Vec::new();
     let mut output = Vec::new();
-    for i in input.into_iter() {
+    for (index, i) in input.into_iter().enumerate() {
         let mut frame_buffer = Vec::new();
         let mut frame_commands = Vec::new();
         output.push(build_token("prepend", &mark));
@@ -973,43 +1000,48 @@ fn build_tokens_from_art(
                 frame_buffer.push(build_token("cons_row", &mark));
                 let c1_char = c1.value;
                 let c2_char = c2.value.to_ascii_lowercase();
-                if c1_char == ' ' && c2_char == '.' {
+                if matches!((c1_char, c2_char), (_, '.') | (_, '|')) {
+                    match c1_char {
+                        ' ' => (),
+                        '%' => {
+                            video_commands.push(build_token("entirely", &mark));
+                            build_move_by(x as i32 * -1, y as i32 * -1, &mut video_commands, &mark);
+                        }
+                        _ => return Err(make_error(CompilationError::TranspOnChar, c2.mark)),
+                    }
+                }
+                if c2_char == '&' {
+                    let s = String::from(c1_char.to_ascii_lowercase());
+                    frame_buffer.push(build_token("empty_grid_cell", &mark));
+                    video_commands.push(build_token("layer", &mark));
+                    if index != 0 {
+                        video_commands.push(build_token("for", &mark));
+                        build_nat(index as u32, &mut video_commands, &mark);
+                        video_commands.push(build_token("rotate_right", &mark));
+                    }
+                    video_commands.push(build_token("entirely", &mark));
+                    build_move_by(x as i32, y as i32, &mut video_commands, &mark);
+                    video_commands.push(build_token(&s, &c1.mark));
+                    continue;
+                }
+                if c2_char == '.' {
                     frame_buffer.push(build_token("empty_grid_cell", &mark));
                     continue;
                 }
-                if c2_char == '*' {
+                if c2_char == '#' {
                     let s = String::from(c1_char.to_ascii_lowercase());
                     frame_buffer.push(build_token("empty_grid_cell", &mark));
                     frame_commands.push(build_token("layer_frames", &mark));
-                    frame_commands.push(build_token("move_by", &mark));
-                    match x {
-                        0 => frame_commands.push(build_token("zero", &mark)),
-                        x => {
-                            frame_commands.push(build_token("pos", &mark));
-                            for _ in 0..x - 1 {
-                                frame_commands.push(build_token("succ", &mark));
-                            }
-                            frame_commands.push(build_token("one", &mark));
-                        }
-                    }
-                    match y {
-                        0 => frame_commands.push(build_token("zero", &mark)),
-                        x => {
-                            frame_commands.push(build_token("pos", &mark));
-                            for _ in 0..x - 1 {
-                                frame_commands.push(build_token("succ", &mark));
-                            }
-                            frame_commands.push(build_token("one", &mark));
-                        }
-                    }
+                    build_move_by(x as i32, y as i32, &mut frame_commands, &mark);
                     frame_commands.push(build_token(&s, &c1.mark));
                     continue;
                 }
                 frame_buffer.push(build_token("full_grid_cell", &mark));
                 match (c1_char, c2_char) {
                     (_, ' ') => return Err(make_error(CompilationError::InvalidColor, c2.mark)),
-                    (' ', '|') => frame_buffer.push(build_token("space", &c1.mark)),
-                    (_, '.') | (_, '|') => return Err(make_error(CompilationError::TranspOnChar, c2.mark)),
+                    (_, '|') => {
+                        frame_buffer.push(build_token("space", &c1.mark));
+                    }
                     (c1_char, '$') => {
                         let s = String::from(c1_char.to_ascii_lowercase());
                         frame_buffer.push(build_token(&s, &c1.mark));
@@ -1104,6 +1136,10 @@ fn build_tokens_from_art(
         frame_buffer.push(build_token("empty_column", &mark));
         output.append(&mut frame_commands);
         output.append(&mut frame_buffer);
+    }
+    if !video_commands.is_empty() {
+        video_commands.append(&mut output);
+        output = video_commands;
     }
     let mut i = output.len() - 1;
     loop {
