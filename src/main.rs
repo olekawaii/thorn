@@ -18,6 +18,7 @@ use std::{
     collections::HashMap,
     env,
     sync::{Arc, Mutex},
+    rc::Rc,
 };
 
 mod error;
@@ -41,8 +42,8 @@ fn main() -> std::io::Result<()> {
     args.into_iter().enumerate().for_each(|(i, value)| marked_args.push(Marked::<String> {
         value,
         mark: Mark {
-            file_name: Arc::new("arguments".to_string()),
-            file: Arc::new(vec![arg_file.clone()]), 
+            file_name: Rc::new("arguments".to_string()),
+            file: Rc::new(vec![arg_file.clone()]), 
             line: 0,
             block: None,
             word_index: Index::Expression(i)
@@ -77,8 +78,8 @@ fn build_monolithic_expression(
     vec: Vec<Expression>,
     vars_dummy: &HashMap<String, (usize, Type, bool)>,
 ) -> Expression {
-    let expressions: Vec<Arc<Mutex<Expression>>> =
-        vec.into_iter().map(|x| Arc::new(Mutex::new(x))).collect();
+    let expressions: Vec<Rc<Mutex<Expression>>> =
+        vec.into_iter().map(|x| Rc::new(Mutex::new(x))).collect();
     for i in expressions.iter() {
         let ptr = &mut (**i).lock().unwrap();
         monolithic_helper(&expressions, ptr)
@@ -87,7 +88,7 @@ fn build_monolithic_expression(
     (*expressions[*main_index]).lock().unwrap().clone()
 }
 
-fn monolithic_helper(vec: &Vec<Arc<Mutex<Expression>>>, expression: &mut Expression) {
+fn monolithic_helper(vec: &Vec<Rc<Mutex<Expression>>>, expression: &mut Expression) {
     match expression {
         Expression::Tree { root, arguments, ..} => {
             arguments.iter_mut().for_each(|x| monolithic_helper(vec, x));
@@ -107,7 +108,7 @@ fn monolithic_helper(vec: &Vec<Arc<Mutex<Expression>>>, expression: &mut Express
             monolithic_helper(vec, ptr);
         }
         Expression::Variable(x) => {
-            *expression = Expression::Thunk(Arc::clone(vec.get(*x).unwrap()));
+            *expression = Expression::Thunk(Rc::clone(vec.get(*x).unwrap()));
         }
     }
 }

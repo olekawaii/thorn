@@ -19,6 +19,7 @@ use std::sync::{Arc, Mutex};
 use std::io;
 use std::io::Write;
 use std::{collections::HashMap};
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum Expression {
@@ -28,14 +29,14 @@ pub enum Expression {
     },
     Match {
         matched_on:  Box<Expression>,
-        branches:    Vec<(Arc<Pattern>, Expression)>,
+        branches:    Vec<(Rc<Pattern>, Expression)>,
     },
     Lambda {
-        pattern:     Arc<Pattern>,
+        pattern:     Rc<Pattern>,
         body:        Box<Expression>,
     },
     Undefined(Box<Mark>),
-    Thunk(Arc<Mutex<Expression>>),
+    Thunk(Rc<Mutex<Expression>>),
     LocalVarPlaceholder(u32),
     DataConstructor(u32),
     Variable(usize), // only used during parsing
@@ -122,9 +123,12 @@ impl Expression {
     // rewrite expression until it starts with a data constructor or a lambda
     
     pub fn simplify(&mut self) {
+        if self.is_simplified() {
+            return
+        }
         while !self.is_simplified() {
             match std::mem::take(self) {
-                Expression::Thunk(exp) => match Arc::try_unwrap(exp) {
+                Expression::Thunk(exp) => match Rc::try_unwrap(exp) {
                     Ok(x) => *self = x.into_inner().unwrap(), // safe unwrap
                     Err(x) => {
                         let Ok(mut inner) = (*x).try_lock() else {
@@ -133,7 +137,6 @@ impl Expression {
                         };
                         if !inner.is_simplified() {
                             inner.simplify();
-                            actually_optimize(&mut inner);
                         }
                         *self = inner.clone()
                     }
@@ -155,7 +158,7 @@ impl Expression {
                             }
                             Expression::DataConstructor(_) => {
                                 *self = Expression::Tree {
-                                    root: Box::new(std::mem::take(self)),
+                                    root: Box::new(self.clone()),
                                     arguments: vec![i]
                                 }
                             }
@@ -192,6 +195,7 @@ impl Expression {
                 _ => unreachable!()
             }
         }
+        actually_optimize(self);
     }
 
     // Substitute every instance of a LocalVarPlaceholder with a Thunk. To be used with
@@ -304,12 +308,12 @@ impl std::fmt::Display for RuntimeError {
 }
 
 fn build_thunk(mut input: Expression) -> Expression {
-    actually_optimize(&mut input);
+    optimize_expression(&mut input);
     if let Expression::Tree { root, arguments } = &mut input && arguments.is_empty() {
         input = std::mem::take(root)
     }
     match &mut input {
-        Expression::Tree { .. } | Expression::Match { .. } => Expression::Thunk(Arc::new(Mutex::new(input))),
+        Expression::Tree { .. } | Expression::Match { .. } => Expression::Thunk(Rc::new(Mutex::new(input))),
         _ => input
     }
 }
@@ -332,9 +336,9 @@ pub fn optimize_expression(input: &mut Expression) {
     match input {
         Expression::Tree { root, arguments} => {
             arguments.iter_mut().for_each(optimize_expression);
-            if !matches!(&**root, Expression::DataConstructor(_)) {
-                *input = Expression::Thunk(Arc::new(Mutex::new(std::mem::take(input))))
-            }
+            //if !matches!(&**root, Expression::DataConstructor(_)) {
+                *input = Expression::Thunk(Rc::new(Mutex::new(std::mem::take(input))))
+            //}
         }
         // // no point in optimizing anything since the simplified output will be optimized later
         //Expression::Match {branches, pattern} => {

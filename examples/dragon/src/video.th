@@ -356,8 +356,8 @@ define layer_rows of_type fn row fn row row as
         tuple_row_row cons_row aa ba  cons_row ab bb  to
             cons_row
                 match aa with
-                    empty_grid_cell to ab
-                    _               to aa
+                    empty_grid_cell   to ab
+                    full_grid_cell _  to aa
                 layer_rows ba bb
 
 -- expects videos of equal length. will refactor to use infinite_video in the
@@ -374,22 +374,14 @@ define layer_helper of_type fn video fn video video as
             single b     to single layer_frames a b
             prepend _ _  to ...
 
--- define over_y_hor of_type fn horizontal horizontal as
---     lambda horizontal a b c horizontal
---         a
---         map_row flip_over_y_char c
---         map_row flip_over_y_char b
-
 define over_y_hor of_type fn horizontal horizontal as
     lambda horizontal n p match p with
-        empty_row     to 
-            horizontal 
-                empty_row 
-                cons_row empty_grid_cell map_row flip_over_y_char n
-        cons_row h t  to 
-            horizontal 
-                map_row flip_over_y_char t 
-                cons_row h map_row flip_over_y_char n
+        empty_row     to horizontal 
+            empty_row 
+            cons_row empty_grid_cell map_row flip_over_y_char n
+        cons_row h t  to horizontal 
+            map_row flip_over_y_char t 
+            cons_row h map_row flip_over_y_char n
 
 define map_over_grid_cell of_type
     fn fn character character fn grid_cell grid_cell
