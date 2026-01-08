@@ -361,10 +361,10 @@ name like so:
     .----------------------------------------------------------.
     | define dragon_tail of_type fn color video as             |
     |     lambda c art vi iv                                   |
-    |  \   ).c|||c(   / c|||c.                                 |
-    |   ) / ..c|c. \ (  .c|c..                                 |
-    |  ( /  .c|c..  \ ) ..c|c.                                 |
-    |   V   ..c...   V  ...c..                                 |
+    |  \   ).C|||C(   / C|||C.                                 |
+    |   ) / ..C|C. \ (  .C|C..                                 |
+    |  ( /  .C|C..  \ ) ..C|C.                                 |
+    |   V   ..C...   V  ...C..                                 |
     '----------------------------------------------------------'
 
 Now instead of the tail being hardcoded cyan, the calling function decides
@@ -381,12 +381,12 @@ you can have a custom tail tip for example:
     |  \   ).6|||6(   / 6|||6.                                 |
     |   ) / ..6|6. \ (  .6|6..                                 |
     |  ( /  .6|6..  \ ) ..6|6.                                 |
-    |   t   ..$...   t  ...$..                                 |
+    |   T   ..$...   T  ...$..                                 |
     '----------------------------------------------------------'
 
 To layer a variable frame, do the same but with '*' instead. In this example 
-the frame f will be layered on top of both frames with '*' marking (0, 0) 
-of 'f'.
+the frame f will be layered on top of both frames, with '*' marking (0, 0) 
+of f.
 
     .----------------------------------------------------------.
     | define dragon_tail of_type fn frame video as             |
@@ -394,7 +394,7 @@ of 'f'.
     |  \   ).6|||6(   / 6|||6.                                 |
     |   ) / ..6|6. \ (  .6|6..                                 |
     |  ( /  .6|6..  \ ) ..6|6.                                 |
-    |   f   ..*...   f  ...*..                                 |
+    |   F   ..*...   F  ...*..                                 |
     '----------------------------------------------------------'
 
 note that the character type contains the color as well as the character. Here

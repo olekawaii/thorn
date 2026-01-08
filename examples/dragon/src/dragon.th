@@ -8,23 +8,25 @@
 include core std video
 
 define dragon of_type video as layer
-    layer entirely move_by neg vi pos iii center_head layer 
+    layer 
+        entirely move_by neg vi pos iii center_head
         right_half 
+    layer
         for vi rotate entirely shift west entirely flip_over_y right_half
-    entirely move_by neg iii neg iv swinging_tail
+        entirely move_by neg iii neg iv swinging_tail
+
+define s of_type color as cyan
 
 define center_head of_type video as loop art xii ix
    )  (     ...7..7.....    )  (    ....7..7....     )  (   .....7..7...
-  ((__))    ..776677....   ((__))   ...776677...    ((__))  ....776677..
-  /o..o\    ..636636....   /o..o\   ...636636...    /o..o\  ....636636..
- ( -vv- )   .6|6776|6...  ( -vv- )  ..6|6776|6..   ( -vv- ) ...6|6776|6.
-  \ __. \   ..6|666|6...   ) __ (   ...6|66|6...   / .__ /  ...6|666|6..
-   )     \  ...6|||||6..  /      \  ..6||||||6..  /     (   ..6|||||6...
-  /       \ ..6|||||||6. /        \ .6||||||||6. /       \  .6|||||||6..
- '         ).6|||||||||6(          )6||||||||||6(         ` 6|||||||||6.
-          ' ..||||||||6.            .||||||||||. `          .6||||||||..
-
-define a of_type frame as head center_head
+  ((__))    ..77SS77....   ((__))   ...77SS77...    ((__))  ....77SS77..
+  /o..o\    ..S3SS3S....   /o..o\   ...S3SS3S...    /o..o\  ....S3SS3S..
+ ( -vv- )   .S|S77S|S...  ( -vv- )  ..S|S77S|S..   ( -vv- ) ...S|S77S|S.
+  \ __. \   ..S|SSS|S...   ) __ (   ...S|SS|S...   / .__ /  ...S|SSS|S..
+   )     \  ...S|||||S..  /      \  ..S||||||S..  /     (   ..S|||||S...
+  /       \ ..S|||||||S. /        \ .S||||||||S. /       \  .S|||||||S..
+ '         ).S|||||||||S(          )S||||||||||S(         ` S|||||||||S.
+          ' ..||||||||S.            .||||||||||. `          .S||||||||..
 
 define right_half of_type video as layer
     layer 
@@ -33,10 +35,6 @@ define right_half of_type video as layer
     layer 
         for ii rotate body 
         entirely move_by pos x pos i seq wing single new_frame 
-
-define right_head of_type video as layer
-    for ix rotate for xiv entirely shift east fire
-    seq blow roar
 
 define fire of_type video as art vii iii
        .......       .......       .......       .......       .......
@@ -50,28 +48,32 @@ define fire of_type video as art vii iii
        .......       .......
 
 define blow of_type video as loop extend art xiv iv
-  h__         ..*66.........  h__         ..*66.........
-  ( o`---~~^; ..6|366666666.  ( o`-.-~~^; ..6|366666666.
- /   -^V^V^V  .6|||6777777.. /     -^V^V  .6|||||67777..
-/  `-----.-'  6||666666666../  `-----.-'  6||666666666..
-  h__         ..*66.........  h__         ..*66.........
-  ( o`._,~~^; ..6|366666666.  ( -`.___,~^;..6|3666666666
- /    `  -^V  .6||||6||677.. /    )__   < .6||||666|||6.
-/  `---^-.-'  6||666666666../  `-'   `.-' 6||666...6666.
+  H__         ..*SS.........  H__         ..*SS.........
+  ( o`---~~^; ..S|3SSSSSSSS.  ( o`-.-~~^; ..S|3SSSSSSSS.
+ /   -^V^V^V  .S|||S777777.. /     -^V^V  .S|||||S7777..
+/  `-----.-'  S||SSSSSSSSS../  `-----.-'  S||SSSSSSSSS..
+  H__         ..*SS.........  H__         ..*SS.........
+  ( o`._,~~^; ..S|3SSSSSSSS.  ( -`.___,~^;..S|3SSSSSSSSS
+ /    `  -^V  .S||||S||S77.. /    )__   < .S||||SSS|||S.
+/  `---^-.-'  S||SSSSSSSSS../  `-'   `.-' S||SSS...SSSS.
 
 define roar of_type video as entirely by ii shift south loop art xiii vi
-  h__        ..*66........  h__        ..*66........  h__        ..*66........
-  ( o`---~~^;..6|366666666  ( o`---~~^;..6|366666666  ( o`---~~^;..6|366666666
- /   -^V^V^V .6|||6777777. /    /V`V`V .6||||677777. /    /V`V`V .6||||677777.
-/  `-----.-' 6||666666666./  \  \,A,A. 6||6||677777./    (       6||||6.......
-  /          ||6..........  / `----.-' ||6.66666666.   \  \,A,A. |||6||677777.
-             .............             .............    `----.-' ....66666666.
+  H__        ..*SS........  H__        ..*SS........  H__        ..*SS........
+  ( o`---~~^;..S|3SSSSSSSS  ( o`---~~^;..S|3SSSSSSSS  ( o`---~~^;..S|3SSSSSSSS
+ /   -^V^V^V .S|||S777777. /    /V`V`V .S||||S77777. /    /V`V`V .S||||S77777.
+/  `-----.-' S||SSSSSSSSS./  \  \,A,A. S||S||S77777./    (       S||||S.......
+  /          ||S..........  / `----.-' ||S.SSSSSSSS.   \  \,A,A. |||S||S77777.
+             .............             .............    `----.-' ....SSSSSSSS.
+
+define right_head of_type video as layer
+    for ix rotate for xiv entirely shift east fire
+    seq blow roar
 
 define swinging_tail of_type video as art vi iv
- \   ).6|||6(   / 6|||6.
-  ) / ..6|6. \ (  .6|6..
- ( /  .6|6..  \ ) ..6|6.
-  V   ..6...   V  ...6..
+ \   ).S|||S(   / S|||S.
+  ) / ..S|S. \ (  .S|S..
+ ( /  .S|S..  \ ) ..S|S.
+  V   ..S...   V  ...S..
 
 define wing of_type video as art xi iv
 /\         22.........  /T\.     ..2222.....           ...........
@@ -80,18 +82,18 @@ define wing of_type video as art xi iv
     `      ....2......       ``"\.......2222__ _       22.2.......
 
 define body of_type video as for ii extend art x vii
-     /  / .....6||6.     /  / .....6||6.
-_..-   /  6666|||6.._..-   (  6666|||6..
-      (   ||||||6...        \ ||||||||6.
-       \  |||||||6..         )|||||||||6
-        ) ||||||||6.        / ||||||||6.
-       /  |||||||6..       /  |||||||6..
-_.-'  '   6666||6..._.-'  '   6666||6...
+     /  / .....S||S.     /  / .....S||S.
+_..-   /  SSSS|||S.._..-   (  SSSS|||S..
+      (   ||||||S...        \ ||||||||S.
+       \  |||||||S..         )|||||||||S
+        ) ||||||||S.        / ||||||||S.
+       /  |||||||S..       /  |||||||S..
+_.-'  '   SSSS||S..._.-'  '   SSSS||S...
 
 define h of_type frame as by ii shift west head art iii ii
 .  7..
  ),.77
 
 define foot of_type video as art v ii
-\ (  6|6..) /  6|6..
- )_nm.6666|_nm 6666.
+\ (  S|S..) /  S|S..
+ )_nm.SSSS|_nm SSSS.
