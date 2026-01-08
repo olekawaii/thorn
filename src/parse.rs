@@ -972,12 +972,13 @@ fn build_tokens_from_art(
             for ((x, y), (c1, c2)) in line.into_iter() {
                 frame_buffer.push(build_token("cons_row", &mark));
                 let c1_char = c1.value;
-                let c2_char = c2.value;
+                let c2_char = c2.value.to_ascii_lowercase();
                 if c1_char == ' ' && c2_char == '.' {
                     frame_buffer.push(build_token("empty_grid_cell", &mark));
                     continue;
                 }
                 if c2_char == '*' {
+                    let s = String::from(c1_char.to_ascii_lowercase());
                     frame_buffer.push(build_token("empty_grid_cell", &mark));
                     frame_commands.push(build_token("layer_frames", &mark));
                     frame_commands.push(build_token("move_by", &mark));
@@ -1001,7 +1002,6 @@ fn build_tokens_from_art(
                             frame_commands.push(build_token("one", &mark));
                         }
                     }
-                    let s = String::from(c1_char);
                     frame_commands.push(build_token(&s, &c1.mark));
                     continue;
                 }
@@ -1011,7 +1011,7 @@ fn build_tokens_from_art(
                     (' ', '|') => frame_buffer.push(build_token("space", &c1.mark)),
                     (_, '.') | (_, '|') => return Err(make_error(CompilationError::TranspOnChar, c2.mark)),
                     (c1_char, '$') => {
-                        let s = String::from(c1_char);
+                        let s = String::from(c1_char.to_ascii_lowercase());
                         frame_buffer.push(build_token(&s, &c1.mark));
                     }
                     (c1_char, c2_char) => {
