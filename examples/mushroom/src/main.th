@@ -1,23 +1,19 @@
 include std video
                                                      
-define main of_type bad_video as into_video single layer_frames 
-    move_by pos xi pos iv title
-    layer_frames big_mushroom by x shift east small_mushroom 
-
-define big_mushroom of_type frame as head art xiii viii
+define main of_type bad_video as into_video art xiii viii
   __c__,___  ..117117111..
 (_c__O_/\_3_)1171171111711
        .     .....||7.....
-     | |     .....7|7.....
+     | |   t .....7|7...#.
     / __\    ....7|777....
        .     .....||7.....
      | |     .....7|7.....
-     | |     .....7|7.....
+     | |  s  .....7|7..&..
 
-define small_mushroom of_type frame as head art vi iii
+define s of_type video as art vi iii
  .__  .711..
 (__o_)111711
  (  ) .7||7.
 
-define title of_type frame as head art xii i
+define t of_type frame as head art xii i
 thorn v0.1.077777.777777

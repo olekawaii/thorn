@@ -114,6 +114,8 @@ define rotate of_type fn video video as
         prepend head tail  to seq tail single head
         single head        to single head
 
+define rotate_right of_type fn video video as lambda x reverse rotate reverse x
+
 -- continuously f applies the function f to every frame n times where n is
 -- the index of the frame
 

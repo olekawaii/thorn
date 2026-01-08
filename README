@@ -352,6 +352,19 @@ Every frame is made up of who rectangles, one with the ascii art and the
 other with the corresponding colors. Colors 0..7 correspond to ANSI colors
 black..white, '.' marks transparency, and '|' marks a space.
 
+You can also have a '%' marked '.' or '|' to change (0, 0) to that location 
+
+    .----------------------------------------------------------.
+    | define box of_type video as art vii v                    |
+    | +-----+7777777  .^.  ..777..                             |
+    | |     |7.....7 /   \ .7...7.                             |
+    | |  %  |7.....7<     >7.....7                             |
+    | |     |7.....7 \   / .7...7.                             |
+    | +-----+7777777  `v'  ..777..                             |
+    '----------------------------------------------------------'
+
+Now this box animation is centered at (0, 0)
+
 There is also special syntax for including local/global variables in the
 art. 
 
@@ -384,7 +397,7 @@ you can have a custom tail tip for example:
     |   T   ..$...   T  ...$..                                 |
     '----------------------------------------------------------'
 
-To layer a variable frame, do the same but with '*' instead. In this example 
+To layer a variable frame, do the same but with '#' instead. In this example 
 the frame f will be layered on top of both frames, with '*' marking (0, 0) 
 of f.
 
@@ -394,16 +407,36 @@ of f.
     |  \   ).6|||6(   / 6|||6.                                 |
     |   ) / ..6|6. \ (  .6|6..                                 |
     |  ( /  .6|6..  \ ) ..6|6.                                 |
-    |   F   ..*...   F  ...*..                                 |
+    |   F   ..#...   F  ...#..                                 |
     '----------------------------------------------------------'
 
-note that the character type contains the color as well as the character. Here
-is the implementation in core.th
+To layer a variable video, do the same but with '&' instead.
 
     .----------------------------------------------------------.
-    | type character contains                                  |
-    |     space                                                |
-    |     char visible_character color                         |
+    | define dragon_tail of_type fn video video as             |
+    |     lambda x art vi iv                                   |
+    |  \   ).6|||6(   / 6|||6.                                 |
+    |   ) / ..6|6. \ (  .6|6..                                 |
+    |  ( /  .6|6..  \ ) ..6|6.                                 |
+    |   V   ..6...   X  ...&..                                 |
+    '----------------------------------------------------------'
+                           ^
+It does several things:
+    - moves the variable video to the correct location to allign its (0,0) with &
+    - rotates it until its first frame starts at the frame it was called in
+    - layers it with the main video
+
+The above example is equivelent to 
+
+    .----------------------------------------------------------.
+    | define dragon_tail of_type fn video video as             |
+    |     lambda x layer                                       |
+    |         rotate entirely by iii shift east x              |
+    |         art vi iv                                        |
+    |  \   ).6|||6(   / 6|||6.                                 |
+    |   ) / ..6|6. \ (  .6|6..                                 |
+    |  ( /  .6|6..  \ ) ..6|6.                                 |
+    |   V   ..6...      ......                                 |
     '----------------------------------------------------------'
 
 You can see how the video type is implemented in the core.th and there are
