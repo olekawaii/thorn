@@ -160,7 +160,7 @@ fn parse_pattern_helper(
 fn is_used(expression: &Expression, id: u32) -> bool {
     match expression {
         Expression::Undefined { .. } => true,
-        Expression::Lambda { body, .. } => is_used(&*body, id),
+        Expression::Lambda { body, .. } => is_used(body, id),
         Expression::Tree {root, arguments} => {
             if is_used(root, id) { return true }
             for i in arguments.iter() {
@@ -172,7 +172,7 @@ fn is_used(expression: &Expression, id: u32) -> bool {
         }
         Expression::LocalVarPlaceholder(x) => *x == id,
         Expression::Match { matched_on, branches } => {
-            if is_used(&*matched_on, id) { 
+            if is_used(matched_on, id) { 
                 return true 
             }
             for (_pattern, expr) in branches.iter() {
@@ -845,7 +845,7 @@ pub fn tokenize(
     ]);
     let mut output = Vec::new();
     let mut current_indentation: Option<u32> = None;
-    let mut block = input.into_iter();
+    let mut block = input.into_iter().peekable();
     'lines: while let Some((line_number, line)) = block.next() {
         let indentation = indentation_length(&line);
         if indentation % INDENTATION != 0 {
@@ -857,7 +857,7 @@ pub fn tokenize(
                 word_index: Index::Art(indentation as usize - 1),
             }))
         }
-        if current_indentation.is_none() {
+        //if current_indentation.is_none() {
             output.push(Marked::<Token> {
                 mark: Mark {
                     file_name: Rc::clone(&file_name),
@@ -868,11 +868,10 @@ pub fn tokenize(
                 },
                 value: Token::NewLine(indentation),
             });
-            current_indentation = Some(indentation)
-        }
-        let mut words = line.split_whitespace();
-        let mut word_index: usize = 0;
-        'words: while let Some(word) = words.next() {
+            current_indentation = Some(indentation);
+        //}
+        let mut words = line.split_whitespace().enumerate();
+        'words: while let Some((word_index, word)) = words.next() {
             let mark: Mark = Mark {
                 file_name: Rc::clone(&file_name),
                 file: Rc::clone(&file),
@@ -883,7 +882,7 @@ pub fn tokenize(
             match word {
                 "--" => break 'words,
                 "art" => {
-                    let Some(x) = words.next() else { return Err(make_error(
+                    let Some((word_index, x)) = words.next() else { return Err(make_error(
                         CompilationError::ArtMissingArgs,
                         Mark { word_index: Index::EndOfWord(word_index), ..mark }
                     ))};
@@ -891,7 +890,7 @@ pub fn tokenize(
                         CompilationError::ExpectedRoman, 
                         Mark { word_index: Index::Expression(word_index + 1), ..mark }
                     ))};
-                    let Some(y) = words.next() else { return Err(make_error(
+                    let Some((word_index, y)) = words.next() else { return Err(make_error(
                         CompilationError::ArtMissingArgs,
                         Mark { word_index: Index::EndOfWord(word_index), ..mark }
                     ))};
@@ -899,11 +898,22 @@ pub fn tokenize(
                         CompilationError::ExpectedRoman,
                         Mark { word_index: Index::Expression(word_index + 2), ..mark }
                     ))};
-                    let art: Vec<(usize, Vec<(usize, char)>)> = block
-                        .map(|(index, line)| (index, line.chars().enumerate().collect()))
-                        .collect();
+                    let mut art_indentation = if indentation == 0 {
+                        0
+                    } else {
+                        indentation + INDENTATION
+                    };
+                    let mut art_lns: Vec<(usize, Vec<(usize, char)>)> = Vec::new();
+                    while let Some((_, x)) = block.peek() && indentation_length(x) >= art_indentation {
+                        let (line_num, x) = block.next().unwrap();
+                        let mut art_chars = x.chars().enumerate();
+                        for _ in 0 .. art_indentation {
+                            art_chars.next();
+                        }
+                        art_lns.push((line_num, art_chars.collect()))
+                    }
                     let mut new_output = Vec::new();
-                    for (line_index, line) in art.into_iter() {
+                    for (line_index, line) in art_lns.into_iter() {
                         let mut temp = Vec::new();
                         for (char_index, character) in line.into_iter() {
                             let marked_char = Marked::<char> {
@@ -919,8 +929,9 @@ pub fn tokenize(
                         new_output.push(temp);
                     }
                     let aaa = parse_art(x as usize, y as usize, new_output, mark.clone())?;
-                    build_tokens_from_art(mark, aaa)?.for_each(|x| output.push(x));
-                    break 'lines;
+                    build_tokens_from_art(mark, aaa)?.into_iter().for_each(|x| {
+                        output.push(x)
+                    });
                 }
                 other => output.push(Marked::<Token> {
                     mark: mark.clone(),
@@ -938,8 +949,7 @@ pub fn tokenize(
                     },
                 }),
             }
-            word_index += 1;
-            current_indentation = None;
+            //current_indentation = None;
         }
     }
     Ok(new_tokenstream(output))
@@ -956,34 +966,34 @@ type Cells = Vec<((u32, u32), (Marked<char>, Marked<char>))>;
 
 fn build_nat(n: u32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) {
     for _ in 0 .. n - 1 {
-        buffer.push(build_token("succ", &mark));
+        buffer.push(build_token("succ", mark));
     }
-    buffer.push(build_token("one", &mark));
+    buffer.push(build_token("one", mark));
 }
 
 fn build_int(n: i32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) {
     match n.cmp(&0) {
         std::cmp::Ordering::Equal => {
-            buffer.push(build_token("zero", &mark));
+            buffer.push(build_token("zero", mark));
             return
         }
-        std::cmp::Ordering::Less => buffer.push(build_token("neg", &mark)),
-        std::cmp::Ordering::Greater => buffer.push(build_token("pos", &mark)),
+        std::cmp::Ordering::Less => buffer.push(build_token("neg", mark)),
+        std::cmp::Ordering::Greater => buffer.push(build_token("pos", mark)),
     }
-    build_nat(n.abs() as u32, buffer, mark);
+    build_nat(n.unsigned_abs(), buffer, mark);
 }
 
 fn build_shift_by(x: i32, y: i32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) {
-    buffer.push(build_token("shift_by", &mark));
-    build_int(x, buffer, &mark);
-    build_int(y, buffer, &mark);
+    buffer.push(build_token("shift_by", mark));
+    build_int(x, buffer, mark);
+    build_int(y, buffer, mark);
 }
 
 
 fn build_tokens_from_art(
     mark: Mark,
     input: Vec<Vec<Cells>>,
-) -> Result<TokenStream> {
+) -> Result<Vec<Marked<Token>>> {
     let mut video_commands = Vec::new();
     let mut output = Vec::new();
     for (index, i) in input.into_iter().enumerate() {
@@ -1006,8 +1016,8 @@ fn build_tokens_from_art(
                         'O' | 'Y' | 'X' => {
                             video_commands.push(build_token("entirely", &mark));
                             build_shift_by(
-                                if matches!(c1_char, 'Y' | 'O') {x as i32 * -1} else { 0 }, 
-                                if matches!(c1_char, 'X' | 'O') {y as i32 * -1} else { 0 }, 
+                                if matches!(c1_char, 'Y' | 'O') {-(x as i32)} else { 0 }, 
+                                if matches!(c1_char, 'X' | 'O') {-(y as i32)} else { 0 }, 
                                 &mut video_commands, &mark
                             );
                         }
@@ -1155,7 +1165,7 @@ fn build_tokens_from_art(
             _ => i -= 1
         }
     }
-    Ok(new_tokenstream(output))
+    Ok(output)
 }
 
 fn indentation_length(input: &str) -> u32 {
