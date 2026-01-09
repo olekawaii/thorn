@@ -973,8 +973,8 @@ fn build_int(n: i32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) {
     build_nat(n.abs() as u32, buffer, mark);
 }
 
-fn build_move_by(x: i32, y: i32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) {
-    buffer.push(build_token("move_by", &mark));
+fn build_shift_by(x: i32, y: i32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) {
+    buffer.push(build_token("shift_by", &mark));
     build_int(x, buffer, &mark);
     build_int(y, buffer, &mark);
 }
@@ -1003,9 +1003,13 @@ fn build_tokens_from_art(
                 if matches!((c1_char, c2_char), (_, '.') | (_, '|')) {
                     match c1_char {
                         ' ' => (),
-                        '%' => {
+                        'O' | 'Y' | 'X' => {
                             video_commands.push(build_token("entirely", &mark));
-                            build_move_by(x as i32 * -1, y as i32 * -1, &mut video_commands, &mark);
+                            build_shift_by(
+                                if matches!(c1_char, 'Y' | 'O') {x as i32 * -1} else { 0 }, 
+                                if matches!(c1_char, 'X' | 'O') {y as i32 * -1} else { 0 }, 
+                                &mut video_commands, &mark
+                            );
                         }
                         _ => return Err(make_error(CompilationError::TranspOnChar, c2.mark)),
                     }
@@ -1020,7 +1024,7 @@ fn build_tokens_from_art(
                         video_commands.push(build_token("rotate_right", &mark));
                     }
                     video_commands.push(build_token("entirely", &mark));
-                    build_move_by(x as i32, y as i32, &mut video_commands, &mark);
+                    build_shift_by(x as i32, y as i32, &mut video_commands, &mark);
                     video_commands.push(build_token(&s, &c1.mark));
                     continue;
                 }
@@ -1032,7 +1036,7 @@ fn build_tokens_from_art(
                     let s = String::from(c1_char.to_ascii_lowercase());
                     frame_buffer.push(build_token("empty_grid_cell", &mark));
                     frame_commands.push(build_token("layer_frames", &mark));
-                    build_move_by(x as i32, y as i32, &mut frame_commands, &mark);
+                    build_shift_by(x as i32, y as i32, &mut frame_commands, &mark);
                     frame_commands.push(build_token(&s, &c1.mark));
                     continue;
                 }

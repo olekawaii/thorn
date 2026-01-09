@@ -1,4 +1,5 @@
-thorn is pure lazy functional programming language for making ascii art animations
+thorn is pure lazy functional programming language for making ascii art 
+animations
 
 check out some examples in the examples/ directory.
 
@@ -352,18 +353,41 @@ Every frame is made up of who rectangles, one with the ascii art and the
 other with the corresponding colors. Colors 0..7 correspond to ANSI colors
 black..white, '.' marks transparency, and '|' marks a space.
 
-You can also have a '%' marked '.' or '|' to change (0, 0) to that location 
+You can also have a O|Y|X marked '.' or '|' to change (0, 0) to that location 
 
     .----------------------------------------------------------.
     | define box of_type video as art vii v                    |
     | +-----+7777777  .^.  ..777..                             |
     | |     |7.....7 /   \ .7...7.                             |
-    | |  %  |7.....7<     >7.....7                             |
+    | |  O  |7.....7<     >7.....7                             |
+    | |     |7.....7 \   / .7...7.                             |
+    | +-----+7777777  `v'  ..777..                             |
+    '----------------------------------------------------------'
+or
+
+    .----------------------------------------------------------.
+    | define box of_type video as art vii v                    |
+    | +-----+7777777  .^.  ..777..                             |
+    | |  Y  |7.....7 /   \ .7...7.                             |
+    | |    X|7.....7<     >7.....7                             |
     | |     |7.....7 \   / .7...7.                             |
     | +-----+7777777  `v'  ..777..                             |
     '----------------------------------------------------------'
 
-Now this box animation is centered at (0, 0)
+Now this box animation is centered at (0, 0). Before, (0, 0) was the bottom 
+left corner.
+
+These are equivelent to this code
+
+    .----------------------------------------------------------.
+    | define box of_type video as                              |
+    |     entirely move_by pos iii pos ii art vii v            |
+    | +-----+7777777  .^.  ..777..                             |
+    | |     |7.....7 /   \ .7...7.                             |
+    | |     |7.....7<     >7.....7                             |
+    | |     |7.....7 \   / .7...7.                             |
+    | +-----+7777777  `v'  ..777..                             |
+    '----------------------------------------------------------'
 
 There is also special syntax for including local/global variables in the
 art. 
@@ -422,9 +446,9 @@ To layer a variable video, do the same but with '&' instead.
     '----------------------------------------------------------'
                            ^
 It does several things:
-    - moves the variable video to the correct location to allign its (0,0) with &
+    - moves the variable video to allign its (0,0) with &
     - rotates it until its first frame starts at the frame it was called in
-    - layers it with the main video
+    - layers it with the main video, adjusting the length of both videos
 
 The above example is equivelent to 
 
