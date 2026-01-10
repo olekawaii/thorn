@@ -256,7 +256,7 @@ impl Expression {
             x.simplify();
             match x {
                 Expression::Tree { root, arguments, .. } => {
-                    arguments.into_iter().rev().for_each(|x| to_evaluate.push(x));
+                    to_evaluate.extend(arguments.into_iter().rev());
                     to_evaluate.push(*root);
                 }
                 Expression::DataConstructor(id) => {

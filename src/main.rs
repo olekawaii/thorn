@@ -52,13 +52,18 @@ fn main() -> std::io::Result<()> {
     let mut marked_args = marked_args.into_iter();
     let _executable = marked_args.next().unwrap();
     let file_name = marked_args.next().unwrap();
-    match parse_file(file_name) {
+    let main_name = marked_args
+        .next()
+        .map(|x| x.value)
+        .unwrap_or(String::from("main"));
+    let mut numbor_of_vars = 0;
+    match parse_file(&mut numbor_of_vars, file_name) {
         Err(x) => {
             eprintln!("{x}");
             std::process::exit(1)
         }
         Ok((vars, vars_dummy)) => {
-            let main = build_monolithic_expression(vars, &vars_dummy);
+            let main = build_monolithic_expression(vars, &vars_dummy, &main_name);
             let mut map = HashMap::new();
             for (name, (index, _, _)) in vars_dummy {
                 map.insert(index as u32, name);
@@ -77,6 +82,7 @@ fn main() -> std::io::Result<()> {
 fn build_monolithic_expression(
     vec: Vec<Expression>,
     vars_dummy: &HashMap<String, (usize, Type, bool)>,
+    name: &str,
 ) -> Expression {
     let expressions: Vec<Rc<Mutex<Expression>>> =
         vec.into_iter().map(|x| Rc::new(Mutex::new(x))).collect();
@@ -84,7 +90,7 @@ fn build_monolithic_expression(
         let ptr = &mut (**i).lock().unwrap();
         monolithic_helper(&expressions, ptr)
     }
-    let (main_index, _, _) = vars_dummy.get("main").expect("no main");
+    let (main_index, _, _) = vars_dummy.get(name).expect("requested function does not exist (usually main)");
     (*expressions[*main_index]).lock().unwrap().clone()
 }
 
