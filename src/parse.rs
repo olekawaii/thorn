@@ -35,7 +35,7 @@ type GlobalVars = HashMap<String, (usize, Type, bool)>;
 
 static TYPES: Mutex<Option<HashMap<String, u32>>> = Mutex::new(None);
 
-pub fn parse_file( file_name: Marked<String>,) -> Result<(Vec<Expression>, GlobalVars)> {
+pub fn parse_file(number_of_values: &mut usize, file_name: Marked<String>,) -> Result<(Vec<Expression>, GlobalVars)> {
     let mut temp_vec = HashSet::new();
     let blocks = get_tokens(file_name, &mut temp_vec)?;
     let (type_blocks, values): (Vec<(Signiture, TokenStream)>, _) = blocks
@@ -61,19 +61,18 @@ pub fn parse_file( file_name: Marked<String>,) -> Result<(Vec<Expression>, Globa
         let mut ptr = TYPES.lock().unwrap();
         *ptr = Some(types);
     }
-    let mut number_of_values = 0;
     let mut global_vars_dummy: GlobalVars = HashMap::new();
     let mut global_vars: Vec<Expression> = Vec::with_capacity(data_blocks.len());
     let mut constructors: HashMap<u32, HashSet<usize>> = HashMap::new();
     for (tp, tokens) in data_blocks.into_iter() {
         let mut set = HashSet::new();
         for (num, (name, constructor_tp, name_mark)) in parse_data(tokens, tp)?.into_iter().enumerate() {
-            set.insert(number_of_values);
-            if global_vars_dummy.insert(name, (number_of_values, constructor_tp, true)).is_some() {
+            set.insert(*number_of_values);
+            if global_vars_dummy.insert(name, (*number_of_values, constructor_tp, true)).is_some() {
                 return Err(make_error(CompilationError::MultipleDeclorations, name_mark))
             }
-            number_of_values += 1;
-            global_vars.push(Expression::DataConstructor(num as u32));
+            global_vars.push(Expression::DataConstructor(*number_of_values as u32));
+            *number_of_values += 1;
         }
         constructors.insert(tp, set);
     }
@@ -81,11 +80,11 @@ pub fn parse_file( file_name: Marked<String>,) -> Result<(Vec<Expression>, Globa
     for (signiture, tokens) in values.into_iter() {
         let Signiture::Value(name, name_mark, mut type_tokens) = signiture else { unreachable!() };
         let tp = parse_type(&mut type_tokens)?;
-        if global_vars_dummy.insert(name, (number_of_values, tp.clone(), false)).is_some() {
+        if global_vars_dummy.insert(name, (*number_of_values, tp.clone(), false)).is_some() {
             return Err(make_error(CompilationError::MultipleDeclorations, name_mark))
         }
         vals.push((tp, tokens));
-        number_of_values += 1;
+        *number_of_values += 1;
     }
     for (tp, mut tokens) in vals.into_iter() {
         global_vars.push({
@@ -929,9 +928,7 @@ pub fn tokenize(
                         new_output.push(temp);
                     }
                     let aaa = parse_art(x as usize, y as usize, new_output, mark.clone())?;
-                    build_tokens_from_art(mark, aaa)?.into_iter().for_each(|x| {
-                        output.push(x)
-                    });
+                    output.extend( build_tokens_from_art(mark, aaa)?);
                 }
                 other => output.push(Marked::<Token> {
                     mark: mark.clone(),
