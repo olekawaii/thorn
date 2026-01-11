@@ -374,77 +374,82 @@ or
     | +-----+7777777  `v'  ..777..                             |
     '----------------------------------------------------------'
 
-Now this box animation is centered at (0, 0). Before, (0, 0) was the bottom 
-left corner.
+Now this box animation is centered at (0, 0). Before, (0, 0) was the 
+bottom left corner.
 
 These are equivelent to this code
 
     .----------------------------------------------------------.
     | define box of_type video as                              |
     |     entirely move_by pos iii pos ii art vii v            |
-    | +-----+7777777  .^.  ..777..                             |
-    | |     |7.....7 /   \ .7...7.                             |
-    | |     |7.....7<     >7.....7                             |
-    | |     |7.....7 \   / .7...7.                             |
-    | +-----+7777777  `v'  ..777..                             |
+    |         +-----+7777777  .^.  ..777..                     |
+    |         |     |7.....7 /   \ .7...7.                     |
+    |         |     |7.....7<     >7.....7                     |
+    |         |     |7.....7 \   / .7...7.                     |
+    |         +-----+7777777  `v'  ..777..                     |
     '----------------------------------------------------------'
 
-There is also special syntax for including local/global variables in the
-art. 
+Note that the indentation rules are different for art blocks. if the 
+indentation of the line with 'art' is zero, so is the art's indentation. 
+Otherwise it's the line's indentation + 4.
 
-To use a color variable you just replace the color number with the variable 
-name like so:
+Yes, the indentation length is hardcoded to 4. This makes multiple errors
+impossible and improves error messages.
+
+There is special syntax for including local/global variables in the
+art. To use a color variable you just replace the color number with the 
+variable name like so:
 
     .----------------------------------------------------------.
     | define dragon_tail of_type fn color video as             |
     |     lambda c art vi iv                                   |
-    |  \   ).C|||C(   / C|||C.                                 |
-    |   ) / ..C|C. \ (  .C|C..                                 |
-    |  ( /  .C|C..  \ ) ..C|C.                                 |
-    |   V   ..C...   V  ...C..                                 |
+    |          \   ).C|||C(   / C|||C.                         |
+    |           ) / ..C|C. \ (  .C|C..                         |
+    |          ( /  .C|C..  \ ) ..C|C.                         |
+    |           V   ..C...   V  ...C..                         |
     '----------------------------------------------------------'
 
 Now instead of the tail being hardcoded cyan, the calling function decides
 its color.
 
 To include a variable character, set the color to '$' and use the variable 
-name in the art section.
-
-you can have a custom tail tip for example:
+name in the art section. you can have a custom tail tip for example:
 
     .----------------------------------------------------------.
     | define dragon_tail of_type fn character video as         |
     |     lambda t art vi iv                                   |
-    |  \   ).6|||6(   / 6|||6.                                 |
-    |   ) / ..6|6. \ (  .6|6..                                 |
-    |  ( /  .6|6..  \ ) ..6|6.                                 |
-    |   T   ..$...   T  ...$..                                 |
+    |          \   ).6|||6(   / 6|||6.                         |
+    |           ) / ..6|6. \ (  .6|6..                         |
+    |          ( /  .6|6..  \ ) ..6|6.                         |
+    |           T   ..$...   T  ...$..                         |
     '----------------------------------------------------------'
 
+Note that the character type contains both the character and the color.
+
 To layer a variable frame, do the same but with '#' instead. In this example 
-the frame f will be layered on top of both frames, with '*' marking (0, 0) 
+the frame f will be layered on top of both frames, with '#' marking (0, 0) 
 of f.
 
     .----------------------------------------------------------.
     | define dragon_tail of_type fn frame video as             |
     |     lambda f art vi iv                                   |
-    |  \   ).6|||6(   / 6|||6.                                 |
-    |   ) / ..6|6. \ (  .6|6..                                 |
-    |  ( /  .6|6..  \ ) ..6|6.                                 |
-    |   F   ..#...   F  ...#..                                 |
+    |          \   ).6|||6(   / 6|||6.                         |
+    |           ) / ..6|6. \ (  .6|6..                         |
+    |          ( /  .6|6..  \ ) ..6|6.                         |
+    |           F   ..#...   F  ...#..                         |
     '----------------------------------------------------------'
 
 To layer a variable video, do the same but with '&' instead.
 
     .----------------------------------------------------------.
     | define dragon_tail of_type fn video video as             |
-    |     lambda x art vi iv                                   |
-    |  \   ).6|||6(   / 6|||6.                                 |
-    |   ) / ..6|6. \ (  .6|6..                                 |
-    |  ( /  .6|6..  \ ) ..6|6.                                 |
-    |   V   ..6...   X  ...&..                                 |
+    |     lambda f art vi iv                                   |
+    |          \   ).6|||6(   / 6|||6.                         |
+    |           ) / ..6|6. \ (  .6|6..                         |
+    |          ( /  .6|6..  \ ) ..6|6.                         |
+    |           V   ..6...   F  ...&..                         |
     '----------------------------------------------------------'
-                           ^
+                             ^
 It does several things:
     - moves the variable video to allign its (0,0) with &
     - rotates it until its first frame starts at the frame it was called in
@@ -457,13 +462,13 @@ The above example is equivelent to
     |     lambda x layer                                       |
     |         rotate entirely by iii shift east x              |
     |         art vi iv                                        |
-    |  \   ).6|||6(   / 6|||6.                                 |
-    |   ) / ..6|6. \ (  .6|6..                                 |
-    |  ( /  .6|6..  \ ) ..6|6.                                 |
-    |   V   ..6...      ......                                 |
+    |              \   ).6|||6(   / 6|||6.                     |
+    |               ) / ..6|6. \ (  .6|6..                     |
+    |              ( /  .6|6..  \ ) ..6|6.                     |
+    |               V   ..6...      ......                     |
     '----------------------------------------------------------'
 
-You can see how the video type is implemented in the core.th and there are
+You can see how the core types is implemented in the core.th and there are
 many useful functions in video.th
 
 
