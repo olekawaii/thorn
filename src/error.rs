@@ -124,3 +124,16 @@ pub fn show_mark(mark: Mark, message: &'static str) -> String {
         underline,
     )
 }
+
+#[derive(Debug, Clone)]
+pub struct Marked<T> {
+    pub value: T,
+    pub mark: Mark,
+}
+
+impl<T> Marked<T> {
+    pub fn destructure(self) -> (T, Mark) {
+        (self.value, self.mark)
+    }
+}
+

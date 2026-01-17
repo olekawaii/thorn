@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::error::{Error, ErrorType, Mark};
+use crate::error::{Error, ErrorType, Mark, Marked};
 use std::sync::{Arc, Mutex};
 use std::io;
 use std::io::Write;
@@ -29,10 +29,10 @@ pub enum Expression {
     },
     Match {
         matched_on:  Box<Expression>,
-        branches:    Vec<(Rc<Pattern>, Expression)>,
+        branches:    Vec<(Rc<Marked<Pattern>>, Expression)>,
     },
     Lambda {
-        pattern:     Rc<Pattern>,
+        pattern:     Rc<Marked<Pattern>>,
         body:        Box<Expression>,
     },
     Undefined(Box<Mark>),
@@ -149,10 +149,15 @@ impl Expression {
                             Expression::Tree { arguments, .. } => arguments.push(i),
                             Expression::Lambda { pattern, body } => {
                                 // assume the pattern matches
-                                if !matches_expression(pattern, &mut i) {
-                                    panic!()
+                                if !matches_expression(&pattern.value, &mut i) {
+                                    let error = Error {
+                                        error_type: Box::new(RuntimeError::UnmatchedPattern),
+                                        mark: pattern.mark.clone(),
+                                    };
+                                    eprintln!("{error}");
+                                    std::process::exit(1);
                                 }
-                                let map = match_on_expression(pattern, i);
+                                let map = match_on_expression(&pattern.value, i);
                                 body.substitute(&map);
                                 *self = std::mem::take(&mut *body);
                             }
@@ -171,9 +176,13 @@ impl Expression {
                     branches,
                 } => {
                     let mut found = false;
+                    let mut blame = None;
                     for (pat, mut new_expression) in branches.into_iter() {
-                        if matches_expression(&pat, &mut matched_on) {
-                            let map = match_on_expression(&pat, *matched_on);
+                        if blame.is_none() {
+                            blame = Some(pat.mark.clone());
+                        }
+                        if matches_expression(&(pat.value), &mut matched_on) {
+                            let map = match_on_expression(&pat.value, *matched_on);
                             new_expression.substitute(&map);
                             *self = new_expression;
                             found = true;
@@ -181,7 +190,12 @@ impl Expression {
                         }
                     }
                     if !found {
-                        panic!("partial pattern")
+                        let error = Error {
+                            error_type: Box::new(RuntimeError::UnmatchedPattern),
+                            mark: blame.unwrap(),
+                        };
+                        eprintln!("{error}");
+                        std::process::exit(1);
                     };
                 }
                 Expression::Undefined(mark) => {
@@ -283,11 +297,13 @@ impl Expression {
 enum RuntimeError {
     EvaluatedUndefined,
     // EvaluatedBottom,
+    UnmatchedPattern,
 }
 
 impl ErrorType for RuntimeError {
     fn gist(&self) -> &'static str {
         match self {
+            Self::UnmatchedPattern => "in this expression",
             Self::EvaluatedUndefined => "entered undefined code",
             // Self::EvaluatedBottom => "evaluated a bottom _|_",
         }
@@ -302,6 +318,7 @@ impl std::fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::EvaluatedUndefined => write!(f, "attempted to evaluate an undefined expression"),
+            Self::UnmatchedPattern => write!(f, "a value did not match the patterns"),
             // Self::EvaluatedBottom => write!(f, "attempted to evaluate a bottom expression"),
         }
     }
@@ -323,7 +340,8 @@ fn actually_optimize(input: &mut Expression) {
         Expression::Tree { arguments, .. } => {
             arguments.iter_mut().for_each(optimize_expression);
         }
-        Expression::Lambda { pattern, body } if matches!(**pattern, Pattern::Dropped) => optimize_expression(body),
+        Expression::Lambda { pattern, body } if matches!((**pattern).value, Pattern::Dropped) => 
+            optimize_expression(body),
         _ => (),
     }
 }
@@ -349,7 +367,7 @@ pub fn optimize_expression(input: &mut Expression) {
         //        }
         //    }
         //},
-        Expression::Lambda { pattern, body } if matches!(**pattern, Pattern::Dropped) => optimize_expression(body),
+        Expression::Lambda { pattern, body } if matches!((**pattern).value, Pattern::Dropped) => optimize_expression(body),
         Expression::Undefined { .. } => (),
         _ => (),
     }

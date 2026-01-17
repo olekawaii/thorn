@@ -353,13 +353,13 @@ Every frame is made up of who rectangles, one with the ascii art and the
 other with the corresponding colors. Colors 0..7 correspond to ANSI colors
 black..white, '.' marks transparency, and '|' marks a space.
 
-You can also have a O|Y|X marked '.' or '|' to change (0, 0) to that location 
+You can also have a X/Y/Z marked '.' or '|' to change (0, 0) to that location 
 
     .----------------------------------------------------------.
     | define box of_type video as art vii v                    |
     | +-----+7777777  .^.  ..777..                             |
     | |     |7.....7 /   \ .7...7.                             |
-    | |  O  |7.....7<     >7.....7                             |
+    | |  Z  |7.....7<     >7.....7                             |
     | |     |7.....7 \   / .7...7.                             |
     | +-----+7777777  `v'  ..777..                             |
     '----------------------------------------------------------'
