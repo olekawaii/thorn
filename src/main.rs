@@ -26,8 +26,8 @@ mod parse;
 mod runtime;
 
 use crate::{
-    error::{Mark, Index},
-    parse::{parse_file, Marked, Type},
+    error::{Mark, Index, Marked},
+    parse::{parse_file, Type},
     runtime::{Expression},
 };
 

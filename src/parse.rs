@@ -17,7 +17,7 @@
 // TODO generics
 // for_all a define id of_type fn a a as lambda x x
 
-use crate::error::{Error, ErrorType, Index, Mark};
+use crate::error::{Error, ErrorType, Index, Mark, Marked};
 use crate::runtime::{Expression, Pattern};
 use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
@@ -340,13 +340,17 @@ pub fn parse_expression(
                             global_vars, 
                             constructors
                         )?;
+                        expect_end(tokens)?;
                         for (_, (id, _tp, mark)) in local_vars_new.into_iter() {
                             if !is_used(&body, id) {
                                 return Err(make_error(CompilationError::NotUsed, mark))
                             }
                         }
                         Ok(Expression::Lambda {
-                            pattern: Rc::new(pattern),
+                            pattern: Rc::new(Marked::<Pattern> {
+                                value: pattern,
+                                mark: keyword_mark
+                            }),
                             body: Box::new(body),
                         })
                     }
@@ -410,7 +414,7 @@ pub fn parse_expression(
                 let (token, _mark) = next_token(tokens)?.destructure();
                 let Token::NewLine(indentation) = token else { panic!("no newline") };
                 let mut branch_tokens = get_with_indentation(tokens, indentation);
-                let mut branches: Vec<(Rc<Pattern>, Expression)> = Vec::with_capacity(branch_tokens.len());
+                let mut branches: Vec<(Rc<Marked<Pattern>>, Expression)> = Vec::with_capacity(branch_tokens.len());
                 let mut patterns = Vec::new();
                 for branch in branch_tokens.iter_mut() {
                     let (pattern, mark, local_vars_new, local_vars_count) = parse_pattern(
@@ -437,7 +441,13 @@ pub fn parse_expression(
                         }
                     }
                     patterns.push((pattern.clone(), mark));
-                    branches.push((Rc::new(pattern), body))
+                    branches.push((
+                        Rc::new(Marked::<Pattern> {
+                            value: pattern,
+                            mark: keyword_mark.clone()
+                        }), 
+                        body
+                    ))
                 }
                 //validate_patterns(patterns, constructors, global_vars, keyword_mark)?;
                 Ok(Expression::Match {
@@ -492,6 +502,7 @@ pub fn parse_expression(
                                 global_vars,
                                 constructors
                             )?;
+                            expect_end(&mut current_tokens)?;
                             output_args.push(next_arg);
                         }
                         break
@@ -583,6 +594,7 @@ pub fn parse_art(
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Keyword {
+    ForAll,
     Include,
     Lambda,
     Match,
@@ -599,30 +611,19 @@ pub enum Keyword {
 impl std::fmt::Display for Keyword {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Keyword::Include => write!(f, "include"),
-            Keyword::Lambda => write!(f, "lambda"),
-            Keyword::Match => write!(f, "match"),
-            Keyword::With => write!(f, "with"),
-            Keyword::Define => write!(f, "define"),
-            Keyword::OfType => write!(f, "of_type"),
-            Keyword::As => write!(f, "as"),
-            Keyword::To => write!(f, "to"),
-            Keyword::Type => write!(f, "type"),
-            Keyword::Contains => write!(f, "contains"),
-            Keyword::Undefined => write!(f, "undefined"),
+            Keyword::ForAll     => write!(f, "for_all"),
+            Keyword::Include    => write!(f, "include"),
+            Keyword::Lambda     => write!(f, "lambda"),
+            Keyword::Match      => write!(f, "match"),
+            Keyword::With       => write!(f, "with"),
+            Keyword::Define     => write!(f, "define"),
+            Keyword::OfType     => write!(f, "of_type"),
+            Keyword::As         => write!(f, "as"),
+            Keyword::To         => write!(f, "to"),
+            Keyword::Type       => write!(f, "type"),
+            Keyword::Contains   => write!(f, "contains"),
+            Keyword::Undefined  => write!(f, "undefined"),
         }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Marked<T> {
-    pub value: T,
-    pub mark: Mark,
-}
-
-impl<T> Marked<T> {
-    pub fn destructure(self) -> (T, Mark) {
-        (self.value, self.mark)
     }
 }
 
@@ -630,6 +631,7 @@ impl<T> Marked<T> {
 pub enum CompilationError {
     //RedundantPattern,
     //PartialPattern,
+    ConflictingAllignment,
     BadIndentation,
     TrailingCharacters,
     InvalidColor,
@@ -657,6 +659,7 @@ pub enum CompilationError {
 impl ErrorType for CompilationError {
     fn gist(&self) -> &'static str {
         match self {
+            Self::ConflictingAllignment => "conflicting allignment",
             Self::TrailingCharacters => "trailing characters",
             Self::KeywordNotFound(_) => "looking for keyword but reached the end",
             Self::BadIndentation => "indentation not divisible by four",
@@ -856,12 +859,12 @@ pub fn tokenize(
         ( "type",      Keyword::Type      ),
         ( "contains",  Keyword::Contains  ),
         ( "include",   Keyword::Include   ),
+        ( "for_all",   Keyword::ForAll    ),
         ( "...",       Keyword::Undefined ),
     ]);
     let mut output = Vec::new();
-    let mut current_indentation: Option<u32> = None;
     let mut block = input.into_iter().peekable();
-    'lines: while let Some((line_number, line)) = block.next() {
+    while let Some((line_number, line)) = block.next() {
         let indentation = indentation_length(&line);
         if indentation % INDENTATION != 0 {
             return Err(make_error(CompilationError::BadIndentation, Mark {
@@ -872,7 +875,6 @@ pub fn tokenize(
                 word_index: Index::Art(indentation as usize - 1),
             }))
         }
-        //if current_indentation.is_none() {
             output.push(Marked::<Token> {
                 mark: Mark {
                     file_name: Rc::clone(&file_name),
@@ -883,7 +885,6 @@ pub fn tokenize(
                 },
                 value: Token::NewLine(indentation),
             });
-            current_indentation = Some(indentation);
         //}
         let mut words = line.split_whitespace().enumerate();
         'words: while let Some((word_index, word)) = words.next() {
@@ -913,7 +914,7 @@ pub fn tokenize(
                         CompilationError::ExpectedRoman,
                         Mark { word_index: Index::Expression(word_index + 2), ..mark }
                     ))};
-                    let mut art_indentation = if indentation == 0 {
+                    let art_indentation = if indentation == 0 {
                         0
                     } else {
                         indentation + INDENTATION
@@ -962,7 +963,6 @@ pub fn tokenize(
                     },
                 }),
             }
-            //current_indentation = None;
         }
     }
     Ok(new_tokenstream(output))
@@ -997,6 +997,9 @@ fn build_int(n: i32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) {
 }
 
 fn build_shift_by(x: i32, y: i32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) {
+    if x == 0 && y == 0 {
+        return
+    }
     buffer.push(build_token("shift_by", mark));
     build_int(x, buffer, mark);
     build_int(y, buffer, mark);
@@ -1007,6 +1010,8 @@ fn build_tokens_from_art(
     mark: Mark,
     input: Vec<Vec<Cells>>,
 ) -> Result<Vec<Marked<Token>>> {
+    let mut x_shift = false;
+    let mut y_shift = false;
     let mut video_commands = Vec::new();
     let mut output = Vec::new();
     for (index, i) in input.into_iter().enumerate() {
@@ -1026,11 +1031,27 @@ fn build_tokens_from_art(
                 if matches!((c1_char, c2_char), (_, '.') | (_, '|')) {
                     match c1_char {
                         ' ' => (),
-                        'O' | 'Y' | 'X' => {
+                        'Z' | 'Y' | 'X' => {
                             video_commands.push(build_token("entirely", &mark));
                             build_shift_by(
-                                if matches!(c1_char, 'Y' | 'O') {-(x as i32)} else { 0 }, 
-                                if matches!(c1_char, 'X' | 'O') {-(y as i32)} else { 0 }, 
+                                if matches!(c1_char, 'Y' | 'Z') {
+                                    if x_shift {
+                                        return Err(make_error(CompilationError::ConflictingAllignment, c1.mark))
+                                    }
+                                    x_shift = true;
+                                    -(x as i32)
+                                } else { 
+                                    0 
+                                }, 
+                                if matches!(c1_char, 'X' | 'Z') {
+                                    if y_shift {
+                                        return Err(make_error(CompilationError::ConflictingAllignment, c1.mark))
+                                    }
+                                    y_shift = true;
+                                    -(y as i32)
+                                } else {
+                                    0
+                                },
                                 &mut video_commands, &mark
                             );
                         }
