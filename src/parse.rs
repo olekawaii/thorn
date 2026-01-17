@@ -90,8 +90,7 @@ pub fn parse_file(number_of_values: &mut usize, file_name: Marked<String>,) -> R
         global_vars.push({
             let mut e = parse_expression(
                 tp, 
-                &mut 
-                tokens, 
+                &mut tokens, 
                 HashMap::new(), 
                 0, 
                 &global_vars_dummy, 
@@ -99,7 +98,8 @@ pub fn parse_file(number_of_values: &mut usize, file_name: Marked<String>,) -> R
             )?;
             optimize_expression(&mut e);
             e
-        })
+        });
+        expect_end(&mut tokens)?;
     }
     Ok((global_vars, global_vars_dummy))
 }
@@ -406,6 +406,7 @@ pub fn parse_expression(
                     global_vars, 
                     constructors
                 )?;
+                expect_end(&mut matched_on_tokens)?;
                 let (token, _mark) = next_token(tokens)?.destructure();
                 let Token::NewLine(indentation) = token else { panic!("no newline") };
                 let mut branch_tokens = get_with_indentation(tokens, indentation);
@@ -429,6 +430,7 @@ pub fn parse_expression(
                         global_vars, 
                         constructors
                     )?;
+                    expect_end(branch)?;
                     for (_, (id, _tp, mark)) in local_vars_new.into_iter() {
                         if !is_used(&body, id) {
                             return Err(make_error(CompilationError::NotUsed, mark))
@@ -629,6 +631,7 @@ pub enum CompilationError {
     //RedundantPattern,
     //PartialPattern,
     BadIndentation,
+    TrailingCharacters,
     InvalidColor,
     NotUsed,
     ExpectedMoreArguments,
@@ -654,6 +657,7 @@ pub enum CompilationError {
 impl ErrorType for CompilationError {
     fn gist(&self) -> &'static str {
         match self {
+            Self::TrailingCharacters => "trailing characters",
             Self::KeywordNotFound(_) => "looking for keyword but reached the end",
             Self::BadIndentation => "indentation not divisible by four",
             Self::NotUsed => "local variable never used",
@@ -688,6 +692,7 @@ impl ErrorType for CompilationError {
 impl std::fmt::Display for CompilationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::TrailingCharacters => write!(f, "expected an end to the expression"),
             Self::KeywordNotFound(k) => write!(
                 f, 
                 "expected to find the \x1b[97m{k}\x1b[90m keyword but reached the end"
@@ -738,6 +743,17 @@ pub enum Token {
 }
 
 pub type TokenStream = std::iter::Peekable<std::vec::IntoIter<Marked<Token>>>;
+
+fn expect_end(tokens: &mut TokenStream) -> Result<()> {
+    if let Some((token, mark)) = tokens.next().map(|x| x.destructure()) {
+        match token {
+            Token::EndOfBlock => (),
+            Token::NewLine(_) => return expect_end(tokens),
+            _ => return Err(make_error(CompilationError::TrailingCharacters, mark)),
+        }
+    }
+    Ok(())
+}
 
 fn new_tokenstream(mut tokens: Vec<Marked<Token>>) -> TokenStream {
     let mut last_mark = tokens[tokens.len() - 1].mark.clone();

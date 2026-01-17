@@ -180,7 +180,7 @@ define layer_frames of_type fn frame fn frame frame as
             layer_columns pa pb
 
 define new_frame of_type frame as
-    frame empty_column empty_column empty_horizontal
+    frame empty_column empty_column
 
 -- shift d shifts the coordinates of the frame in the direction d
 
