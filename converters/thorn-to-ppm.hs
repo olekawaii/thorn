@@ -18,8 +18,6 @@ import Debug.Trace
 
 import Parse
 
-fontWidth  = 9
-fontHeight = 14
 padding     = 20
 
 showNum :: Int -> String
@@ -38,8 +36,8 @@ main =
     readFile "font" >>= pure . parseFontFile >>= \(font, fwidth, fheight) ->
     getVideo >>= \(width, height, newGif) ->
     let 
-        horizontalPixels = width  * fontWidth  + padding * 2 
-        verticalPixels   = height * fontHeight + padding * 2 
+        horizontalPixels = width  * fwidth  + padding * 2 
+        verticalPixels   = height * fheight + padding * 2 
         gifFrames = map (flip (pipelineGif font fwidth fheight) horizontalPixels) newGif 
         header = "P3\n" <> show (horizontalPixels) <> " " <> show (verticalPixels) <> "\n255\n"
     in
