@@ -97,10 +97,7 @@ define slow of_type fn nat fn video video as
 
 -- for n f v applies f to v n times
 
-define for of_type fn nat fn fn video video fn video video as
-    lambda counter lambda fn match counter with
-        succ a  to compose for a fn fn
-        one     to fn
+define for of_type fn nat fn fn video video fn video video as repeat video
 
 define loop_video_forever of_type fn video video as
     lambda x sequence x loop_video_forever x
@@ -112,10 +109,8 @@ define rotate of_type fn video video as
         prepend head tail  to sequence tail single head
         single head        to single head
 
-define append of_type fn frame fn video video as lambda x flip sequence single x
-
-define flip of_type fn fn video fn video video fn video fn video video as
-    lambda f lambda a lambda b f b a
+define append of_type fn frame fn video video as 
+    lambda x flip video video video sequence single x
 
 define rotate_right of_type fn video video as lambda x reverse rotate reverse x
 
@@ -127,32 +122,27 @@ define continuously of_type fn fn frame frame fn video video as
         single head       to single head
         prepend head tail to prepend head continuously f tail
 
-define compose of_type fn fn video video fn fn video video fn video video as
-    lambda g lambda f lambda x g f x
-
 -- frame functions -------------------------------------------------------------
 
 
 -- same as for but for frames
 
-define by of_type fn nat fn fn frame frame fn frame frame as
-    lambda counter lambda fn lambda f match counter with
-        succ a  to by a fn fn f
-        one     to fn f
-
+define by of_type fn nat fn fn frame frame fn frame frame as repeat frame
 
 -- shift_by x y shifts the frame by the x and y values
+
+for_all a define identity of_type fn a a as lambda x x
 
 define shift_by of_type fn int fn int fn frame frame as 
     lambda x lambda y lambda f match of_type fn frame frame match x with
             pos a  to by a shift east
             neg a  to by a shift west
-            zero   to id_frame
+            zero   to identity frame
         with
             fa to match of_type fn frame frame match y with 
                     pos a to by a shift north
                     neg a to by a shift south
-                    zero  to id_frame
+                    zero  to identity frame
                 with
                     fb to fa fb f
 
@@ -272,27 +262,20 @@ define horizontal_to_frame of_type fn int fn horizontal bad_frame as
                 empty_row to empty_frame
                 cons_row x xs to match of_type fn bad_frame bad_frame 
                         match x with
-                            empty_grid_cell  to lambda x x
+                            empty_grid_cell  to identity bad_frame
                             full_grid_cell a to unsafe_cons_cell cell 
                                 coordinate zero y 
                                 a
                     with
                         f to f row_to_frame one y pos xs
 
-define apply_to_frame of_type
-    fn 
-        fn bad_frame bad_frame 
-        fn bad_frame bad_frame
-as
-    lambda f lambda x f x
-
 define row_to_frame of_type fn nat fn int fn fn nat int fn row bad_frame as
     lambda index lambda y lambda sign lambda r match r with
         empty_row           to empty_frame
         cons_row head tail  to
-            apply_to_frame
+            apply bad_frame bad_frame
                 match head with
-                    empty_grid_cell   to lambda x x
+                    empty_grid_cell   to identity bad_frame
                     full_grid_cell x  to
                         unsafe_cons_cell cell coordinate sign index y x
                 row_to_frame succ index y sign tail
@@ -408,5 +391,3 @@ define map_row of_type fn fn character character fn row row as
     lambda f lambda x match x with
         cons_row head tail  to cons_row map_over_grid_cell f head map_row f tail
         empty_row           to empty_row
-
-define id_frame of_type fn frame frame as lambda x x

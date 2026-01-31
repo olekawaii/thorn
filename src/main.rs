@@ -17,7 +17,7 @@
 use std::{
     collections::HashMap,
     env,
-    sync::{Arc, Mutex},
+    sync::Mutex,
     rc::Rc,
 };
 
@@ -65,7 +65,7 @@ fn main() -> std::io::Result<()> {
         Ok((vars, vars_dummy)) => {
             let main = build_monolithic_expression(vars, &vars_dummy, &main_name);
             let mut map = HashMap::new();
-            for (name, (index, _, _)) in vars_dummy {
+            for (name, (index, _, _, _)) in vars_dummy {
                 map.insert(index as u32, name);
             }
             eprintln!("\x1b[95mbuilt expression\x1b[0m");
@@ -81,7 +81,7 @@ fn main() -> std::io::Result<()> {
 
 fn build_monolithic_expression(
     vec: Vec<Expression>,
-    vars_dummy: &HashMap<String, (usize, Type, bool)>,
+    vars_dummy: &HashMap<String, (usize, Type, bool, Vec<(String, usize)>)>,
     name: &str,
 ) -> Expression {
     let expressions: Vec<Rc<Mutex<Expression>>> =
@@ -90,7 +90,7 @@ fn build_monolithic_expression(
         let ptr = &mut (**i).lock().unwrap();
         monolithic_helper(&expressions, ptr)
     }
-    let (main_index, _, _) = vars_dummy.get(name).expect("requested function does not exist (usually main)");
+    let (main_index, _, _, _) = vars_dummy.get(name).expect("requested function does not exist (usually main)");
     (*expressions[*main_index]).lock().unwrap().clone()
 }
 

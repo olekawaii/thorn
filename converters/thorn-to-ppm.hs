@@ -57,7 +57,7 @@ combine :: [[Color]] -> [[Color]] -> [[Color]]
 combine x y = map (uncurry (++)) $ zip x y
 
 showColor :: Color -> String
-showColor Black    = " 11  13  13"
+showColor Black    = " 29  32  33"
 showColor Red      = "234 105  98"
 showColor Green    = "169 182 101"
 showColor Yellow   = "216 166  87"
