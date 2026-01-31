@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::error::{Error, ErrorType, Mark, Marked};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use std::io;
 use std::io::Write;
 use std::{collections::HashMap};
@@ -132,7 +132,7 @@ impl Expression {
                     Ok(x) => *self = x.into_inner().unwrap(), // safe unwrap
                     Err(x) => {
                         let Ok(mut inner) = (*x).try_lock() else {
-                            eprintln!( "\x1b[91mruntime error: \x1b[0mattempted to evaluate a bottom _|_");
+                            eprintln!( "\x1b[7;31m RUNTIME ERROR \x1b[0mattempted to evaluate a bottom _|_");
                             std::process::exit(1);
                         };
                         if !inner.is_simplified() {
@@ -209,7 +209,7 @@ impl Expression {
                 _ => unreachable!()
             }
         }
-        actually_optimize(self);
+        optimize_branches(self);
     }
 
     // Substitute every instance of a LocalVarPlaceholder with a Thunk. To be used with
@@ -310,7 +310,7 @@ impl ErrorType for RuntimeError {
     }
 
     fn phase(&self) -> &'static str {
-        "runtime"
+        "RUNTIME"
     }
 }
 
@@ -335,7 +335,7 @@ fn build_thunk(mut input: Expression) -> Expression {
     }
 }
 
-fn actually_optimize(input: &mut Expression) {
+fn optimize_branches(input: &mut Expression) {
     match input {
         Expression::Tree { arguments, .. } => {
             arguments.iter_mut().for_each(optimize_expression);
@@ -352,7 +352,7 @@ pub fn optimize_expression(input: &mut Expression) {
         return
     }
     match input {
-        Expression::Tree { root, arguments} => {
+        Expression::Tree { root: _, arguments} => {
             arguments.iter_mut().for_each(optimize_expression);
             //if !matches!(&**root, Expression::DataConstructor(_)) {
                 *input = Expression::Thunk(Rc::new(Mutex::new(std::mem::take(input))))

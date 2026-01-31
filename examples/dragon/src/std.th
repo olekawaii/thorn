@@ -1,5 +1,19 @@
 include core video
 
+for_all a b c define flip of_type fn fn a fn b c fn b fn a c as
+    lambda f lambda a lambda b f b a
+
+for_all a b c define compose of_type fn fn b c fn fn a b fn a c as
+    lambda g lambda f lambda x g f x
+
+for_all a define repeat of_type fn nat fn fn a a fn a a as 
+    lambda count lambda f lambda x match count with
+        one    to f x
+        succ new_count to f repeat a new_count f x
+
+for_all a b define apply of_type fn fn a b fn a b as 
+    lambda f lambda x f x
+
 type direction contains
     north
     south

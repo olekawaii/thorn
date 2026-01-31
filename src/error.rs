@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::sync::Arc;
 use std::rc::Rc;
 
 pub trait ErrorType: std::fmt::Display + std::fmt::Debug {
@@ -32,7 +31,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "\n\x1b[91m{} error\x1b[0m {}\n\x1b[90m\n{}\x1b[0m\n",
+            "\n\x1b[7;31m {} ERROR \x1b[0m {}\n\x1b[90m\n{}\x1b[0m\n",
             self.error_type.phase(),
             show_mark(self.mark.clone(), self.error_type.gist()),
             self.error_type
@@ -104,7 +103,7 @@ pub fn show_mark(mark: Mark, message: &'static str) -> String {
     }
     let mut underline = String::new();
     underline.push_str(&" ".repeat(length_to_word));
-    underline.push_str(&"~".repeat(length_of_word));
+    underline.push_str(&"=".repeat(length_of_word));
     underline.push_str("  ");
     underline.push_str(message);
     let empty_space = " ".repeat(indentation);

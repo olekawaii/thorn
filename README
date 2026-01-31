@@ -3,9 +3,6 @@ animations
 
 check out some examples in the examples/ directory.
 
-There are currently no generics or type classes so it's a pain to use, but
-they'll be relatively easy to implement in the future.
-
 It's still in active development. If you encounter any bugs or issues, please
 let me know.
 
@@ -123,6 +120,29 @@ ALGEBRAIC TYPES
     '----------------------------------------------------------'
     output: none
 
+
+GENERICS
+====================
+
+Here is a generic identity function that takes a value and returns it.
+
+    .----------------------------------------------------------.
+    | for_all a define identity of_type fn a a as lambda x x   |
+    '----------------------------------------------------------'
+
+To call this function on a `bool` do `identity bool true` where `bool` will
+fill the `a` slot. For multiple generics:
+
+    .----------------------------------------------------------.
+    | for_all a for_all b for_all c define ...                 |
+    |                                                          |
+    | -- or                                                    |
+    |                                                          |
+    | for_all a b c define ...                                 |
+    '----------------------------------------------------------'
+
+In the future there will also be a `where` keyword to specify constraints like
+typeclasses or kinds.
 
 
 TYPE ERRORS

@@ -21,7 +21,7 @@ use crate::error::{Error, ErrorType, Index, Mark, Marked};
 use crate::runtime::{Expression, Pattern};
 use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
-use std::sync::{Mutex, Arc};
+use std::sync::Mutex;
 use std::rc::Rc;
 
 use crate::runtime::optimize_expression;
@@ -31,7 +31,8 @@ const INDENTATION: u32 = 4;
 type Result<T> = std::result::Result<T, Error>;
 
 type LocalVars = HashMap<String, (u32, Type, Mark)>;
-type GlobalVars = HashMap<String, (usize, Type, bool)>;
+type Generics = Vec<(String, usize)>;
+type GlobalVars = HashMap<String, (usize, Type, bool, Generics)>;
 
 static TYPES: Mutex<Option<HashMap<String, u32>>> = Mutex::new(None);
 
@@ -41,7 +42,7 @@ pub fn parse_file(number_of_values: &mut usize, file_name: Marked<String>,) -> R
     let (type_blocks, values): (Vec<(Signiture, TokenStream)>, _) = blocks
         .into_iter()
         .map(|mut x| {
-            let signiture = extract_signiture(&mut x)?;
+            let signiture = extract_signiture(Vec::new(), &mut x)?;
             Ok((signiture, x))
         })
         .collect::<Result<Vec<(Signiture, TokenStream)>>>()?
@@ -66,9 +67,9 @@ pub fn parse_file(number_of_values: &mut usize, file_name: Marked<String>,) -> R
     let mut constructors: HashMap<u32, HashSet<usize>> = HashMap::new();
     for (tp, tokens) in data_blocks.into_iter() {
         let mut set = HashSet::new();
-        for (num, (name, constructor_tp, name_mark)) in parse_data(tokens, tp)?.into_iter().enumerate() {
+        for (_num, (name, constructor_tp, name_mark)) in parse_data(tokens, tp)?.into_iter().enumerate() {
             set.insert(*number_of_values);
-            if global_vars_dummy.insert(name, (*number_of_values, constructor_tp, true)).is_some() {
+            if global_vars_dummy.insert(name, (*number_of_values, constructor_tp, true, Vec::new())).is_some() {
                 return Err(make_error(CompilationError::MultipleDeclorations, name_mark))
             }
             global_vars.push(Expression::DataConstructor(*number_of_values as u32));
@@ -76,17 +77,17 @@ pub fn parse_file(number_of_values: &mut usize, file_name: Marked<String>,) -> R
         }
         constructors.insert(tp, set);
     }
-    let mut vals: Vec<(Type, TokenStream)> = Vec::with_capacity(values.len());
+    let mut vals: Vec<(Type, TokenStream, Generics)> = Vec::with_capacity(values.len());
     for (signiture, tokens) in values.into_iter() {
-        let Signiture::Value(name, name_mark, mut type_tokens) = signiture else { unreachable!() };
-        let tp = parse_type(&mut type_tokens)?;
-        if global_vars_dummy.insert(name, (*number_of_values, tp.clone(), false)).is_some() {
+        let Signiture::Value(name, name_mark, mut type_tokens, generics) = signiture else { unreachable!() }; //todo
+        let tp = parse_type(&mut type_tokens, &generics)?;
+        if global_vars_dummy.insert(name, (*number_of_values, tp.clone(), false, generics.clone())).is_some() {
             return Err(make_error(CompilationError::MultipleDeclorations, name_mark))
         }
-        vals.push((tp, tokens));
+        vals.push((tp, tokens, generics));
         *number_of_values += 1;
     }
-    for (tp, mut tokens) in vals.into_iter() {
+    for (tp, mut tokens, generics) in vals.into_iter() {
         global_vars.push({
             let mut e = parse_expression(
                 tp, 
@@ -94,7 +95,8 @@ pub fn parse_file(number_of_values: &mut usize, file_name: Marked<String>,) -> R
                 HashMap::new(), 
                 0, 
                 &global_vars_dummy, 
-                &constructors
+                &constructors,
+                &generics
             )?;
             optimize_expression(&mut e);
             e
@@ -134,10 +136,10 @@ fn parse_pattern_helper(
     if name.starts_with('_') {
         return Ok(Pattern::Dropped)
     }
-    if let Some((id, tp, is_constructor)) = global_vars.get(&name)
-        && !expected_type.is_a_function()
+    if let Some((id, tp, is_constructor, _)) = global_vars.get(&name)
+        //&& !expected_type.is_a_function()
         && *is_constructor
-        && Type::Type(tp.final_type()) == *expected_type {
+        && tp.final_type() == *expected_type {
             let mut patterns = Vec::new();
             for t in tp.clone().arg_types() {
                 patterns.push(parse_pattern_helper(
@@ -182,6 +184,33 @@ fn is_used(expression: &Expression, id: u32) -> bool {
             false
         }
         Expression::Thunk(_) | Expression::DataConstructor(_) | Expression::Variable(_) => false
+    }
+}
+
+fn parseGenericCall(
+    tokens: &mut TokenStream, 
+    generics: &Generics,
+    mut tp: Type,
+) -> Result<Type> {
+    for (_, i) in generics.iter() {
+        let t = parse_type(tokens, generics)?;
+        replace_types(&mut tp, *i, t);
+    }
+    return Ok(tp);
+}
+
+fn replace_types(t: &mut Type, index: usize, new: Type) {
+    match t {
+        Type::Generic(a) => {
+            if *a == index {
+                *t = new;
+            }
+        }
+        Type::Function(a, b) => {
+            replace_types(&mut *a, index, new.clone());
+            replace_types(&mut *b, index, new.clone());
+        }
+        _ => (),
     }
 }
  
@@ -307,7 +336,8 @@ pub fn parse_expression(
     mut local_vars:        LocalVars,
     local_vars_count:      u32,
     global_vars:           &GlobalVars,
-    constructors:          &HashMap<u32, HashSet<usize>>
+    constructors:          &HashMap<u32, HashSet<usize>>,
+    generics:              &Generics,
 ) -> Result<Expression> {
     let (token, keyword_mark) = next_non_newline(tokens)?.destructure();
     match token {
@@ -316,7 +346,7 @@ pub fn parse_expression(
             Keyword::Undefined => Ok(Expression::Undefined(Box::new(keyword_mark))),
             Keyword::Lambda => {
                 match expected_type {
-                    Type::Type(_) => Err(make_error(
+                    Type::Type { .. } | Type::Generic(_) => Err(make_error(
                         CompilationError::TypeMismatch(expected_type, None), 
                         keyword_mark
                     )),
@@ -338,7 +368,8 @@ pub fn parse_expression(
                             local_vars, 
                             local_vars_count, 
                             global_vars, 
-                            constructors
+                            constructors,
+                            generics,
                         )?;
                         expect_end(tokens)?;
                         for (_, (id, _tp, mark)) in local_vars_new.into_iter() {
@@ -362,13 +393,15 @@ pub fn parse_expression(
                 let tp = match value {
                     Token::Keyword(Keyword::OfType) => {
                         tokens.next(); // safe
-                        parse_type(tokens)?
+                        parse_type(tokens, generics)?
                     }
                     Token::Word(first_name) => {
-                        let root_type = if let Some((_, b, _)) = local_vars.get(&first_name) { b } 
-                        else if let Some((_, b, _)) = global_vars.get(&first_name) { b } 
+                        let root_type = if let Some((_, b, _)) = local_vars.get(&first_name) { b.clone() } 
+                        else if let Some((_, b, _, generics)) = global_vars.get(&first_name) { 
+                            parseGenericCall(tokens, generics, b.clone())?
+                        } 
                         else { return Err(make_error(CompilationError::NotInScope(first_name.clone()), mark.clone())) };
-                        Type::Type(root_type.final_type())
+                        root_type.final_type()
                     }
                     Token::Keyword(_) => return Err(make_error(CompilationError::UnexpectedKeyword, mark)),
                     Token::EndOfBlock => return Err(make_error(CompilationError::UnexpectedEnd,     mark)),
@@ -408,7 +441,8 @@ pub fn parse_expression(
                     local_vars.clone(), 
                     local_vars_count, 
                     global_vars, 
-                    constructors
+                    constructors,
+                    generics,
                 )?;
                 expect_end(&mut matched_on_tokens)?;
                 let (token, _mark) = next_token(tokens)?.destructure();
@@ -432,7 +466,8 @@ pub fn parse_expression(
                         loc,
                         local_vars_count, 
                         global_vars, 
-                        constructors
+                        constructors,
+                        generics,
                     )?;
                     expect_end(branch)?;
                     for (_, (id, _tp, mark)) in local_vars_new.into_iter() {
@@ -460,16 +495,12 @@ pub fn parse_expression(
         Token::Word(name) => {
             // peek if the next token is a newline
             let (root_id, root_type) = if let Some((a, b, _)) = local_vars.get(&name) {
-                (Expression::LocalVarPlaceholder(*a), b)
-            } else if let Some((a, b, c)) = global_vars.get(&name) {
-                (
-                    if *c {
-                        Expression::DataConstructor(*a as u32)
-                    } else {
-                        Expression::Variable(*a)
-                    },
-                    b,
-                )
+                (Expression::LocalVarPlaceholder(*a), b.clone())
+            } else if let Some((a, b, c, g)) = global_vars.get(&name) {
+                    (
+                        if *c { Expression::DataConstructor(*a as u32) } else { Expression::Variable(*a) },
+                        parseGenericCall(tokens, &g, b.clone())?
+                    )
             } else {
                 return Err(make_error(CompilationError::NotInScope(name.to_owned()), keyword_mark))
             };
@@ -491,7 +522,7 @@ pub fn parse_expression(
                             };
                             let (next_type, leftover) = match current_type {
                                 Type::Function(a, b) => (*a, *b),
-                                Type::Type(_) => unreachable!(),
+                                Type::Type { .. } | Type::Generic(_) => unreachable!(),
                             };
                             current_type = leftover;
                             let next_arg = parse_expression(
@@ -500,7 +531,8 @@ pub fn parse_expression(
                                 local_vars.clone(),
                                 local_vars_count,
                                 global_vars,
-                                constructors
+                                constructors,
+                                generics,
                             )?;
                             expect_end(&mut current_tokens)?;
                             output_args.push(next_arg);
@@ -510,7 +542,7 @@ pub fn parse_expression(
                     _ => {
                         let (next_type, leftover) = match current_type {
                             Type::Function(a, b) => (*a, *b),
-                            Type::Type(_) => unreachable!(),
+                            Type::Type { .. } | Type::Generic(_) => unreachable!(),
                         };
                         current_type = leftover;
                         let next_arg = parse_expression(
@@ -519,7 +551,8 @@ pub fn parse_expression(
                             local_vars.clone(),
                             local_vars_count,
                             global_vars,
-                            constructors
+                            constructors,
+                            generics,
                         )?;
                         output_args.push(next_arg);
                     }
@@ -631,6 +664,7 @@ impl std::fmt::Display for Keyword {
 pub enum CompilationError {
     //RedundantPattern,
     //PartialPattern,
+    TypeNotInScope(String),
     ConflictingAllignment,
     BadIndentation,
     TrailingCharacters,
@@ -677,6 +711,7 @@ impl ErrorType for CompilationError {
             Self::Custom(_) => "",
             Self::InvalidName => "invalid name",
             Self::NotInScope(_) => "not in scope",
+            Self::TypeNotInScope(_) => "type not in scope",
             Self::TypeMismatch(_, _) => "of unexpected type",
             Self::ExpectedRoman => "expected a roman numeral",
             Self::UnexpectedKeyword => "unexpected keyword",
@@ -688,7 +723,7 @@ impl ErrorType for CompilationError {
     }
 
     fn phase(&self) -> &'static str {
-        "compilation"
+        "COMPILATION"
     }
 }
 
@@ -1213,18 +1248,29 @@ fn indentation_length(input: &str) -> u32 {
 
 #[derive(Debug)]
 pub enum Signiture {
-    Value(String, Mark, TokenStream),
+    Value(String, Mark, TokenStream, Vec<(String, usize)>),
     Type(String, Mark),
 }
 
-pub fn extract_signiture(input: &mut TokenStream) -> Result<Signiture> {
+pub fn extract_signiture(
+    mut generics: Vec<(String, usize)>, 
+    input: &mut TokenStream
+) -> Result<Signiture> {
     let (token, mark1) = next_non_newline(input)?.destructure();
     match token {
+        Token::Keyword(Keyword::ForAll) => {
+            while !matches!(input.peek().unwrap().value, Token::Keyword(_)) {
+                let (name, name_mark) = next_word(input)?.destructure();
+                let index = generics.len() + 1;
+                generics.push((name, index));
+            }
+            extract_signiture(generics, input)
+        }
         Token::Keyword(Keyword::Define) => {
             let (name, name_mark) = next_word(input)?.destructure();
             expect_keyword(input, Keyword::OfType)?;
             let type_strings = collect_until(input, Keyword::As)?;
-            Ok(Signiture::Value(name, name_mark, type_strings))
+            Ok(Signiture::Value(name, name_mark, type_strings, generics))
         }
         Token::Keyword(Keyword::Type) => {
             let (name, name_mark) = next_word(input)?.destructure();
@@ -1248,23 +1294,38 @@ fn make_error(error: CompilationError, mark: Mark) -> Error {
     }
 }
 
-pub fn parse_type(tokens: &mut TokenStream) -> Result<Type> {
+pub fn parse_type(tokens: &mut TokenStream, generics: &Vec<(String, usize)>) -> Result<Type> {
     let (word, mark) = next_word(tokens)?.destructure();
     match word.as_str() {
         "fn" => {
-            let arg1 = parse_type(tokens)?;
-            let arg2 = parse_type(tokens)?;
+            let arg1 = parse_type(tokens, generics)?;
+            let arg2 = parse_type(tokens, generics)?;
             Ok(Type::Function(Box::new(arg1), Box::new(arg2)))
         }
-        word => {
+        _ => {
+            if let Some(t) = getFromGenerics(&word, generics) {
+                return Ok(t)
+            }
             let ptr = TYPES.lock().unwrap();
-            let index = ptr.as_ref().unwrap().get(word).ok_or(Error {
+            let index = ptr.as_ref().unwrap().get(&word).ok_or(Error {
                 mark,
-                error_type: Box::new(CompilationError::NotInScope(word.to_owned())),
+                error_type: Box::new(CompilationError::TypeNotInScope(word)),
             })?;
-            Ok(Type::Type(*index))
+            Ok(Type::Type {
+                typeConstructor: *index,
+                arguments: Vec::new(),
+            })
         }
     }
+}
+
+fn getFromGenerics(name: &str, generics: &Generics) -> Option<Type> {
+    for (generic_name, index) in generics.iter() {
+        if generic_name == name {
+            return Some(Type::Generic(*index));
+        }
+    }
+    return None
 }
 
 pub fn parse_data(
@@ -1272,15 +1333,19 @@ pub fn parse_data(
     parent_type: u32,
 ) -> Result<Vec<(String, Type, Mark)>> {
     let mut output = Vec::new();
-    //dbg!("hi");
     for mut i in get_with_indentation(&mut tokens, INDENTATION).into_iter() {
         let (name, name_mark) = next_word(&mut i)?.destructure();
         let mut arg_types: Vec<Type> = Vec::new();
         while !matches!(i.peek().unwrap().value, Token::EndOfBlock) {
-            arg_types.push(parse_type(&mut i)?)
+            let generics = Vec::new();
+            arg_types.push(parse_type(&mut i, &generics)?)
         }
         let mut args = arg_types.into_iter();
-        output.push((name, build_type(&mut args, Type::Type(parent_type)), name_mark));
+        output.push((name, build_type(
+            &mut args, 
+            Type::Type { typeConstructor: parent_type, arguments: Vec::new() }), 
+            name_mark
+        ));
     }
     Ok(output)
 }
@@ -1294,31 +1359,34 @@ pub fn build_type(input: &mut impl Iterator<Item = Type>, result: Type) -> Type 
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Type {
-    Type(u32),
+    Type {
+        typeConstructor: u32,
+        arguments: Vec<Type>
+    },
     Function(Box<Type>, Box<Type>),
+    Generic(usize)
 }
 
 impl Type {
-    pub fn is_a_function(&self) -> bool {
-        match self {
-            Self::Type(_) => false,
-            Self::Function(_, _) => true,
-        }
-    }
+    //pub fn is_a_function(&self) -> bool {
+    //    match self {
+    //        Self::Type(_) => false,
+    //        Self::Function(_, _) => true,
+    //    }
+    //}
 
-    pub fn final_type(&self) -> u32 {
+    pub fn final_type(&self) -> Type {
         match self {
-            Self::Type(x) => *x,
             Self::Function(_, b) => b.final_type(),
+            _ => self.clone()
         }
     }
 
     pub fn is_possible(&self, test: &Self) -> bool {
-        *self == *test
-            || match self {
-                Self::Type(_) => false,
-                Self::Function(_, output) => output.is_possible(test),
-            }
+        *self == *test || match self {
+            Self::Type { .. } | Self::Generic(_) => false,
+            Self::Function(_, output) => output.is_possible(test),
+        }
     }
 
     //pub fn apply_type(self, arg: Self) -> Option<Self> {
@@ -1343,22 +1411,32 @@ impl Type {
                     args.push(*a);
                     current_type = *b;
                 }
-                Type::Type(_) => return args,
+                Type::Type { .. } | Type::Generic(_) => return args,
             }
         }
     }
     pub fn show(&self) -> String {
         fn helper(tp: &Type, types: &HashMap<&u32, &String>, output: &mut String) {
             match tp {
-                Type::Type(a) => {
+                Type::Type { typeConstructor: a, arguments } => {
                     let name = types.get(a).unwrap(); // safe
                     output.push_str(name);
-                    output.push(' ')
+                    output.push(' ');
+                    arguments.iter().for_each(|x| {
+                        let a = x.show();
+                        output.push_str(&a);
+                    })
                 }
                 Type::Function(a, b) => {
                     output.push_str("fn ");
                     helper(a, types, output);
                     helper(b, types, output);
+                }
+                Type::Generic(a) => {
+                    let s = a.to_string();
+                    output.push_str("generic<");
+                    output.push_str(&s);
+                    output.push_str("> ");
                 }
             }
         }
@@ -1369,4 +1447,9 @@ impl Type {
         helper(self, &new_map, &mut output);
         output
     }
+}
+
+enum Kind {
+    Type,
+    Fn(Box<Type>, Box<Type>)
 }

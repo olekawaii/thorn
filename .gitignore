@@ -1,2 +1,4 @@
 target
 thorn-output
+*.hi
+*.o
