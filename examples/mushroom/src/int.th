@@ -1,0 +1,47 @@
+type int contains
+    neg nat
+    pos nat
+    zero
+
+define eq_int of_type fn int fn int bool as
+    lambda x lambda y match tuple_int_int x y with
+        tuple_int_int pos a pos b  to eq_nat a b
+        tuple_int_int neg a neg b  to eq_nat a b
+        tuple_int_int zero  zero   to true
+        _                          to false
+
+type tuple_int_int contains
+    tuple_int_int int int
+
+define sum_int of_type fn int fn int int as 
+    lambda x lambda y match tuple_int_int x y with
+        tuple_int_int neg a neg b  to neg sum_nat a b
+        tuple_int_int pos a pos b  to pos sum_nat a b
+        tuple_int_int pos _ _      to sum_int decrement x increment y
+        tuple_int_int zero  _      to y
+        _                          to sum_int y x
+
+define increment of_type fn int int as lambda x match x with
+    pos a       to pos succ a
+    neg one     to zero 
+    neg succ a  to neg a
+    zero        to pos one
+
+define negate of_type fn int int as product_int neg one
+
+define decrement of_type fn int int as 
+    compose int int int negate compose int int int increment negate
+
+define product_int of_type fn int fn int int as 
+    lambda x lambda y match tuple_int_int x y with
+        tuple_int_int pos a pos b  to pos product_nat a b
+        tuple_int_int pos a neg b  to neg product_nat a b
+        tuple_int_int neg a neg b  to pos product_nat a b
+        tuple_int_int zero  _      to zero
+        _                          to product_int y x
+
+define abselute_value of_type fn int whole as lambda x match x with
+    pos x  to whole x
+    neg x  to whole x
+    zero   to whole_zero
+

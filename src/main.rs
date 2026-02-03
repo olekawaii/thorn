@@ -26,8 +26,8 @@ mod parse;
 mod runtime;
 
 use crate::{
-    error::{Mark, Index, Marked},
-    parse::{parse_file, Type},
+    error::{Mark, File, Marked},
+    parse::{parse_file, Type, words},
     runtime::{Expression},
 };
 
@@ -38,15 +38,19 @@ fn main() -> std::io::Result<()> {
         arg_file.push_str(x);
         arg_file.push(' ')
     });
+    let arg_file = Rc::new(File {
+        name: String::from("arguments"),
+        lines: vec![arg_file]
+    });
     let mut marked_args = Vec::new();
-    args.into_iter().enumerate().for_each(|(i, value)| marked_args.push(Marked::<String> {
-        value,
+    words(&arg_file.lines[0]).into_iter().for_each(|(i, value, length)| marked_args.push(Marked::<String> {
+        value: value.to_string(),
         mark: Mark {
-            file_name: Rc::new("arguments".to_string()),
-            file: Rc::new(vec![arg_file.clone()]), 
+            file: Rc::clone(&arg_file),
             line: 0,
             block: None,
-            word_index: Index::Expression(i)
+            character: i,
+            length,
         }
     }));
     let mut marked_args = marked_args.into_iter();

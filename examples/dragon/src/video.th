@@ -1,4 +1,4 @@
-include core std
+include std
 
 
 -- types -----------------------------------------------------------------------
@@ -356,7 +356,7 @@ define layer_rows of_type fn row fn row row as
 define layer_helper of_type fn video fn video video as
     lambda x lambda y match x with
         prepend head_a tail_a to match y with
-            single head_b          to ...
+            single _head_b          to ...
             prepend head_b tail_b  to prepend
                 layer_frames head_a head_b
                 layer_helper tail_a tail_b
