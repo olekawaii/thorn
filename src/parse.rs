@@ -17,14 +17,13 @@
 // TODO generics
 // for_all a define id of_type fn a a as lambda x x
 
-use crate::error::{Error, ErrorType, Index, Mark, Marked};
-use crate::runtime::{Expression, Pattern};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, LinkedList};
 use std::fs::read_to_string;
 use std::sync::Mutex;
 use std::rc::Rc;
 
-use crate::runtime::optimize_expression;
+use crate::error::{Error, ErrorType, File, Mark, Marked};
+use crate::runtime::{optimize_expression, Expression, Pattern};
 
 const INDENTATION: u32 = 4;
 
@@ -36,20 +35,191 @@ type GlobalVars = HashMap<String, (usize, Type, bool, Generics)>;
 
 static TYPES: Mutex<Option<HashMap<String, u32>>> = Mutex::new(None);
 
+#[derive(Debug)]
+struct Tokens {
+    tokens: LinkedList<Marked<Token>>,
+    end: Mark,
+}
+
+impl Default for Tokens {
+    fn default() -> Self {
+        Self {
+            tokens: LinkedList::new(),
+            end: Mark::default()
+        }
+    }
+}
+
+impl Tokens {
+    pub fn peek(&self) -> Result<&Marked<Token>> {
+        match self.tokens.front() {
+            None => Err(Error {
+                error_type: Box::new(CompilationError::UnexpectedEnd), 
+                mark: self.end.clone(),
+            }),
+            Some(token) => Ok(token)
+        }
+    }
+
+    pub fn next(&mut self) -> Result<Marked<Token>> {
+        self.peek()?;
+        Ok(self.tokens.pop_front().unwrap())
+    }
+
+    pub fn remove_leading_newlines(&mut self) {
+        while matches!(self.tokens.front().map(|x| &x.value), Some(Token::NewLine(_))) {
+            self.tokens.pop_front();
+        }
+    }
+
+    pub fn next_non_newline(&mut self) -> Result<Marked<Token>> {
+        self.remove_leading_newlines();
+        self.next()
+    }
+
+    pub fn next_word(&mut self) -> Result<Marked<String>> {
+        self.remove_leading_newlines();
+        match self.peek()?.value {
+            Token::Word(_) => {;
+                let Ok(Marked::<Token> { value: Token::Word(word), mark }) = self.next() else { 
+                    unreachable!() 
+                };
+                Ok(Marked::<String> {
+                    value: word,
+                    mark,
+                })
+            }
+            _ => {
+                panic!("f");
+                Err(make_error(CompilationError::UnexpectedKeyword, self.end.clone()))
+            }
+        }
+    }
+
+    pub fn next_keyword(&mut self) -> Result<Marked<Keyword>> {
+        self.remove_leading_newlines();
+        match self.peek()?.value {
+            Token::Keyword(_) => {;
+                let Ok(Marked::<Token> { value: Token::Keyword(value), mark }) = self.next() else { 
+                    unreachable!() 
+                };
+                Ok(Marked::<Keyword> {
+                    value,
+                    mark,
+                })
+            }
+            _ => {
+                panic!("f");
+                Err(make_error(CompilationError::UnexpectedKeyword, self.end.clone()))
+            }
+        }
+    }
+
+    pub fn new(tokens: LinkedList<Marked<Token>>) -> Self {
+        assert!(!tokens.is_empty());
+        let last_mark: Mark = tokens.back().unwrap().mark.clone();
+        Tokens {
+            tokens,
+            end: last_mark,
+        }
+    }
+
+    fn get_with_indentation(self, indentation: u32) -> Vec<Self> {
+        let mut output: Vec<Self> = Vec::new();
+        let mut current = self.tokens;
+
+        loop {
+            let mut breakoff = None;
+            for (index, token) in current.iter().enumerate() {
+                if matches!(token.value, Token::NewLine(x) if x == indentation) {
+                    breakoff = Some(index);
+                    break
+                }
+            }
+            match breakoff {
+                None => {
+                    if !current.is_empty() {
+                        output.push(Self::new(current))
+                    }
+                    break
+                }
+                Some(breakoff) => {
+                    let mut leftover = current.split_off(breakoff);
+                    leftover.pop_front();
+                    if !current.is_empty() {
+                        output.push(Self::new(current))
+                    }
+                    current = leftover;
+                }
+            }
+        }
+        output
+    }
+
+    fn expect_keyword(&mut self, keyword: Keyword) -> Result<()> {
+        self.remove_leading_newlines();
+        if !matches!(self.peek()?.value, Token::Keyword(k) if k == keyword) {
+            Err(make_error(CompilationError::ExpectedKeyword(keyword), self.end.clone()))
+        } else {
+            let _ = self.next();
+            Ok(())
+        }
+    }
+
+    fn collect_until(&mut self, token: Token) -> Result<Self> {
+        let mut current = std::mem::take(&mut self.tokens);
+        let mut breakoff = None;
+        for (index, candidate_token) in current.iter().enumerate() {
+            if candidate_token.value == token {
+                breakoff = Some(index);
+                break
+            }
+        }
+        match breakoff {
+            Some(index) => {
+                let mut leftover = current.split_off(index);
+                leftover.pop_front();
+                self.tokens = leftover;
+                return Ok(Self::new(current))
+            }
+            None => {
+                Err(make_error(CompilationError::KeywordNotFound(Keyword::ForAll), self.end.clone()))
+            }
+        }
+    }
+
+    fn add_context(&mut self, block_name: &Rc<String>) {
+        self.tokens.iter_mut().for_each(|x| x.mark.block = Some(Rc::clone(block_name)));
+    }
+
+    fn expect_end(&mut self) -> Result<()> {
+        self.remove_leading_newlines();
+        match self.peek().map(|x| x.clone().destructure()) {
+            Ok((_, mark)) => Err(make_error(CompilationError::TrailingCharacters, mark)),
+            Err(_) => Ok(())
+        }
+    }
+}
+
 pub fn parse_file(number_of_values: &mut usize, file_name: Marked<String>,) -> Result<(Vec<Expression>, GlobalVars)> {
     let mut temp_vec = HashSet::new();
     let blocks = get_tokens(file_name, &mut temp_vec)?;
-    let (type_blocks, values): (Vec<(Signiture, TokenStream)>, _) = blocks
+    let (type_blocks, values): (Vec<(Signiture, Tokens)>, _) = blocks
         .into_iter()
         .map(|mut x| {
             let signiture = extract_signiture(Vec::new(), &mut x)?;
+            let name = Rc::new(match &signiture {
+                Signiture::Type(name, _) => name.clone(),
+                Signiture::Value(name, _, _, _) => name.clone(),
+            });
+            x.add_context(&name);
             Ok((signiture, x))
         })
-        .collect::<Result<Vec<(Signiture, TokenStream)>>>()?
+        .collect::<Result<Vec<(Signiture, Tokens)>>>()?
         .into_iter()
         .partition(|(x, _)| matches!(x, Signiture::Type(_,_)));
     let mut types: HashMap<String, u32> = HashMap::new();
-    let mut data_blocks: Vec<(u32, TokenStream)> = Vec::new();
+    let mut data_blocks: Vec<(u32, Tokens)> = Vec::new();
     for (number_of_types, (signiture, tokens)) in type_blocks.into_iter().enumerate() {
         let number_of_types = number_of_types as u32;
         let Signiture::Type(name, name_mark) = signiture else { unreachable!() };
@@ -77,7 +247,7 @@ pub fn parse_file(number_of_values: &mut usize, file_name: Marked<String>,) -> R
         }
         constructors.insert(tp, set);
     }
-    let mut vals: Vec<(Type, TokenStream, Generics)> = Vec::with_capacity(values.len());
+    let mut vals: Vec<(Type, Tokens, Generics)> = Vec::with_capacity(values.len());
     for (signiture, tokens) in values.into_iter() {
         let Signiture::Value(name, name_mark, mut type_tokens, generics) = signiture else { unreachable!() }; //todo
         let tp = parse_type(&mut type_tokens, &generics)?;
@@ -101,7 +271,7 @@ pub fn parse_file(number_of_values: &mut usize, file_name: Marked<String>,) -> R
             optimize_expression(&mut e);
             e
         });
-        expect_end(&mut tokens)?;
+        tokens.expect_end()?;
     }
     Ok((global_vars, global_vars_dummy))
 }
@@ -109,12 +279,12 @@ pub fn parse_file(number_of_values: &mut usize, file_name: Marked<String>,) -> R
 fn parse_pattern(
     mut number_of_local: u32,
     expected_type: &Type,
-    tokens: &mut TokenStream,
+    tokens: &mut Tokens,
     global_vars: &GlobalVars,
 ) -> Result<(Pattern, Mark, LocalVars, u32)> {
     let mut output = HashMap::new();
     let mut mark = tokens.peek().unwrap().mark.clone();
-    mark.word_index = Index::Art(0);
+    mark.character = 0;
     let pattern = parse_pattern_helper(
         &mut number_of_local,
         expected_type,
@@ -129,10 +299,10 @@ fn parse_pattern_helper(
     number_of_local: &mut u32,
     expected_type: &Type,
     output: &mut LocalVars,
-    tokens: &mut TokenStream,
+    tokens: &mut Tokens,
     global_vars: &GlobalVars,
 ) -> Result<Pattern> {
-    let (name, mark) = next_word(tokens)?.destructure();
+    let (name, mark) = tokens.next_word()?.destructure();
     if name.starts_with('_') {
         return Ok(Pattern::Dropped)
     }
@@ -160,7 +330,7 @@ fn parse_pattern_helper(
 
 fn is_used(expression: &Expression, id: u32) -> bool {
     match expression {
-        Expression::Undefined { .. } => true,
+        Expression::Undefined { .. } => false, // debatable
         Expression::Lambda { body, .. } => is_used(body, id),
         Expression::Tree {root, arguments} => {
             if is_used(root, id) { return true }
@@ -187,8 +357,8 @@ fn is_used(expression: &Expression, id: u32) -> bool {
     }
 }
 
-fn parseGenericCall(
-    tokens: &mut TokenStream, 
+fn parse_generic_call(
+    tokens: &mut Tokens, 
     generics: &Generics,
     mut tp: Type,
 ) -> Result<Type> {
@@ -196,7 +366,7 @@ fn parseGenericCall(
         let t = parse_type(tokens, generics)?;
         replace_types(&mut tp, *i, t);
     }
-    return Ok(tp);
+    Ok(tp)
 }
 
 fn replace_types(t: &mut Type, index: usize, new: Type) {
@@ -214,7 +384,7 @@ fn replace_types(t: &mut Type, index: usize, new: Type) {
     }
 }
  
-pub fn get_tokens(file: Marked<String>, done: &mut HashSet<String>) -> Result<Vec<TokenStream>> {
+pub fn get_tokens(file: Marked<String>, done: &mut HashSet<String>) -> Result<Vec<Tokens>> {
     let (file, mark) = file.destructure();
     if done.contains(&file) { 
         return Ok(Vec::new()) 
@@ -224,17 +394,17 @@ pub fn get_tokens(file: Marked<String>, done: &mut HashSet<String>) -> Result<Ve
     };
     eprintln!("including \x1b[95m{file}\x1b[0m");
     done.insert(file.clone());
-    let mut output = tokenize_file(file_contents, &Rc::new(file))?;
+    let mut output = tokenize_file(file_contents, file)?;
     while matches!(output[0].peek().unwrap().value, Token::NewLine(_)) {
-        output[0].next();
+        let _ = output[0].next();
     }
     if matches!(
         output[0].peek().unwrap().value,
         Token::Keyword(Keyword::Include)
     ) {
         let mut imports = output.remove(0);
-        imports.next(); // remove the import keyword
-        while let Ok(i) = next_word(&mut imports) {
+        let _ = imports.next(); // remove the import keyword
+        while let Ok(i) = imports.next_word() {
             let (mut x, mark) = i.destructure();
             x.push_str(".th");
             let mut f = get_tokens(
@@ -250,30 +420,31 @@ pub fn get_tokens(file: Marked<String>, done: &mut HashSet<String>) -> Result<Ve
     Ok(output)
 }
 
-pub fn tokenize_file(input: String, file_name: &Rc<String>) -> Result<Vec<TokenStream>> {
-    let file_lines: Rc<Vec<String>> =
-        Rc::new(input.lines().map(|x| x.trim_end().to_string()).collect());
-    let mut output: Vec<TokenStream> = Vec::new();
-    let mut current_block: Vec<(usize, String)> = Vec::new();
-    let mut file = file_lines.iter().map(|x| x.as_str()).enumerate();
-    while let Some((line_number, string)) = file.next() {
+pub fn tokenize_file(input: String, file_name: String) -> Result<Vec<Tokens>> {
+    let file = Rc::new(File {
+        name: file_name,
+        lines: input.lines().map(|x| x.trim_end().to_string()).collect(),
+    });
+    let mut output: Vec<Tokens> = Vec::new();
+    let mut current_block: Vec<(usize, &str)> = Vec::new();
+    let mut file_lines = file.lines.iter().map(|x| x.as_str()).enumerate();
+    while let Some((line_number, string)) = file_lines.next() {
         if string.is_empty() || string.split_whitespace().next().unwrap() == "--" { // safe unwrap
             continue
         }
-        current_block.push((line_number, string.to_string()));
+        current_block.push((line_number, string));
         'good_lines: loop {
-            match file.next() {
+            match file_lines.next() {
                 None | Some((_, "")) => {
                     output.push(tokenize(
                         current_block,
-                        Rc::clone(file_name),
-                        Rc::clone(&file_lines),
+                        &file,
                     )?);
                     current_block = Vec::new();
                     break 'good_lines;
                 }
                 Some((line_number, string)) => {
-                    current_block.push((line_number, string.to_string()));
+                    current_block.push((line_number, string));
                 }
             }
         }
@@ -332,16 +503,16 @@ pub fn parse_roman_numeral(numeral: &str) -> Option<u32> {
 
 pub fn parse_expression(
     expected_type:         Type,
-    tokens:                &mut TokenStream,
+    tokens:                &mut Tokens,
     mut local_vars:        LocalVars,
     local_vars_count:      u32,
     global_vars:           &GlobalVars,
     constructors:          &HashMap<u32, HashSet<usize>>,
     generics:              &Generics,
 ) -> Result<Expression> {
-    let (token, keyword_mark) = next_non_newline(tokens)?.destructure();
+    let (token, keyword_mark) = tokens.next_non_newline()?.destructure();
     match token {
-        Token::EndOfBlock | Token::NewLine(_) => unreachable!(),
+        Token::NewLine(_) => unreachable!(),
         Token::Keyword(k) => match k {
             Keyword::Undefined => Ok(Expression::Undefined(Box::new(keyword_mark))),
             Keyword::Lambda => {
@@ -371,7 +542,7 @@ pub fn parse_expression(
                             constructors,
                             generics,
                         )?;
-                        expect_end(tokens)?;
+                        tokens.expect_end()?;
                         for (_, (id, _tp, mark)) in local_vars_new.into_iter() {
                             if !is_used(&body, id) {
                                 return Err(make_error(CompilationError::NotUsed, mark))
@@ -388,29 +559,31 @@ pub fn parse_expression(
                 }
             }
             Keyword::Match => {
-                remove_leading_newlines(tokens);
+                tokens.remove_leading_newlines();
                 let (value, mark) = tokens.peek().unwrap().clone().destructure();
                 let tp = match value {
                     Token::Keyword(Keyword::OfType) => {
-                        tokens.next(); // safe
+                        let _ = tokens.next(); // safe
                         parse_type(tokens, generics)?
                     }
                     Token::Word(first_name) => {
                         let root_type = if let Some((_, b, _)) = local_vars.get(&first_name) { b.clone() } 
                         else if let Some((_, b, _, generics)) = global_vars.get(&first_name) { 
-                            parseGenericCall(tokens, generics, b.clone())?
+                            parse_generic_call(tokens, generics, b.clone())?
                         } 
                         else { return Err(make_error(CompilationError::NotInScope(first_name.clone()), mark.clone())) };
                         root_type.final_type()
                     }
-                    Token::Keyword(_) => return Err(make_error(CompilationError::UnexpectedKeyword, mark)),
-                    Token::EndOfBlock => return Err(make_error(CompilationError::UnexpectedEnd,     mark)),
+                    Token::Keyword(_) => {
+                        panic!("f");
+                        return Err(make_error(CompilationError::UnexpectedKeyword, mark))
+                    }
                     Token::NewLine(_) => unreachable!(),
                 };
-                let mut matched_on_tokens = Vec::new();
+                let mut matched_on_tokens = LinkedList::new();
                 let mut unmatched_matches = 0;
                 loop {
-                    let token = match next_token(tokens) {
+                    let token = match tokens.next() {
                         Ok(x) => x,
                         Err(mut e) => {
                             e.error_type = Box::new(CompilationError::KeywordNotFound(Keyword::With));
@@ -425,16 +598,16 @@ pub fn parse_expression(
                             if unmatched_matches < 0 {
                                 return Err(make_error(CompilationError::UnexpectedKeyword, token.mark))
                             }
-                            matched_on_tokens.push(token);
+                            matched_on_tokens.push_back(token);
                         }
                         Token::Keyword(Keyword::Match) => {
                             unmatched_matches += 1;
-                            matched_on_tokens.push(token);
+                            matched_on_tokens.push_back(token);
                         }
-                        _ => matched_on_tokens.push(token),
+                        _ => matched_on_tokens.push_back(token),
                     }
                 }
-                let mut matched_on_tokens = new_tokenstream(matched_on_tokens);
+                let mut matched_on_tokens = Tokens::new(matched_on_tokens);
                 let matched_on = parse_expression(
                     tp.clone(), 
                     &mut matched_on_tokens, 
@@ -444,10 +617,10 @@ pub fn parse_expression(
                     constructors,
                     generics,
                 )?;
-                expect_end(&mut matched_on_tokens)?;
-                let (token, _mark) = next_token(tokens)?.destructure();
+                matched_on_tokens.expect_end()?;
+                let (token, _mark) = tokens.next()?.destructure();
                 let Token::NewLine(indentation) = token else { panic!("no newline") };
-                let mut branch_tokens = get_with_indentation(tokens, indentation);
+                let mut branch_tokens = std::mem::take(tokens).get_with_indentation(indentation);
                 let mut branches: Vec<(Rc<Marked<Pattern>>, Expression)> = Vec::with_capacity(branch_tokens.len());
                 let mut patterns = Vec::new();
                 for branch in branch_tokens.iter_mut() {
@@ -459,7 +632,7 @@ pub fn parse_expression(
                     )?;
                     let mut loc = local_vars.clone();
                     local_vars_new.clone().into_iter().for_each(|(k, v)| { loc.insert(k, v); });
-                    expect_keyword(branch, Keyword::To)?;
+                    branch.expect_keyword(Keyword::To)?;
                     let body = parse_expression(
                         expected_type.clone(),
                         branch, 
@@ -469,7 +642,7 @@ pub fn parse_expression(
                         constructors,
                         generics,
                     )?;
-                    expect_end(branch)?;
+                    branch.expect_end()?;
                     for (_, (id, _tp, mark)) in local_vars_new.into_iter() {
                         if !is_used(&body, id) {
                             return Err(make_error(CompilationError::NotUsed, mark))
@@ -490,7 +663,10 @@ pub fn parse_expression(
                     branches,
                 })
             }
-            _ => Err(make_error(CompilationError::UnexpectedKeyword, keyword_mark))
+            _ => {
+                panic!("f");
+                Err(make_error(CompilationError::UnexpectedKeyword, keyword_mark))
+            }
         }
         Token::Word(name) => {
             // peek if the next token is a newline
@@ -499,7 +675,7 @@ pub fn parse_expression(
             } else if let Some((a, b, c, g)) = global_vars.get(&name) {
                     (
                         if *c { Expression::DataConstructor(*a as u32) } else { Expression::Variable(*a) },
-                        parseGenericCall(tokens, &g, b.clone())?
+                        parse_generic_call(tokens, &g, b.clone())?
                     )
             } else {
                 return Err(make_error(CompilationError::NotInScope(name.to_owned()), keyword_mark))
@@ -515,7 +691,7 @@ pub fn parse_expression(
             while current_type != expected_type {
                 match tokens.peek().unwrap().value {
                     Token::NewLine(indentation) => {
-                        let mut arg_groups = get_with_indentation(tokens, indentation).into_iter();
+                        let mut arg_groups = std::mem::take(tokens).get_with_indentation(indentation).into_iter();
                         while current_type != expected_type {
                             let Some(mut current_tokens) = arg_groups.next() else {
                                 return Err(make_error(CompilationError::ExpectedMoreArguments, keyword_mark))
@@ -534,7 +710,7 @@ pub fn parse_expression(
                                 constructors,
                                 generics,
                             )?;
-                            expect_end(&mut current_tokens)?;
+                            current_tokens.expect_end()?;
                             output_args.push(next_arg);
                         }
                         break
@@ -703,7 +879,7 @@ impl ErrorType for CompilationError {
             //Self::PartialPattern => "not all patterns covered",
             //Self::RedundantPattern => "redundent pattern",
             Self::ColorOnSpace => "can only be used with non-spaces",
-            Self::TranspOnChar => "can only be used with ' ' or '+'",
+            Self::TranspOnChar => "unexpected character",
             Self::ArtMissingArgs => "art expected more arguments",
             Self::ExpectedMoreArguments => "expected more arguments",
             Self::UnexpectedEnd => "unexpected end",
@@ -777,177 +953,107 @@ pub enum Token {
     Keyword(Keyword),
     NewLine(u32),
     Word(String),
-    EndOfBlock
 }
 
-pub type TokenStream = std::iter::Peekable<std::vec::IntoIter<Marked<Token>>>;
-
-fn expect_end(tokens: &mut TokenStream) -> Result<()> {
-    if let Some((token, mark)) = tokens.next().map(|x| x.destructure()) {
-        match token {
-            Token::EndOfBlock => (),
-            Token::NewLine(_) => return expect_end(tokens),
-            _ => return Err(make_error(CompilationError::TrailingCharacters, mark)),
-        }
-    }
-    Ok(())
-}
-
-fn new_tokenstream(mut tokens: Vec<Marked<Token>>) -> TokenStream {
-    let mut last_mark = tokens[tokens.len() - 1].mark.clone();
-    if let Index::Expression(index) = last_mark.word_index {
-        last_mark.word_index = Index::EndOfWord(index);
-    }
-    tokens.push(Marked::<Token> {
-        value: Token::EndOfBlock,
-        mark: last_mark,
-    });
-    tokens.into_iter().peekable()
-}
-
-fn remove_leading_newlines(tokens: &mut TokenStream) {
-    while let Some(Marked::<Token> { value: Token::NewLine(_), .. }) = tokens.peek() {
-        tokens.next();
-    }
-}
-
-fn expect_keyword(tokens: &mut TokenStream, keyword: Keyword) -> Result<()> {
-    let (value, mark) = next_non_newline(tokens)?.destructure();
-    match value {
-        Token::Keyword(k) if k == keyword => Ok(()),
-        _ => Err(make_error(CompilationError::ExpectedKeyword(keyword), mark))
-    }
-}
-
-fn collect_until(tokens: &mut TokenStream, keyword: Keyword) -> Result<TokenStream> {
+pub fn words(s: &str) -> Vec<(usize, &str, usize)> {
     let mut output = Vec::new();
-    loop {
-        let token = match next_token(tokens) {
-            Ok(x) => x,
-            Err(mut e) => {
-                e.error_type = Box::new(CompilationError::KeywordNotFound(keyword));
-                return Err(e)
+    let mut character_index = 0;
+    let mut length = 0;
+    for (index, character) in s.chars().enumerate() {
+        match character {
+            ' ' => {
+                if length != 0 {
+                    output.push((character_index, &s[character_index..character_index+length], length));
+                    length = 0;
+                }
             }
-        };
-        if matches!(&token.value, Token::Keyword(k) if *k == keyword) {
-            break
-        }
-        output.push(token);
-    }
-    Ok(new_tokenstream(output))
-}
-
-fn next_non_newline(input: &mut TokenStream) -> Result<Marked<Token>> {
-    remove_leading_newlines(input);
-    next_token(input)
-}
-
-fn next_token(input: &mut TokenStream) -> Result<Marked<Token>> {
-    let output = input.next().unwrap();
-    if let Token::EndOfBlock = output.value {
-        return Err(Error {
-            error_type: Box::new(CompilationError::UnexpectedEnd), 
-            mark: output.mark
-        })
-    }
-    Ok(output)
-}
-
-fn next_word (tokens: &mut TokenStream) -> Result<Marked<String>> {
-    let (token, mark) = next_non_newline(tokens)?.destructure();
-    let Token::Word(word) = token else {
-        return Err(make_error(CompilationError::UnexpectedKeyword, mark))
-    };
-    Ok(Marked::<String> { value: word, mark })
-}
-
-fn get_with_indentation(input: &mut TokenStream, indentation: u32) -> Vec<TokenStream> {
-    let mut output: Vec<TokenStream> = Vec::new();
-    let mut current: Vec<Marked<Token>> = Vec::new();
-    while let Ok(token) = next_token(input) {
-        if matches!(&token.value, Token::NewLine(i) if *i == indentation) {
-            if !current.is_empty() {
-                output.push(new_tokenstream(current));
-                current = Vec::new();
+            _ => {
+                if length == 0 {
+                    character_index = index;
+                }
+                length += 1;
             }
-        } else {
-            current.push(token)
         }
     }
-    output.push(new_tokenstream(current));
-    output
+    if length != 0 {
+        output.push((character_index, &s[character_index..character_index+length], length));
+    }
+    return output
 }
 
 pub fn tokenize(
-    input: Vec<(usize, String)>,
-    file_name: Rc<String>,
-    file: Rc<Vec<String>>,
-) -> Result<TokenStream> {
+    input: Vec<(usize, &str)>,
+    file: &Rc<File>,
+) -> Result<Tokens> {
     let keywords: HashMap<&str, Keyword> = HashMap::from([
-        ( "match",     Keyword::Match     ),
+        ( "include",   Keyword::Include   ),
+        ( "for_all",   Keyword::ForAll    ),
+        ( "type",      Keyword::Type      ),
+        ( "contains",  Keyword::Contains  ),
         ( "define",    Keyword::Define    ),
         ( "of_type",   Keyword::OfType    ),
         ( "as",        Keyword::As        ),
+        ( "lambda",    Keyword::Lambda    ),
+        ( "match",     Keyword::Match     ),
         ( "with",      Keyword::With      ),
         ( "to",        Keyword::To        ),
-        ( "lambda",    Keyword::Lambda    ),
-        ( "type",      Keyword::Type      ),
-        ( "contains",  Keyword::Contains  ),
-        ( "include",   Keyword::Include   ),
-        ( "for_all",   Keyword::ForAll    ),
         ( "...",       Keyword::Undefined ),
     ]);
-    let mut output = Vec::new();
+    let mut output = LinkedList::new();
     let mut block = input.into_iter().peekable();
+    let mut last_index: usize = 0;
     while let Some((line_number, line)) = block.next() {
         let indentation = indentation_length(&line);
         if indentation % INDENTATION != 0 {
             return Err(make_error(CompilationError::BadIndentation, Mark {
-                file_name: Rc::clone(&file_name),
                 file: Rc::clone(&file),
                 line: line_number,
                 block: None,
-                word_index: Index::Art(indentation as usize - 1),
+                character: 0,
+                length: indentation as usize
             }))
         }
-            output.push(Marked::<Token> {
-                mark: Mark {
-                    file_name: Rc::clone(&file_name),
-                    file: Rc::clone(&file),
-                    line: line_number,
-                    block: None,
-                    word_index: Index::EndOfLine,
-                },
-                value: Token::NewLine(indentation),
-            });
-        //}
-        let mut words = line.split_whitespace().enumerate();
-        'words: while let Some((word_index, word)) = words.next() {
-            let mark: Mark = Mark {
-                file_name: Rc::clone(&file_name),
+        output.push_back(Marked::<Token> {
+            mark: Mark {
                 file: Rc::clone(&file),
                 line: line_number,
                 block: None,
-                word_index: Index::Expression(word_index),
+                character: last_index,
+                length: 1,
+            },
+            value: Token::NewLine(indentation),
+        });
+        last_index = 0;
+        let mut words = words(line).into_iter();
+        'words: while let Some((character, word, length)) = words.next() {
+            last_index = character + length;
+            let mark: Mark = Mark {
+                file: Rc::clone(&file),
+                line: line_number,
+                block: None,
+                character: character,
+                length,
             };
             match word {
                 "--" => break 'words,
                 "art" => {
-                    let Some((word_index, x)) = words.next() else { return Err(make_error(
+                    let Some((character, x, length)) = words.next() else { return Err(make_error(
                         CompilationError::ArtMissingArgs,
-                        Mark { word_index: Index::EndOfWord(word_index), ..mark }
+                        //Mark { character: character, ..mark }
+                        mark.one_after_the_highlight(),
                     ))};
-                    let Some(x) = parse_roman_numeral(x) else { return Err(make_error(
+                    let Some(x) = parse_roman_numeral(&x) else { return Err(make_error(
                         CompilationError::ExpectedRoman, 
-                        Mark { word_index: Index::Expression(word_index + 1), ..mark }
+                        Mark { character: character, length, ..mark }
                     ))};
-                    let Some((word_index, y)) = words.next() else { return Err(make_error(
+                    let Some((character, y, length)) = words.next() else { return Err(make_error(
                         CompilationError::ArtMissingArgs,
-                        Mark { word_index: Index::EndOfWord(word_index), ..mark }
+                        mark.one_after_the_highlight(),
+                        //Mark { character: character, ..mark }
                     ))};
-                    let Some(y) = parse_roman_numeral(y) else { return Err(make_error(
+                    let Some(y) = parse_roman_numeral(&y) else { return Err(make_error(
                         CompilationError::ExpectedRoman,
-                        Mark { word_index: Index::Expression(word_index + 2), ..mark }
+                        Mark { character: character, length, ..mark }
                     ))};
                     let art_indentation = if indentation == 0 {
                         0
@@ -971,7 +1077,8 @@ pub fn tokenize(
                                 value: character,
                                 mark: Mark {
                                     line: line_index,
-                                    word_index: Index::Art(char_index),
+                                    character: char_index,
+                                    length: 1,
                                     ..mark.clone()
                                 },
                             };
@@ -980,14 +1087,14 @@ pub fn tokenize(
                         new_output.push(temp);
                     }
                     let aaa = parse_art(x as usize, y as usize, new_output, mark.clone())?;
-                    output.extend( build_tokens_from_art(mark, aaa)?);
+                    output.extend(build_tokens_from_art(mark, aaa)?);
                 }
-                other => output.push(Marked::<Token> {
+                other => output.push_back(Marked::<Token> {
                     mark: mark.clone(),
                     value: match keywords.get(&other) {
                         Some(keyword) => Token::Keyword(*keyword),
                         None => {
-                            if !other.chars().all(|x| x.is_lowercase() || x == '_') {
+                            if !other.chars().all(|x| x.is_lowercase() || x == '_' || x == '/') {
                                 return Err(Error {
                                     mark,
                                     error_type: Box::new(CompilationError::InvalidName),
@@ -1000,7 +1107,11 @@ pub fn tokenize(
             }
         }
     }
-    Ok(new_tokenstream(output))
+    let mut tokens = LinkedList::new();
+    for i in output.into_iter() {
+        tokens.push_back(i);
+    }
+    Ok(Tokens::new(tokens))
 }
 
 fn build_token(name: &str, mark: &Mark) -> Marked<Token> {
@@ -1012,30 +1123,28 @@ fn build_token(name: &str, mark: &Mark) -> Marked<Token> {
 
 type Cells = Vec<((u32, u32), (Marked<char>, Marked<char>))>;
 
-fn build_nat(n: u32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) {
-    for _ in 0 .. n - 1 {
-        buffer.push(build_token("succ", mark));
-    }
-    buffer.push(build_token("one", mark));
+fn build_nat(n: u32, buffer: &mut LinkedList<Marked<Token>>, mark: &Mark) {
+    (0 .. n - 1).for_each(|_| buffer.push_back(build_token("succ", mark)));
+    buffer.push_back(build_token("one", mark));
 }
 
-fn build_int(n: i32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) {
+fn build_int(n: i32, buffer: &mut LinkedList<Marked<Token>>, mark: &Mark) {
     match n.cmp(&0) {
         std::cmp::Ordering::Equal => {
-            buffer.push(build_token("zero", mark));
+            buffer.push_back(build_token("zero", mark));
             return
         }
-        std::cmp::Ordering::Less => buffer.push(build_token("neg", mark)),
-        std::cmp::Ordering::Greater => buffer.push(build_token("pos", mark)),
+        std::cmp::Ordering::Less => buffer.push_back(build_token("neg", mark)),
+        std::cmp::Ordering::Greater => buffer.push_back(build_token("pos", mark)),
     }
     build_nat(n.unsigned_abs(), buffer, mark);
 }
 
-fn build_shift_by(x: i32, y: i32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) {
+fn build_shift_by(x: i32, y: i32, buffer: &mut LinkedList<Marked<Token>>, mark: &Mark) {
     if x == 0 && y == 0 {
         return
     }
-    buffer.push(build_token("shift_by", mark));
+    buffer.push_back(build_token("shift_by", mark));
     build_int(x, buffer, mark);
     build_int(y, buffer, mark);
 }
@@ -1044,30 +1153,30 @@ fn build_shift_by(x: i32, y: i32, buffer: &mut Vec<Marked<Token>>, mark: &Mark) 
 fn build_tokens_from_art(
     mark: Mark,
     input: Vec<Vec<Cells>>,
-) -> Result<Vec<Marked<Token>>> {
+) -> Result<LinkedList<Marked<Token>>> {
     let mut x_shift = false;
     let mut y_shift = false;
-    let mut video_commands = Vec::new();
-    let mut output = Vec::new();
+    let mut video_commands = LinkedList::new();
+    let mut output = LinkedList::new();
     for (index, i) in input.into_iter().enumerate() {
-        let mut frame_buffer = Vec::new();
-        let mut frame_commands = Vec::new();
-        output.push(build_token("prepend", &mark));
-        frame_buffer.push(build_token("frame", &mark));
-        frame_buffer.push(build_token("empty_column", &mark));
+        let mut frame_buffer = LinkedList::new();
+        let mut frame_commands = LinkedList::new();
+        output.push_back(build_token("prepend", &mark));
+        frame_buffer.push_back(build_token("frame", &mark));
+        frame_buffer.push_back(build_token("empty_column", &mark));
         for line in i.into_iter().rev() {
-            frame_buffer.push(build_token("cons_column", &mark));
-            frame_buffer.push(build_token("horizontal", &mark));
-            frame_buffer.push(build_token("empty_row", &mark));
+            frame_buffer.push_back(build_token("cons_column", &mark));
+            frame_buffer.push_back(build_token("horizontal", &mark));
+            frame_buffer.push_back(build_token("empty_row", &mark));
             for ((x, y), (c1, c2)) in line.into_iter() {
-                frame_buffer.push(build_token("cons_row", &mark));
+                frame_buffer.push_back(build_token("cons_row", &mark));
                 let c1_char = c1.value;
                 let c2_char = c2.value.to_ascii_lowercase();
                 if matches!((c1_char, c2_char), (_, '.') | (_, '|')) {
                     match c1_char {
                         ' ' => (),
                         'Z' | 'Y' | 'X' => {
-                            video_commands.push(build_token("entirely", &mark));
+                            video_commands.push_back(build_token("entirely", &mark));
                             build_shift_by(
                                 if matches!(c1_char, 'Y' | 'Z') {
                                     if x_shift {
@@ -1095,42 +1204,42 @@ fn build_tokens_from_art(
                 }
                 if c2_char == '&' {
                     let s = String::from(c1_char.to_ascii_lowercase());
-                    frame_buffer.push(build_token("empty_grid_cell", &mark));
-                    video_commands.push(build_token("layer", &mark));
+                    frame_buffer.push_back(build_token("empty_grid_cell", &mark));
+                    video_commands.push_back(build_token("layer", &mark));
                     if index != 0 {
-                        video_commands.push(build_token("for", &mark));
+                        video_commands.push_back(build_token("for", &mark));
                         build_nat(index as u32, &mut video_commands, &mark);
-                        video_commands.push(build_token("rotate_right", &mark));
+                        video_commands.push_back(build_token("rotate_right", &mark));
                     }
-                    video_commands.push(build_token("entirely", &mark));
+                    video_commands.push_back(build_token("entirely", &mark));
                     build_shift_by(x as i32, y as i32, &mut video_commands, &mark);
-                    video_commands.push(build_token(&s, &c1.mark));
+                    video_commands.push_back(build_token(&s, &c1.mark));
                     continue;
                 }
                 if c2_char == '.' {
-                    frame_buffer.push(build_token("empty_grid_cell", &mark));
+                    frame_buffer.push_back(build_token("empty_grid_cell", &mark));
                     continue;
                 }
                 if c2_char == '#' {
                     let s = String::from(c1_char.to_ascii_lowercase());
-                    frame_buffer.push(build_token("empty_grid_cell", &mark));
-                    frame_commands.push(build_token("layer_frames", &mark));
+                    frame_buffer.push_back(build_token("empty_grid_cell", &mark));
+                    frame_commands.push_back(build_token("layer_frames", &mark));
                     build_shift_by(x as i32, y as i32, &mut frame_commands, &mark);
-                    frame_commands.push(build_token(&s, &c1.mark));
+                    frame_commands.push_back(build_token(&s, &c1.mark));
                     continue;
                 }
-                frame_buffer.push(build_token("full_grid_cell", &mark));
+                frame_buffer.push_back(build_token("full_grid_cell", &mark));
                 match (c1_char, c2_char) {
                     (_, ' ') => return Err(make_error(CompilationError::InvalidColor, c2.mark)),
                     (_, '|') => {
-                        frame_buffer.push(build_token("space", &c1.mark));
+                        frame_buffer.push_back(build_token("space", &c1.mark));
                     }
                     (c1_char, '$') => {
                         let s = String::from(c1_char.to_ascii_lowercase());
-                        frame_buffer.push(build_token(&s, &c1.mark));
+                        frame_buffer.push_back(build_token(&s, &c1.mark));
                     }
                     (c1_char, c2_char) => {
-                        frame_buffer.push(Marked::<Token> {
+                        frame_buffer.push_back(Marked::<Token> {
                             mark: mark.clone(),
                             value: Token::Word("char".to_string()),
                         });
@@ -1190,7 +1299,7 @@ fn build_tokens_from_art(
                             }
                             _ => panic!("bad char"),
                         };
-                        frame_buffer.push(build_token(character, &c1.mark));
+                        frame_buffer.push_back(build_token(character, &c1.mark));
                         let color = match c2_char {
                             '0' => Ok("black"),
                             '1' => Ok("red"),
@@ -1205,18 +1314,18 @@ fn build_tokens_from_art(
                             x => Err(x),
                         };
                         match color {
-                            Ok(x) => frame_buffer.push(build_token(x, &mark)),
+                            Ok(x) => frame_buffer.push_back(build_token(x, &mark)),
                             Err(x) => {
                                 let s = String::from(x);
-                                frame_buffer.push(build_token(&s, &c2.mark));
+                                frame_buffer.push_back(build_token(&s, &c2.mark));
                             }
                         };
                     }
                 }
             }
-            frame_buffer.push(build_token("empty_row", &mark));
+            frame_buffer.push_back(build_token("empty_row", &mark));
         }
-        frame_buffer.push(build_token("empty_column", &mark));
+        frame_buffer.push_back(build_token("empty_column", &mark));
         output.append(&mut frame_commands);
         output.append(&mut frame_buffer);
     }
@@ -1224,14 +1333,10 @@ fn build_tokens_from_art(
         video_commands.append(&mut output);
         output = video_commands;
     }
-    let mut i = output.len() - 1;
-    loop {
-        match output.get_mut(i).unwrap().value {
-            Token::Word(ref mut x) if x == "prepend" => {
-                *x = "single".to_owned();
-                break;
-            }
-            _ => i -= 1
+    for i in output.iter_mut().rev() {
+        if let Token::Word(ref mut x) = i.value && x == "prepend" {
+            *x = "single".to_owned();
+            break;
         }
     }
     Ok(output)
@@ -1248,33 +1353,33 @@ fn indentation_length(input: &str) -> u32 {
 
 #[derive(Debug)]
 pub enum Signiture {
-    Value(String, Mark, TokenStream, Vec<(String, usize)>),
+    Value(String, Mark, Tokens, Vec<(String, usize)>),
     Type(String, Mark),
 }
 
 pub fn extract_signiture(
     mut generics: Vec<(String, usize)>, 
-    input: &mut TokenStream
+    input: &mut Tokens
 ) -> Result<Signiture> {
-    let (token, mark1) = next_non_newline(input)?.destructure();
+    let (token, mark1) = input.next_non_newline()?.destructure();
     match token {
         Token::Keyword(Keyword::ForAll) => {
             while !matches!(input.peek().unwrap().value, Token::Keyword(_)) {
-                let (name, name_mark) = next_word(input)?.destructure();
+                let (name, _name_mark) = input.next_word()?.destructure();
                 let index = generics.len() + 1;
                 generics.push((name, index));
             }
             extract_signiture(generics, input)
         }
         Token::Keyword(Keyword::Define) => {
-            let (name, name_mark) = next_word(input)?.destructure();
-            expect_keyword(input, Keyword::OfType)?;
-            let type_strings = collect_until(input, Keyword::As)?;
+            let (name, name_mark) = input.next_word()?.destructure();
+            input.expect_keyword(Keyword::OfType)?;
+            let type_strings = input.collect_until(Token::Keyword(Keyword::As))?;
             Ok(Signiture::Value(name, name_mark, type_strings, generics))
         }
         Token::Keyword(Keyword::Type) => {
-            let (name, name_mark) = next_word(input)?.destructure();
-            expect_keyword(input, Keyword::Contains)?;
+            let (name, name_mark) = input.next_word()?.destructure();
+            input.expect_keyword(Keyword::Contains)?;
             Ok(Signiture::Type(name, name_mark))
         }
         x => Err(Error {
@@ -1294,8 +1399,8 @@ fn make_error(error: CompilationError, mark: Mark) -> Error {
     }
 }
 
-pub fn parse_type(tokens: &mut TokenStream, generics: &Vec<(String, usize)>) -> Result<Type> {
-    let (word, mark) = next_word(tokens)?.destructure();
+pub fn parse_type(tokens: &mut Tokens, generics: &Vec<(String, usize)>) -> Result<Type> {
+    let (word, mark) = tokens.next_word()?.destructure();
     match word.as_str() {
         "fn" => {
             let arg1 = parse_type(tokens, generics)?;
@@ -1303,7 +1408,7 @@ pub fn parse_type(tokens: &mut TokenStream, generics: &Vec<(String, usize)>) -> 
             Ok(Type::Function(Box::new(arg1), Box::new(arg2)))
         }
         _ => {
-            if let Some(t) = getFromGenerics(&word, generics) {
+            if let Some(t) = get_from_generics(&word, generics) {
                 return Ok(t)
             }
             let ptr = TYPES.lock().unwrap();
@@ -1312,14 +1417,14 @@ pub fn parse_type(tokens: &mut TokenStream, generics: &Vec<(String, usize)>) -> 
                 error_type: Box::new(CompilationError::TypeNotInScope(word)),
             })?;
             Ok(Type::Type {
-                typeConstructor: *index,
+                type_constructor: *index,
                 arguments: Vec::new(),
             })
         }
     }
 }
 
-fn getFromGenerics(name: &str, generics: &Generics) -> Option<Type> {
+fn get_from_generics(name: &str, generics: &Generics) -> Option<Type> {
     for (generic_name, index) in generics.iter() {
         if generic_name == name {
             return Some(Type::Generic(*index));
@@ -1329,21 +1434,21 @@ fn getFromGenerics(name: &str, generics: &Generics) -> Option<Type> {
 }
 
 pub fn parse_data(
-    mut tokens: TokenStream,
+    mut tokens: Tokens,
     parent_type: u32,
 ) -> Result<Vec<(String, Type, Mark)>> {
     let mut output = Vec::new();
-    for mut i in get_with_indentation(&mut tokens, INDENTATION).into_iter() {
-        let (name, name_mark) = next_word(&mut i)?.destructure();
+    for mut i in tokens.get_with_indentation(INDENTATION).into_iter() {
+        let (name, name_mark) = i.next_word()?.destructure();
         let mut arg_types: Vec<Type> = Vec::new();
-        while !matches!(i.peek().unwrap().value, Token::EndOfBlock) {
+        while let Ok(_) = i.peek() {
             let generics = Vec::new();
             arg_types.push(parse_type(&mut i, &generics)?)
         }
         let mut args = arg_types.into_iter();
         output.push((name, build_type(
             &mut args, 
-            Type::Type { typeConstructor: parent_type, arguments: Vec::new() }), 
+            Type::Type { type_constructor: parent_type, arguments: Vec::new() }), 
             name_mark
         ));
     }
@@ -1360,7 +1465,7 @@ pub fn build_type(input: &mut impl Iterator<Item = Type>, result: Type) -> Type 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Type {
     Type {
-        typeConstructor: u32,
+        type_constructor: u32,
         arguments: Vec<Type>
     },
     Function(Box<Type>, Box<Type>),
@@ -1368,13 +1473,6 @@ pub enum Type {
 }
 
 impl Type {
-    //pub fn is_a_function(&self) -> bool {
-    //    match self {
-    //        Self::Type(_) => false,
-    //        Self::Function(_, _) => true,
-    //    }
-    //}
-
     pub fn final_type(&self) -> Type {
         match self {
             Self::Function(_, b) => b.final_type(),
@@ -1389,36 +1487,19 @@ impl Type {
         }
     }
 
-    //pub fn apply_type(self, arg: Self) -> Option<Self> {
-    //    match self {
-    //        Self::Type(u32) => None,
-    //        Self::Function(x, y) => {
-    //            if arg == *x {
-    //                Some(*y)
-    //            } else {
-    //                None
-    //            }
-    //        }
-    //    }
-    //}
-
     pub fn arg_types(self) -> Vec<Type> {
         let mut args = Vec::new();
         let mut current_type = self;
-        loop {
-            match current_type {
-                Type::Function(a, b) => {
-                    args.push(*a);
-                    current_type = *b;
-                }
-                Type::Type { .. } | Type::Generic(_) => return args,
-            }
+        while let Type::Function(a, b) = current_type {
+            args.push(*a);
+            current_type = *b;
         }
+        args
     }
     pub fn show(&self) -> String {
         fn helper(tp: &Type, types: &HashMap<&u32, &String>, output: &mut String) {
             match tp {
-                Type::Type { typeConstructor: a, arguments } => {
+                Type::Type { type_constructor: a, arguments } => {
                     let name = types.get(a).unwrap(); // safe
                     output.push_str(name);
                     output.push(' ');

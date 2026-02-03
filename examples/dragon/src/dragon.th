@@ -5,7 +5,7 @@
 --  \__,_|_|  \__,_|\__, |\___/|_| |_|
 --                  |___/             
 
-include core video
+include video
 
 define dragon of_type video as layer
     layer entirely shift_by neg vi pos iii center_head layer

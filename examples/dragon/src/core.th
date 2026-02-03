@@ -1,14 +1,5 @@
 -- core types required for the art macro
 
-type int contains
-    neg nat
-    pos nat
-    zero
-
-type nat contains
-    one
-    succ nat
-
 type coordinate contains
     coordinate int int
 

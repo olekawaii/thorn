@@ -116,11 +116,12 @@ impl Default for Expression {
 
 impl Expression {
     fn is_simplified(&self) -> bool {
-        matches!(self, Expression::Lambda { .. } | Expression::DataConstructor(_)) || 
-        matches!(self, Expression::Tree {root, ..} if matches!(&**root, Expression::DataConstructor(_)))
+        matches!(self, Expression::Tree {root, ..} 
+            if matches!(&**root, Expression::DataConstructor(_))) ||
+        matches!(self, Expression::Lambda { .. } | Expression::DataConstructor(_))
     }
 
-    // rewrite expression until it starts with a data constructor or a lambda
+    // rewrite the expression until it starts with a data constructor or a lambda
     
     pub fn simplify(&mut self) {
         if self.is_simplified() {
@@ -135,9 +136,7 @@ impl Expression {
                             eprintln!( "\x1b[7;31m RUNTIME ERROR \x1b[0mattempted to evaluate a bottom _|_");
                             std::process::exit(1);
                         };
-                        if !inner.is_simplified() {
-                            inner.simplify();
-                        }
+                        inner.simplify();
                         *self = inner.clone()
                     }
                 }
@@ -148,7 +147,6 @@ impl Expression {
                         match self {
                             Expression::Tree { arguments, .. } => arguments.push(i),
                             Expression::Lambda { pattern, body } => {
-                                // assume the pattern matches
                                 if !matches_expression(&pattern.value, &mut i) {
                                     let error = Error {
                                         error_type: Box::new(RuntimeError::UnmatchedPattern),
@@ -163,7 +161,7 @@ impl Expression {
                             }
                             Expression::DataConstructor(_) => {
                                 *self = Expression::Tree {
-                                    root: Box::new(self.clone()),
+                                    root: Box::new(std::mem::take(self)),
                                     arguments: vec![i]
                                 }
                             }
@@ -283,7 +281,7 @@ impl Expression {
                         }
                     };
                     stdout.write_all(word.as_bytes()).expect("");
-                    stdout.write_all(b" ").expect("");
+                    stdout.write_all(b"\n").expect("");
                 }
                 Expression::Lambda { .. } => stdout.write_all(b"<lambda> ").unwrap(),
                 _ => unreachable!(),
