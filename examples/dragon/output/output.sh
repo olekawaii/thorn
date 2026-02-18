@@ -1,18 +1,11 @@
 #!/bin/sh
 
-if [ $(tput cols) -lt 54 -o $(tput lines) -lt 16 ]; then
-    printf "\33[91mterminal is too small\nmust be at least 54 by 16 cells\33[0m\n" >&2
-    exit 1
-fi
-
-stty -echo
 printf '\33[?25l'
 
 move_up="\33[15F"
 
 cleanup() {
     printf "$move_up\33[0J\33[0m\33[?25h"
-    stty echo
     exit 0
 }
 

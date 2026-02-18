@@ -17,70 +17,56 @@
 use std::{
     collections::HashMap,
     env,
-    sync::Mutex,
     rc::Rc,
+    cell::RefCell,
 };
 
 mod error;
 mod parse;
 mod runtime;
+mod tokens;
 
 use crate::{
-    error::{Mark, File, Marked},
-    parse::{parse_file, Type, words},
+    error::{File, Marked},
+    parse::{parse_file, Type},
     runtime::{Expression},
 };
 
 fn main() -> std::io::Result<()> {
-    let args: Vec<String> = env::args().collect();
-    let mut arg_file = String::new();
-    args.iter().for_each(|x| {
-        arg_file.push_str(x);
-        arg_file.push(' ')
-    });
-    let arg_file = Rc::new(File {
-        name: String::from("arguments"),
-        lines: vec![arg_file]
-    });
-    let mut marked_args = Vec::new();
-    words(&arg_file.lines[0]).into_iter().for_each(|(i, value, length)| marked_args.push(Marked::<String> {
-        value: value.to_string(),
-        mark: Mark {
-            file: Rc::clone(&arg_file),
-            line: 0,
-            block: None,
-            character: i,
-            length,
-        }
-    }));
-    let mut marked_args = marked_args.into_iter();
-    let _executable = marked_args.next().unwrap();
-    let file_name = marked_args.next().unwrap();
-    let main_name = marked_args
-        .next()
-        .map(|x| x.value)
-        .unwrap_or(String::from("main"));
     let mut numbor_of_vars = 0;
-    match parse_file(&mut numbor_of_vars, file_name) {
+    match parse_cli_arguments().and_then(|x| parse_file(&mut numbor_of_vars, x)) {
         Err(x) => {
             eprintln!("{x}");
             std::process::exit(1)
         }
         Ok((vars, vars_dummy)) => {
-            let main = build_monolithic_expression(vars, &vars_dummy, &main_name);
+            let main = build_monolithic_expression(vars, &vars_dummy, "main");
             let mut map = HashMap::new();
             for (name, (index, _, _, _)) in vars_dummy {
                 map.insert(index as u32, name);
             }
             eprintln!("\x1b[95mbuilt expression\x1b[0m");
             main.print(&mut map);
-            //let mut output = String::new();
-            //convert_to_file(&main, &map, &mut output);
-            //println!("{output}");
-            //std::mem::forget(main); // to prevent a stack overflow if it's big
         }
     }
     Ok(())
+}
+
+fn parse_cli_arguments() -> error::Result<Marked<String>> {
+    let args: Vec<String> = env::args().collect();
+    let mut arg_str = String::new();
+    args.iter().for_each(|x| {
+        arg_str.push_str(x);
+        arg_str.push(' ')
+    });
+    let arg_file = Rc::new(File {
+        name: String::from("arguments"),
+        lines: vec![arg_str]
+    });
+    let mut tokens: tokens::Tokens = tokens::tokenize(vec![(0, &arg_file.lines[0])], &arg_file)?;
+    let _executable = tokens.next_word()?;
+    let file_name = tokens.next_word()?;
+    Ok(file_name)
 }
 
 fn build_monolithic_expression(
@@ -88,17 +74,17 @@ fn build_monolithic_expression(
     vars_dummy: &HashMap<String, (usize, Type, bool, Vec<(String, usize)>)>,
     name: &str,
 ) -> Expression {
-    let expressions: Vec<Rc<Mutex<Expression>>> =
-        vec.into_iter().map(|x| Rc::new(Mutex::new(x))).collect();
+    let expressions: Vec<Rc<RefCell<Expression>>> =
+        vec.into_iter().map(|x| Rc::new(RefCell::new(x))).collect();
     for i in expressions.iter() {
-        let ptr = &mut (**i).lock().unwrap();
+        let ptr = &mut (**i).borrow_mut();
         monolithic_helper(&expressions, ptr)
     }
     let (main_index, _, _, _) = vars_dummy.get(name).expect("requested function does not exist (usually main)");
-    (*expressions[*main_index]).lock().unwrap().clone()
+    (*expressions[*main_index]).borrow().clone()
 }
 
-fn monolithic_helper(vec: &Vec<Rc<Mutex<Expression>>>, expression: &mut Expression) {
+fn monolithic_helper(vec: &Vec<Rc<RefCell<Expression>>>, expression: &mut Expression) {
     match expression {
         Expression::Tree { root, arguments, ..} => {
             arguments.iter_mut().for_each(|x| monolithic_helper(vec, x));
@@ -114,7 +100,7 @@ fn monolithic_helper(vec: &Vec<Rc<Mutex<Expression>>>, expression: &mut Expressi
         Expression::Undefined { .. } => (),
         Expression::DataConstructor(_) | Expression::LocalVarPlaceholder(_) => (),
         Expression::Thunk(x) => {
-            let ptr = &mut (*x).lock().unwrap();
+            let ptr = &mut (*x).try_borrow_mut().unwrap();
             monolithic_helper(vec, ptr);
         }
         Expression::Variable(x) => {
@@ -122,23 +108,3 @@ fn monolithic_helper(vec: &Vec<Rc<Mutex<Expression>>>, expression: &mut Expressi
         }
     }
 }
-
-//fn convert_to_file(expression: &Expression, names: &HashMap<u32, String>, output: &mut String) {
-//    let mut to_print: Vec<&Expression> = vec![expression];
-//    while let Some(expression) = to_print.pop() {
-//        match expression {
-//            Expression::Tree { root, arguments } => {
-//                let mut word = match root {
-//                    Id::DataConstructor(x) => names.get(x).unwrap(), // unwrap should be safe
-//                    _ => unreachable!(),
-//                };
-//                output.push_str(word);
-//                output.push(' ');
-//                for i in arguments.iter().rev() {
-//                    to_print.push(i)
-//                }
-//            }
-//            _ => panic!("uwu"),
-//        }
-//    }
-//}

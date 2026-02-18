@@ -16,6 +16,17 @@
 
 use std::rc::Rc;
 
+#[inline]
+pub fn make_error(error: impl ErrorType + 'static, mark: Mark) -> Error {
+    Error {
+        mark,
+        error_type: Box::new(error)
+    }
+}
+
+
+pub type Result<T> = std::result::Result<T, Error>;
+
 pub trait ErrorType: std::fmt::Display + std::fmt::Debug {
     fn gist(&self) -> &'static str;
     fn phase(&self) -> &'static str;
@@ -121,6 +132,7 @@ pub struct Marked<T> {
 }
 
 impl<T> Marked<T> {
+    #[inline]
     pub fn destructure(self) -> (T, Mark) {
         (self.value, self.mark)
     }
