@@ -54,7 +54,7 @@ uwu font width height x = concat . map
     where surround x = replicate padding Black <> x <> replicate padding Black
 
 combine :: [[Color]] -> [[Color]] -> [[Color]] 
-combine x y = map (uncurry (++)) $ zip x y
+combine = (map (uncurry (++)) .) . zip
 
 showColor :: Color -> String
 showColor Black    = " 29  32  33"

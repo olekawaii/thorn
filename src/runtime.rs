@@ -20,23 +20,26 @@ use std::io;
 use std::io::Write;
 use std::{collections::HashMap};
 use std::rc::Rc;
+use std::cell::RefCell;
+
+//static COUNTER: Mutex<u32> = Mutex::new(0);
 
 #[derive(Debug, Clone)]
 pub enum Expression {
     Tree {
         root:        Box<Expression>,
-        arguments:   Vec<Expression>,
+        arguments:   Box<[Expression]>,
     },
     Match {
         matched_on:  Box<Expression>,
-        branches:    Vec<(Rc<Marked<Pattern>>, Expression)>,
+        branches:    Box<[(Rc<Marked<Pattern>>, Expression)]>,
     },
     Lambda {
         pattern:     Rc<Marked<Pattern>>,
         body:        Box<Expression>,
     },
     Undefined(Box<Mark>),
-    Thunk(Rc<Mutex<Expression>>),
+    Thunk(Rc<RefCell<Expression>>),
     LocalVarPlaceholder(u32),
     DataConstructor(u32),
     Variable(usize), // only used during parsing
@@ -114,8 +117,11 @@ impl Default for Expression {
     }
 }
 
+
 impl Expression {
+    #[inline]
     fn is_simplified(&self) -> bool {
+        //*COUNTER.lock().unwrap() += 1;
         matches!(self, Expression::Tree {root, ..} 
             if matches!(&**root, Expression::DataConstructor(_))) ||
         matches!(self, Expression::Lambda { .. } | Expression::DataConstructor(_))
@@ -127,25 +133,34 @@ impl Expression {
         if self.is_simplified() {
             return
         }
-        while !self.is_simplified() {
+        let mut is_simplified = false;
+        'uwu: while !is_simplified {
             match std::mem::take(self) {
                 Expression::Thunk(exp) => match Rc::try_unwrap(exp) {
-                    Ok(x) => *self = x.into_inner().unwrap(), // safe unwrap
+                    Ok(x) => *self = x.into_inner(),
                     Err(x) => {
-                        let Ok(mut inner) = (*x).try_lock() else {
+                        let Ok(mut inner) = (*x).try_borrow_mut() else {
                             eprintln!( "\x1b[7;31m RUNTIME ERROR \x1b[0mattempted to evaluate a bottom _|_");
                             std::process::exit(1);
                         };
                         inner.simplify();
-                        *self = inner.clone()
+                        *self = inner.clone();
+                        return
                     }
                 }
-                Expression::Tree { root, arguments, .. } => {
+                Expression::Tree { root, arguments } => {
+                    let mut args = arguments.into_iter();
                     *self = *root;
-                    for mut i in arguments {
+                    while let Some(mut i) = args.next() {
                         self.simplify();
                         match self {
-                            Expression::Tree { arguments, .. } => arguments.push(i),
+                            Expression::Tree { arguments, .. } => {
+                                let mut vec: Vec<Expression> = std::mem::take(arguments).into();
+                                vec.push(i);
+                                args.for_each(|x| vec.push(x));
+                                *arguments = vec.into();
+                                break 'uwu;
+                            }
                             Expression::Lambda { pattern, body } => {
                                 if !matches_expression(&pattern.value, &mut i) {
                                     let error = Error {
@@ -160,10 +175,13 @@ impl Expression {
                                 *self = std::mem::take(&mut *body);
                             }
                             Expression::DataConstructor(_) => {
+                                let mut vec = vec![i];
+                                args.for_each(|x| vec.push(x));
                                 *self = Expression::Tree {
                                     root: Box::new(std::mem::take(self)),
-                                    arguments: vec![i]
-                                }
+                                    arguments: vec.into(),
+                                };
+                                break 'uwu
                             }
                             _ => unreachable!(),
                         }
@@ -204,8 +222,9 @@ impl Expression {
                     eprintln!("{error}");
                     std::process::exit(1);
                 }
-                _ => unreachable!()
+                x => {dbg!(x); todo!();}
             }
+            is_simplified = self.is_simplified();
         }
         optimize_branches(self);
     }
@@ -281,13 +300,14 @@ impl Expression {
                         }
                     };
                     stdout.write_all(word.as_bytes()).expect("");
-                    stdout.write_all(b"\n").expect("");
+                    stdout.write_all(b" ").expect("");
                 }
                 Expression::Lambda { .. } => stdout.write_all(b"<lambda> ").unwrap(),
                 _ => unreachable!(),
             }
         }
         stdout.write_all(b"\n").expect("");
+        //dbg!(*COUNTER.lock().unwrap());
     }
 }
 
@@ -324,11 +344,8 @@ impl std::fmt::Display for RuntimeError {
 
 fn build_thunk(mut input: Expression) -> Expression {
     optimize_expression(&mut input);
-    if let Expression::Tree { root, arguments } = &mut input && arguments.is_empty() {
-        input = std::mem::take(root)
-    }
     match &mut input {
-        Expression::Tree { .. } | Expression::Match { .. } => Expression::Thunk(Rc::new(Mutex::new(input))),
+        Expression::Tree { .. } | Expression::Match { .. } => Expression::Thunk(Rc::new(RefCell::new(input))),
         _ => input
     }
 }
@@ -345,27 +362,27 @@ fn optimize_branches(input: &mut Expression) {
 }
 
 
+//TODO
 pub fn optimize_expression(input: &mut Expression) {
-    if matches!(&input, Expression::Tree { arguments, .. } if arguments.is_empty()) {
-        return
-    }
     match input {
         Expression::Tree { root: _, arguments} => {
             arguments.iter_mut().for_each(optimize_expression);
             //if !matches!(&**root, Expression::DataConstructor(_)) {
-                *input = Expression::Thunk(Rc::new(Mutex::new(std::mem::take(input))))
+                *input = Expression::Thunk(Rc::new(RefCell::new(std::mem::take(input))))
             //}
         }
         // // no point in optimizing anything since the simplified output will be optimized later
-        //Expression::Match {branches, pattern} => {
-        //    optimize_expression(pattern);
-        //    for (pattern, expression) in branches.iter_mut() {
-        //        if let Pattern::Dropped = pattern {
-        //            optimize_expression(expression)
-        //        }
-        //    }
-        //},
-        Expression::Lambda { pattern, body } if matches!((**pattern).value, Pattern::Dropped) => optimize_expression(body),
+        Expression::Match { .. } => {
+            //optimize_expression(pattern);
+            //for (pattern, expression) in branches.iter_mut() {
+            //    if let Pattern::Dropped = pattern {
+            //        optimize_expression(expression)
+            //    }
+            //}
+            *input = Expression::Thunk(Rc::new(RefCell::new(std::mem::take(input))));
+        },
+        Expression::Lambda { pattern, body } if matches!((**pattern).value, Pattern::Dropped) => 
+            optimize_expression(body),
         Expression::Undefined { .. } => (),
         _ => (),
     }

@@ -8,8 +8,8 @@ for_all a b c define compose of_type fn fn b c fn fn a b fn a c as
 
 for_all a define repeat of_type fn nat fn fn a a fn a a as 
     lambda count lambda f lambda x match count with
-        one    to f x
-        succ new_count to f repeat a new_count f x
+        one             to f x
+        succ new_count  to f repeat a new_count f x
 
 for_all a b define apply of_type fn fn a b fn a b as 
     lambda f lambda x f x
@@ -24,25 +24,25 @@ type direction contains
 
 define flip_over_y_visible of_type fn visible_character visible_character as 
     lambda c match c with
-        single_quote       to grave_accent
-        grave_accent       to single_quote
-        open_paranthesis   to close_paranthesis
-        close_paranthesis  to open_paranthesis
-        comma              to period
-        slash              to backslash
-        backslash          to slash
-        less_than          to greater_than
-        greater_than       to less_than
-        opening_bracket    to closing_bracket
-        closing_bracket    to opening_bracket
-        opening_brace      to closing_brace
-        closing_brace      to opening_brace
-        semicolon          to colon
-        lowercase_d        to lowercase_b
-        lowercase_b        to lowercase_d
-        lowercase_p        to lowercase_q
-        lowercase_q        to lowercase_p
-        _                  to c
+        apostrophe           to grave_accent
+        grave_accent         to apostrophe
+        left_paranthesis     to right_paranthesis
+        right_paranthesis    to left_paranthesis
+        comma                to full_stop
+        solidus              to reverse_solidus
+        reverse_solidus      to solidus
+        less_than_sign       to greater_than_sign
+        greater_than_sign    to less_than_sign
+        left_square_bracket  to left_square_bracket
+        right_square_bracket to left_square_bracket
+        left_curly_brace     to right_curly_brace
+        right_curly_brace    to left_curly_brace
+        semicolon            to colon
+        small_d              to small_b
+        small_b              to small_d
+        small_p              to small_q
+        small_q              to small_p
+        _                    to c
 
 define flip_over_y_char of_type fn character character as 
     map_over_char flip_over_y_visible
@@ -75,12 +75,12 @@ define eq_coordinate of_type fn coordinate fn coordinate bool as
     lambda coordinate a b lambda coordinate c d and eq_int a c eq_int b d
 
 define next_color of_type fn color color as lambda x match x with
-    red to magenta
-    magenta to blue
-    blue to cyan
-    cyan to green
-    green to yellow
-    yellow to red
+    red      to magenta
+    magenta  to blue
+    blue     to cyan
+    cyan     to green
+    green    to yellow
+    yellow   to red
 
 define complementary of_type fn color color as 
     lambda x next_color next_color next_color x
@@ -100,6 +100,7 @@ type whole contains
 define subtract_exactly of_type fn whole fn whole option_whole as
     lambda x lambda y match x with
         whole a to match y with
+            whole_zero  to some_whole whole a
             whole b     to subtract_exactly
                 match a with
                     succ n  to whole n
@@ -107,19 +108,18 @@ define subtract_exactly of_type fn whole fn whole option_whole as
                 match b with
                     succ n  to whole n
                     one     to whole_zero
-            whole_zero  to some_whole whole a
         whole_zero to match y with
             whole _     to none_whole
             whole_zero  to some_whole whole_zero
 
 define divide_exactly of_type fn whole fn whole option_whole as
     lambda x match x with
+        whole_zero  to lambda _ some_whole whole_zero
         whole _     to lambda y match subtract_exactly x y with
+            none_whole    to none_whole
             some_whole a  to map_option_whole
                 lambda x whole increment_whole x
                 divide_exactly a y
-            none_whole    to none_whole
-        whole_zero  to lambda _ some_whole whole_zero
 
 define map_option_whole of_type fn fn whole whole fn option_whole option_whole as
     lambda f lambda x match x with
@@ -150,12 +150,12 @@ define divisible of_type fn whole fn whole bool as
 
 define prime_factors of_type fn nat fn whole list_whole as
     lambda x lambda y match y with
+        whole_zero to nil_whole 
         whole aaa to match aaa with
             one     to nil_whole 
             succ _  to match divide_exactly y whole x with
                 some_whole a  to cons_whole whole x prime_factors x a
                 none_whole    to prime_factors succ x y
-        whole_zero to nil_whole 
 
 define uwulayer_frames of_type fn bad_frame fn bad_frame bad_frame as
     lambda top lambda bottom match top with

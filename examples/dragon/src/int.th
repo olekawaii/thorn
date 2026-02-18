@@ -44,4 +44,3 @@ define abselute_value of_type fn int whole as lambda x match x with
     pos x  to whole x
     neg x  to whole x
     zero   to whole_zero
-

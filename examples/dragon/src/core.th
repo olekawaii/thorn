@@ -29,21 +29,21 @@ type color contains
     black
 
 type visible_character contains
-    bang
-    double_quotes
-    pound
-    dollar
-    percent
+    exclamation_mark
+    quotation_mark
+    number_sign
+    dollar_sign
+    percent_sign
     ampersand
-    single_quote
-    open_paranthesis
-    close_paranthesis
+    apostrophe
+    left_paranthesis
+    right_paranthesis
     asterisk
-    plus
+    plus_sign
     comma
-    hyphen
-    period
-    slash
+    hyphen_minus
+    full_stop
+    solidus
     digit_zero
     digit_one
     digit_two
@@ -56,70 +56,70 @@ type visible_character contains
     digit_nine
     colon
     semicolon
-    less_than
-    equals
-    greater_than
+    less_than_sign
+    equals_sign
+    greater_than_sign
     question_mark
-    at_sign
-    uppercase_a
-    uppercase_b
-    uppercase_c
-    uppercase_d
-    uppercase_e
-    uppercase_f
-    uppercase_g
-    uppercase_h
-    uppercase_i
-    uppercase_j
-    uppercase_k
-    uppercase_l
-    uppercase_m
-    uppercase_n
-    uppercase_o
-    uppercase_p
-    uppercase_q
-    uppercase_r
-    uppercase_s
-    uppercase_t
-    uppercase_u
-    uppercase_v
-    uppercase_w
-    uppercase_x
-    uppercase_y
-    uppercase_z
-    opening_bracket
-    backslash
-    closing_bracket
-    caret
-    underscore
+    commercial_at
+    capital_a
+    capital_b
+    capital_c
+    capital_d
+    capital_e
+    capital_f
+    capital_g
+    capital_h
+    capital_i
+    capital_j
+    capital_k
+    capital_l
+    capital_m
+    capital_n
+    capital_o
+    capital_p
+    capital_q
+    capital_r
+    capital_s
+    capital_t
+    capital_u
+    capital_v
+    capital_w
+    capital_x
+    capital_y
+    capital_z
+    left_square_bracket
+    reverse_solidus
+    right_square_bracket
+    circumflex_accent
+    low_line
     grave_accent
-    lowercase_a
-    lowercase_b
-    lowercase_c
-    lowercase_d
-    lowercase_e
-    lowercase_f
-    lowercase_g
-    lowercase_h
-    lowercase_i
-    lowercase_j
-    lowercase_k
-    lowercase_l
-    lowercase_m
-    lowercase_n
-    lowercase_o
-    lowercase_p
-    lowercase_q
-    lowercase_r
-    lowercase_s
-    lowercase_t
-    lowercase_u
-    lowercase_v
-    lowercase_w
-    lowercase_x
-    lowercase_y
-    lowercase_z
-    opening_brace
-    vertical_bar
-    closing_brace
+    small_a
+    small_b
+    small_c
+    small_d
+    small_e
+    small_f
+    small_g
+    small_h
+    small_i
+    small_j
+    small_k
+    small_l
+    small_m
+    small_n
+    small_o
+    small_p
+    small_q
+    small_r
+    small_s
+    small_t
+    small_u
+    small_v
+    small_w
+    small_x
+    small_y
+    small_z
+    left_curly_brace
+    vertical_line
+    right_curly_brace
     tilde
