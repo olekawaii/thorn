@@ -1,0 +1,125 @@
+-- core types required for the art macro
+
+type coordinate contains
+    coordinate int int
+
+type bad_video contains
+    empty_video
+    cons_frame bad_frame bad_video
+
+type bad_frame contains
+    empty_frame
+    unsafe_cons_cell cell bad_frame  
+
+type cell contains
+    cell coordinate character
+
+type character contains
+    space
+    char visible_character color
+
+type color contains
+    red
+    green
+    yellow
+    blue
+    magenta
+    cyan
+    white
+    black
+
+type visible_character contains
+    exclamation_mark
+    quotation_mark
+    number_sign
+    dollar_sign
+    percent_sign
+    ampersand
+    apostrophe
+    left_paranthesis
+    right_paranthesis
+    asterisk
+    plus_sign
+    comma
+    hyphen_minus
+    full_stop
+    solidus
+    digit_zero
+    digit_one
+    digit_two
+    digit_three
+    digit_four
+    digit_five
+    digit_six
+    digit_seven
+    digit_eight
+    digit_nine
+    colon
+    semicolon
+    less_than_sign
+    equals_sign
+    greater_than_sign
+    question_mark
+    commercial_at
+    capital_a
+    capital_b
+    capital_c
+    capital_d
+    capital_e
+    capital_f
+    capital_g
+    capital_h
+    capital_i
+    capital_j
+    capital_k
+    capital_l
+    capital_m
+    capital_n
+    capital_o
+    capital_p
+    capital_q
+    capital_r
+    capital_s
+    capital_t
+    capital_u
+    capital_v
+    capital_w
+    capital_x
+    capital_y
+    capital_z
+    left_square_bracket
+    reverse_solidus
+    right_square_bracket
+    circumflex_accent
+    low_line
+    grave_accent
+    small_a
+    small_b
+    small_c
+    small_d
+    small_e
+    small_f
+    small_g
+    small_h
+    small_i
+    small_j
+    small_k
+    small_l
+    small_m
+    small_n
+    small_o
+    small_p
+    small_q
+    small_r
+    small_s
+    small_t
+    small_u
+    small_v
+    small_w
+    small_x
+    small_y
+    small_z
+    left_curly_brace
+    vertical_line
+    right_curly_brace
+    tilde

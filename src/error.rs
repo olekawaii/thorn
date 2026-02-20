@@ -96,7 +96,7 @@ pub fn show_mark(mark: Mark, message: &'static str) -> String {
     let line_before = if mark.line == 0 { 
         ""
     } else {
-        (&mark.file.lines[mark.line - 1]).as_str()
+        mark.file.lines[mark.line - 1].as_str()
     };
 
     let mut underline = String::new();

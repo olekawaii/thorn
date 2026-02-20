@@ -33,7 +33,7 @@ define flip_over_y_visible of_type fn visible_character visible_character as
         reverse_solidus      to solidus
         less_than_sign       to greater_than_sign
         greater_than_sign    to less_than_sign
-        left_square_bracket  to left_square_bracket
+        left_square_bracket  to right_square_bracket
         right_square_bracket to left_square_bracket
         left_curly_brace     to right_curly_brace
         right_curly_brace    to left_curly_brace

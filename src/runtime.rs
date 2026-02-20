@@ -355,7 +355,7 @@ fn optimize_branches(input: &mut Expression) {
         Expression::Tree { arguments, .. } => {
             arguments.iter_mut().for_each(optimize_expression);
         }
-        Expression::Lambda { pattern, body } if matches!((**pattern).value, Pattern::Dropped) => 
+        Expression::Lambda { pattern, body } if matches!(pattern.value, Pattern::Dropped) => 
             optimize_expression(body),
         _ => (),
     }
@@ -381,7 +381,7 @@ pub fn optimize_expression(input: &mut Expression) {
             //}
             *input = Expression::Thunk(Rc::new(RefCell::new(std::mem::take(input))));
         },
-        Expression::Lambda { pattern, body } if matches!((**pattern).value, Pattern::Dropped) => 
+        Expression::Lambda { pattern, body } if matches!(pattern.value, Pattern::Dropped) => 
             optimize_expression(body),
         Expression::Undefined { .. } => (),
         _ => (),

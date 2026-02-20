@@ -29,6 +29,12 @@ type grid_cell contains
 
 -- video functions -------------------------------------------------------------
 
+define zip_videos of_type fn video fn video video as 
+    lambda a lambda b match tuple_video_video a b with
+        tuple_video_video single a prepend b t to prepend layer_frames a b t
+        tuple_video_video prepend a t single b to prepend layer_frames a b t
+        tuple_video_video prepend a ta prepend b tb to 
+            prepend layer_frames a b zip_videos ta tb
 
 define head of_type fn video frame as lambda x match x with
     single f     to f
@@ -276,8 +282,9 @@ define row_to_frame of_type fn nat fn int fn fn nat int fn row bad_frame as
             apply bad_frame bad_frame
                 match head with
                     empty_grid_cell   to identity bad_frame
-                    full_grid_cell x  to
-                        unsafe_cons_cell cell coordinate sign index y x
+                    full_grid_cell x  to match x with
+                        space to identity bad_frame
+                        _ to unsafe_cons_cell cell coordinate sign index y x
                 row_to_frame succ index y sign tail
 
 define column_to_frame of_type fn nat fn fn nat int fn column bad_frame as
@@ -320,6 +327,9 @@ define map_column of_type fn fn horizontal horizontal fn column column as
 
 type tuple_col_col contains
     tuple_col_col column column
+
+type tuple_video_video contains
+    tuple_video_video video video
 
 define layer_columns of_type fn column fn column column as
     lambda ca lambda cb match tuple_col_col ca cb with
@@ -371,7 +381,7 @@ define over_y_hor of_type fn horizontal horizontal as
             cons_row empty_grid_cell map_row flip_over_y_char n
         cons_row h t  to horizontal 
             map_row flip_over_y_char t 
-            cons_row h map_row flip_over_y_char n
+            cons_row map_over_grid_cell flip_over_y_char h map_row flip_over_y_char n
 
 define map_over_grid_cell of_type
     fn fn character character fn grid_cell grid_cell
