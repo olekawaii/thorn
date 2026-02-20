@@ -96,7 +96,10 @@ type LocalVars = HashMap<String, (u32, Type, Mark)>;
 type Generics = Vec<(String, usize)>;
 type GlobalVars = HashMap<String, (usize, Type, bool, Generics)>;
 
-pub fn parse_file(number_of_values: &mut usize, file_name: Marked<String>,) -> Result<(Vec<Expression>, GlobalVars)> {
+pub fn parse_file(
+    number_of_values: &mut usize, 
+    file_name: Marked<String>
+) -> Result<(Vec<Expression>, GlobalVars)> {
     let mut temp_vec = HashSet::new();
     let blocks = get_tokens(file_name, &mut temp_vec)?;
     let (type_blocks, values): (Vec<(Signiture, Tokens)>, _) = blocks
@@ -517,10 +520,10 @@ pub fn parse_expression(
             let (root_id, root_type) = if let Some((a, b, _)) = local_vars.get(&name) {
                 (Expression::LocalVarPlaceholder(*a), b.clone())
             } else if let Some((a, b, c, g)) = global_vars.get(&name) {
-                    (
-                        if *c { Expression::DataConstructor(*a as u32) } else { Expression::Variable(*a) },
-                        parse_generic_call(tokens, &g, b.clone())?
-                    )
+                (
+                    if *c { Expression::DataConstructor(*a as u32) } else { Expression::Variable(*a) },
+                    parse_generic_call(tokens, g, b.clone())?
+                )
             } else {
                 return Err(make_error(CompilationError::NotInScope(name.to_owned()), keyword_mark))
             };
@@ -556,6 +559,9 @@ pub fn parse_expression(
                             )?;
                             current_tokens.expect_end()?;
                             output_args.push(next_arg);
+                        }
+                        if let Some(mut trailing_line) = arg_groups.next() {
+                            trailing_line.expect_end()?;
                         }
                         break
                     }
@@ -664,7 +670,7 @@ fn get_from_generics(name: &str, generics: &Generics) -> Option<Type> {
             return Some(Type::Generic(*index));
         }
     }
-    return None
+    None
 }
 
 pub fn parse_data(
@@ -675,7 +681,7 @@ pub fn parse_data(
     for mut i in tokens.get_with_indentation(1).into_iter() {
         let (name, name_mark) = i.next_word()?.destructure();
         let mut arg_types: Vec<Type> = Vec::new();
-        while let Ok(_) = i.peek() {
+        while i.peek().is_ok() {
             let generics = Vec::new();
             arg_types.push(parse_type(&mut i, &generics)?)
         }

@@ -1,0 +1,40 @@
+include video
+
+define main of_type bad_video as into_video layer
+    single layer_frames 
+        by xxiv shift east block
+        by xxiv shift west block
+    sequence
+        animation
+        take vi continuously by ii shift east 
+            loop_video_forever single head reverse animation
+
+define squish of_type video as reverse art x vi
+          ..........          ..........          ..........
+    /\    ....22....    /\    ....22....    /\    ....22....
+   /  \   ...2||2...   /  \   ...2||2... +-'  \   .662||2...
+  / .. \  ..2|22|2..._/ .. \  662|22|2.. |  '. \  .6||22|2..
+ /      \ .2||||||2.|       \ 6|||||||2. |      \ .6||||||2.
++--------+2222222222+--------+6662222222 +-------+.666622222
+  +-.     ..666.....  +-.     ..666.....  +----+  ..666666..
+  |  \    ..6||2....  |  \    ..6||2....  |    |  ..6||||6..
+  |   \   ..6|||2...  | ..`-+ ..6|66266.  | .. |  ..6|66|6..
+  |  `.\_...6||66266  |     | ..6|||||6.  |    |  ..6||||6..
+  |      |..6||||||6  |     | ..6|||||6.  |    |  ..6||||6..
+  +------+..66666666  +-----+ ..6666666.  +----+  ..666666..
+
+define animation of_type video as layer
+    squish
+    layer
+        single by xxiv shift west head squish
+        layer 
+            single by xii shift east head reverse squish
+            single by xii shift west head squish
+
+define block of_type frame as head art x vi
+          ||||||||||
+          ||||||||||
+          ||||||||||
+          ||||||||||
+          ||||||||||
+          ||||||||||

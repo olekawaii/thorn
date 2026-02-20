@@ -60,7 +60,7 @@ pub fn parse_art(
     mark: Mark, // mark of the art keyword
 ) -> Result<Vec<Vec<Cells>>> {
     let number_of_lines = text.len();
-    if number_of_lines % height != 0 {
+    if !number_of_lines.is_multiple_of(height) {
         return Err(Error {
             error_type: Box::new(ParseError::BadArtHeight {
                 height,
@@ -128,7 +128,7 @@ pub fn words(s: &str) -> Vec<(usize, &str, usize)> {
     if length != 0 {
         output.push((character_index, &s[character_index..character_index+length], length));
     }
-    return output
+    output
 }
 
 #[derive(Debug)]
@@ -226,7 +226,7 @@ pub enum Token {
     Word(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Tokens {
     tokens: LinkedList<Marked<Token>>,
     end: Mark,
@@ -247,15 +247,6 @@ impl std::fmt::Display for Keyword {
             Keyword::Type       => write!(f, "type"),
             Keyword::Contains   => write!(f, "contains"),
             Keyword::Undefined  => write!(f, "undefined"),
-        }
-    }
-}
-
-impl Default for Tokens {
-    fn default() -> Self {
-        Self {
-            tokens: LinkedList::new(),
-            end: Mark::default()
         }
     }
 }
@@ -388,7 +379,7 @@ impl Tokens {
                 let mut leftover = current.split_off(index);
                 leftover.pop_front();
                 self.tokens = leftover;
-                return Ok(Self::new(current))
+                Ok(Self::new(current))
             }
             None => {
                 Err(make_error(ParseError::KeywordNotFound(Keyword::ForAll), self.end.clone()))
@@ -431,10 +422,10 @@ pub fn tokenize(
     let mut block = input.into_iter().peekable();
     let mut last_index: usize = 0;
     while let Some((line_number, line)) = block.next() {
-        let indentation = indentation_length(&line);
-        if indentation % INDENTATION != 0 {
+        let indentation = indentation_length(line);
+        if !indentation.is_multiple_of(INDENTATION) {
             return Err(make_error(ParseError::BadIndentation, Mark {
-                file: Rc::clone(&file),
+                file: Rc::clone(file),
                 line: line_number,
                 block: None,
                 character: 0,
@@ -443,7 +434,7 @@ pub fn tokenize(
         }
         output.push_back(Marked::<Token> {
             mark: Mark {
-                file: Rc::clone(&file),
+                file: Rc::clone(file),
                 line: line_number,
                 block: None,
                 character: last_index,
@@ -456,10 +447,10 @@ pub fn tokenize(
         'words: while let Some((character, word, length)) = words.next() {
             last_index = character + length;
             let mark: Mark = Mark {
-                file: Rc::clone(&file),
+                file: Rc::clone(file),
                 line: line_number,
                 block: None,
-                character: character,
+                character,
                 length,
             };
             match word {
@@ -470,18 +461,18 @@ pub fn tokenize(
                         //Mark { character: character, ..mark }
                         mark.one_after_the_highlight(),
                     ))};
-                    let Some(x) = parse_roman_numeral(&x) else { return Err(make_error(
+                    let Some(x) = parse_roman_numeral(x) else { return Err(make_error(
                         ParseError::ExpectedRoman, 
-                        Mark { character: character, length, ..mark }
+                        Mark { character, length, ..mark }
                     ))};
                     let Some((character, y, length)) = words.next() else { return Err(make_error(
                         ParseError::ArtMissingArgs,
                         mark.one_after_the_highlight(),
                         //Mark { character: character, ..mark }
                     ))};
-                    let Some(y) = parse_roman_numeral(&y) else { return Err(make_error(
+                    let Some(y) = parse_roman_numeral(y) else { return Err(make_error(
                         ParseError::ExpectedRoman,
-                        Mark { character: character, length, ..mark }
+                        Mark { character, length, ..mark }
                     ))};
                     let art_indentation = if indentation == 0 {
                         0
