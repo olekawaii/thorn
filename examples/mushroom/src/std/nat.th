@@ -1,3 +1,5 @@
+include prelude
+
 type nat contains
     one
     succ nat

@@ -1,4 +1,4 @@
-include std video
+include prelude
                                                      
 define main of_type bad_video as into_video art xiii viii
   __c__,___  ..117117111..
