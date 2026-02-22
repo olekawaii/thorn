@@ -4,7 +4,7 @@ pub enum CompilationError {
     NotUsed,
     ExpectedMoreArguments,
     Custom(String),
-    NotInScope(String),
+    NotInScope(String, Option(String)),
     TypeMismatch(Type, Option<Type>),
     BadFile(String),
     MultipleDeclorations,
@@ -19,9 +19,9 @@ impl ErrorType for CompilationError {
             //Self::RedundantPattern => "redundent pattern",
             Self::ExpectedMoreArguments => "expected more arguments",
             Self::Custom(_) => "",
-            Self::NotInScope(_) => "not in scope",
-            Self::TypeNotInScope(_) => "type not in scope",
-            Self::TypeMismatch(_, _) => "of unexpected type",
+            Self::NotInScope(_,_) => "not in scope",
+            Self::TypeNotInScope(_,_) => "type not in scope",
+            Self::TypeMismatch(_) => "of unexpected type",
             Self::BadFile(_) => "couldn't find file"
         }
     }
@@ -38,7 +38,14 @@ impl std::fmt::Display for CompilationError {
             //Self::RedundantPattern => write!(f, "this branch will never be reached"),
             Self::BadFile(s) => write!(f, "unable to find {s} in this directory"),
             Self::Custom(s) => write!(f, "{s}"),
-            Self::NotInScope(x) => write!(f, "variable \x1b[97m{x}\x1b[90m not in scope"),
+            Self::NotInScope(x, hint) => write!(
+                f, 
+                "variable \x1b[97m{x}\x1b[90m not in scope{}",
+                match hint {
+                    None => String::new(),
+                    Some(name) => format!(", \nhowever it's defined in {name}.th\nconsider including it with \x1b[97minclude {name}\x1b[90m")
+                }
+            ),
             Self::TypeNotInScope(x) => write!(f, "type \x1b[97m{x}\x1b[90m not in scope"),
             Self::TypeMismatch(tp1, tp2) => write!(
                 f, 

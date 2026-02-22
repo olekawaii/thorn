@@ -38,6 +38,30 @@ pub struct Error {
     pub mark: Mark,
 }
 
+impl PartialEq for Error {
+    fn eq(&self, other: &Error) -> bool {
+        (&self.mark.file.name, self.mark.line, self.mark.character).eq(
+        &(&other.mark.file.name, other.mark.line, other.mark.character))
+    }
+}
+
+impl Eq for Error {
+}
+
+impl PartialOrd for Error {
+    fn partial_cmp(&self, other: &Error) -> Option<std::cmp::Ordering> {
+        (&self.mark.file.name, self.mark.line, self.mark.character).partial_cmp(
+        &(&other.mark.file.name, other.mark.line, other.mark.character))
+    }
+}
+
+impl Ord for Error {
+    fn cmp(&self, other: &Error) -> std::cmp::Ordering {
+        (&self.mark.file.name, self.mark.line, self.mark.character).cmp(
+        &(&other.mark.file.name, other.mark.line, other.mark.character))
+    }
+}
+
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(

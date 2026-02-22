@@ -1,3 +1,5 @@
+include prelude
+
 type int contains
     neg nat
     pos nat

@@ -15,10 +15,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::{
-    collections::HashMap,
+    collections::{
+        HashMap,
+        HashSet,
+    },
     env,
     rc::Rc,
     cell::RefCell,
+    path::Path,
 };
 
 mod error;
@@ -28,29 +32,32 @@ mod tokens;
 
 use crate::{
     error::{File, Marked},
-    parse::{parse_file, Type},
+    parse::{Type},
     runtime::{Expression},
 };
 
+// import logic
+// all files.th that are in the root directory (the one containing 
+// main.th) and in its subdirectories are included. It then checks 
+// for duplicate file names. Then it finds which files have which
+// functions and makes sure that outside functions are in scope of
+// the manually included files, if not it errors.
+
+
 fn main() -> std::io::Result<()> {
-    let mut numbor_of_vars = 0;
-    match parse_cli_arguments().and_then(|x| parse_file(&mut numbor_of_vars, x)) {
+    match parse::get_everything() {
         Err(x) => {
             eprintln!("{x}");
             std::process::exit(1)
         }
-        Ok((vars, vars_dummy)) => {
-            let main = build_monolithic_expression(vars, &vars_dummy, "main");
-            let mut map = HashMap::new();
-            for (name, (index, _, _, _)) in vars_dummy {
-                map.insert(index as u32, name);
-            }
-            eprintln!("\x1b[95mbuilt expression\x1b[0m");
-            main.print(&mut map);
+        Ok((mut expr, mut globals)) => {
+            expr.print(&mut globals);
         }
     }
     Ok(())
 }
+
+type Origins = HashMap<String, HashSet<String>>;
 
 fn parse_cli_arguments() -> error::Result<Marked<String>> {
     let args: Vec<String> = env::args().collect();
@@ -67,44 +74,4 @@ fn parse_cli_arguments() -> error::Result<Marked<String>> {
     let _executable = tokens.next_word()?;
     let file_name = tokens.next_word()?;
     Ok(file_name)
-}
-
-fn build_monolithic_expression(
-    vec: Vec<Expression>,
-    vars_dummy: &HashMap<String, (usize, Type, bool, Vec<(String, usize)>)>,
-    name: &str,
-) -> Expression {
-    let expressions: Vec<Rc<RefCell<Expression>>> =
-        vec.into_iter().map(|x| Rc::new(RefCell::new(x))).collect();
-    for i in expressions.iter() {
-        let ptr = &mut (**i).borrow_mut();
-        monolithic_helper(&expressions, ptr)
-    }
-    let (main_index, _, _, _) = vars_dummy.get(name).expect("requested function does not exist (usually main)");
-    (*expressions[*main_index]).borrow().clone()
-}
-
-fn monolithic_helper(vec: &Vec<Rc<RefCell<Expression>>>, expression: &mut Expression) {
-    match expression {
-        Expression::Tree { root, arguments, ..} => {
-            arguments.iter_mut().for_each(|x| monolithic_helper(vec, x));
-            monolithic_helper(vec, root);
-        }
-        Expression::Match { matched_on, branches } => {
-            monolithic_helper(vec, matched_on);
-            for (_, exp) in branches.iter_mut() {
-                monolithic_helper(vec, exp);
-            }
-        }
-        Expression::Lambda { body, .. } => monolithic_helper(vec, &mut *body),
-        Expression::Undefined { .. } => (),
-        Expression::DataConstructor(_) | Expression::LocalVarPlaceholder(_) => (),
-        Expression::Thunk(x) => {
-            let ptr = &mut (*x).try_borrow_mut().unwrap();
-            monolithic_helper(vec, ptr);
-        }
-        Expression::Variable(x) => {
-            *expression = Expression::Thunk(Rc::clone(vec.get(*x).unwrap()));
-        }
-    }
 }

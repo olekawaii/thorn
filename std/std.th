@@ -1,4 +1,4 @@
-include core video bool nat int
+include prelude
 
 for_all a b c define flip of_type fn fn a fn b c fn b fn a c as
     lambda f lambda a lambda b f b a

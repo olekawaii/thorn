@@ -1,3 +1,4 @@
+include prelude
 -- core types required for the art macro
 
 type coordinate contains
