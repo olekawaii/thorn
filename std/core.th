@@ -4,17 +4,6 @@ include prelude
 type coordinate contains
     coordinate int int
 
-type bad_video contains
-    empty_video
-    cons_frame bad_frame bad_video
-
-type bad_frame contains
-    empty_frame
-    unsafe_cons_cell cell bad_frame  
-
-type cell contains
-    cell coordinate character
-
 type character contains
     space
     char visible_character color

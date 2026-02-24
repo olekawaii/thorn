@@ -144,7 +144,7 @@ pub fn get_everything() -> Result<(Expression, HashMap<u32, String>)> {
     }
     let output = std::process::Command::new("sh")
         .arg("-c")
-        .arg("find -L . | grep '\\.th$'")
+        .arg("find -L . -maxdepth 3 | grep '\\.th$'")
         .output().unwrap();
 
     let mut numbor_of_vars = 0;
@@ -162,7 +162,6 @@ pub fn get_everything() -> Result<(Expression, HashMap<u32, String>)> {
             name
         );
     }
-    eprintln!("\x1b[95mbuilt expression\x1b[0m");
     Ok((main, map))
 }
 
@@ -190,6 +189,24 @@ impl Dependencies<'_> {
             }
         }
         false
+    }
+    fn available_files<'a>(&'a mut self, file: &'a str) -> HashSet<&'a str> {
+        let mut visited_files: HashSet<&str> = HashSet::from([file]);
+        let mut to_visit: Vec<&str> = vec![file];
+        while let Some(x) = to_visit.pop() {
+            self.files
+                .get(x)
+                .unwrap()
+                .difference(&visited_files)
+                .map(|x| *x)
+                .collect::<Vec<&str>>()
+                .into_iter()
+                .for_each(|i| {
+                    to_visit.push(i);
+                    visited_files.insert(i);
+                });
+        }
+        visited_files
     }
 }
 
@@ -240,7 +257,7 @@ fn flush(errors: &mut Vec<Error>) {
         }
         eprintln!(
             "exited with \x1b[91m{len}\x1b[0m {}", 
-            if len == 0 {"error"} else {"errors"}
+            if len == 1 {"error"} else {"errors"}
         );
         std::process::exit(1)
     }
@@ -371,10 +388,11 @@ pub fn uwu<'a>(files: impl Iterator<Item = &'a str> + Clone) -> (Vec<Expression>
     
     // step 3: parse the expressions
     for (name, GlobalVarData {mark, var_type, id, generics}) in final_var_table.iter() {
+        let available_files = dependencies.available_files(mark.file.name.as_str());
         let Id::Variable(index) = id else { continue };
         match var_bodies[*index].expect_keyword(Keyword::As).and(
             parse_expression(
-                &dependencies,
+                &available_files,
                 var_type.clone(), 
                 &mut var_bodies[*index],
                 HashMap::new(),
@@ -401,37 +419,48 @@ fn build_monolithic_expression(
     vars_dummy: &Globals,
     name: &str,
 ) -> Expression {
+    let garbage = Rc::new(Mark::default());
+    let mut marks: Vec<Rc<Mark>> = (0..vec.len()).map(|_| Rc::clone(&garbage)).collect();
+    for (_, GlobalVarData {id, mark, ..}) in vars_dummy.iter() {
+        if let Id::Variable(index) = id {
+            let val = Rc::new(mark.clone());
+            marks[*index] = val;
+        }
+    }
     let expressions: Vec<Rc<RefCell<Expression>>> =
         vec.into_iter().map(|x| Rc::new(RefCell::new(x))).collect();
     for i in expressions.iter() {
         let ptr = &mut (**i).borrow_mut();
-        monolithic_helper(&expressions, ptr)
+        monolithic_helper(&expressions, ptr, &marks)
     }
     let GlobalVarData {id: Id::Variable(a) | Id::Constructor(a), ..} = vars_dummy.get(name).expect("requested function does not exist (usually main)");
     (*expressions[*a]).borrow().clone()
 }
 
-fn monolithic_helper(vec: &Vec<Rc<RefCell<Expression>>>, expression: &mut Expression) {
+fn monolithic_helper(vec: &Vec<Rc<RefCell<Expression>>>, expression: &mut Expression, marks: &Vec<Rc<Mark>>) {
     match expression {
         Expression::Tree { root, arguments, ..} => {
-            arguments.iter_mut().for_each(|x| monolithic_helper(vec, x));
-            monolithic_helper(vec, root);
+            arguments.iter_mut().for_each(|x| monolithic_helper(vec, x, marks));
+            monolithic_helper(vec, root, marks);
         }
         Expression::Match { matched_on, branches } => {
-            monolithic_helper(vec, matched_on);
+            monolithic_helper(vec, matched_on, marks);
             for (_, exp) in branches.iter_mut() {
-                monolithic_helper(vec, exp);
+                monolithic_helper(vec, exp, marks);
             }
         }
-        Expression::Lambda { body, .. } => monolithic_helper(vec, &mut *body),
+        Expression::Lambda { body, .. } => monolithic_helper(vec, &mut *body, marks),
         Expression::Undefined { .. } => (),
         Expression::DataConstructor(_) | Expression::LocalVarPlaceholder(_) => (),
-        Expression::Thunk(x) => {
+        Expression::Thunk { value: x, .. } => {
             let ptr = &mut (*x).try_borrow_mut().unwrap();
-            monolithic_helper(vec, ptr);
+            monolithic_helper(vec, ptr, marks);
         }
         Expression::Variable(x) => {
-            *expression = Expression::Thunk(Rc::clone(vec.get(*x).unwrap()));
+            *expression = Expression::Thunk {
+                value: Rc::clone(vec.get(*x).unwrap()),
+                mark: Some(Rc::clone(marks.get(*x).unwrap()))
+            }
         }
     }
 }
@@ -585,13 +614,13 @@ pub fn tokenize_file(input: String, file_name: &str) -> Result<Vec<Tokens>> {
 fn lookup_global_vars<'a>(
     name:              &str,
     mark:              &Mark,
-    file_dependencies: &Dependencies,
+    file_dependencies: &HashSet<&str>,
     global_vars: &'a Globals,
 ) -> Result<&'a GlobalVarData> {
     let Some(var) = global_vars.get(name) else {
         return Err(make_error(CompilationError::NotInScope(name.into(), None), mark.clone()));
     };
-    if !file_dependencies.is_available(mark.file.name.as_str(), var.mark.file.name.as_str()) {
+    if !file_dependencies.contains(var.mark.file.name.as_str()) {
         return Err(make_error(
             CompilationError::NotInScope(name.into(), Some(var.mark.file.name.clone())), 
             mark.clone()
@@ -601,7 +630,7 @@ fn lookup_global_vars<'a>(
 }
 
 pub fn parse_expression(
-    file_dependencies:     &Dependencies,
+    file_dependencies:     &HashSet<&str>,
     expected_type:         Type,
     tokens:                &mut Tokens,
     mut local_vars:        LocalVars,

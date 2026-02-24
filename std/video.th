@@ -28,6 +28,11 @@ type grid_cell contains
 
 -- video functions -------------------------------------------------------------
 
+-- add infinetly many empty frames to the end of a video
+
+define pad_right_inf of_type fn video video as 
+    flip video video video sequence loop_video_forever single new_frame
+
 define zip_videos of_type fn video fn video video as 
     lambda a lambda b match tuple_video_video a b with
         tuple_video_video single a prepend b t to prepend layer_frames a b t
@@ -136,8 +141,6 @@ define by of_type fn nat fn fn frame frame fn frame frame as repeat frame
 
 -- shift_by x y shifts the frame by the x and y values
 
-for_all a define identity of_type fn a a as lambda x x
-
 define shift_by of_type fn int fn int fn frame frame as 
     lambda x lambda y lambda f match of_type fn frame frame match x with
             pos a  to by a shift east
@@ -233,65 +236,6 @@ define insert_column of_type fn int fn nat fn character fn column column as
         empty_column to insert_column x y chr 
             cons_column empty_horizontal empty_column
 
-define from_video of_type fn bad_video video as
-    lambda v match v with
-        cons_frame x xs           to prepend from_frame x from_video xs
-        cons_frame x empty_video  to single from_frame x
-        empty_video               to ...
-
-define from_frame of_type fn bad_frame frame as
-    lambda f match f with
-        empty_frame                                  to new_frame
-        unsafe_cons_cell cell coordinate x y c tail  to
-            insert x y c from_frame tail
-
-define into_video of_type fn video bad_video as lambda vid match vid with
-    prepend head tail  to cons_frame into_frame head into_video tail
-    single f           to cons_frame into_frame f empty_video
-
-define into_frame of_type fn frame bad_frame as
-    lambda frame neg_col pos_col
-        uwulayer_frames
-            column_to_frame one neg neg_col
-            match pos_col with
-                empty_column          to empty_frame
-                cons_column head tail to uwulayer_frames
-                    horizontal_to_frame zero head
-                    column_to_frame one pos tail
-
-define horizontal_to_frame of_type fn int fn horizontal bad_frame as
-    lambda y lambda horizontal neg_row pos_row
-        uwulayer_frames
-            row_to_frame one y neg neg_row
-            match pos_row with
-                empty_row to empty_frame
-                cons_row x xs to match of_type fn bad_frame bad_frame 
-                        match x with
-                            empty_grid_cell  to identity bad_frame
-                            full_grid_cell a to unsafe_cons_cell cell 
-                                coordinate zero y 
-                                a
-                    with
-                        f to f row_to_frame one y pos xs
-
-define row_to_frame of_type fn nat fn int fn fn nat int fn row bad_frame as
-    lambda index lambda y lambda sign lambda r match r with
-        empty_row           to empty_frame
-        cons_row head tail  to
-            apply bad_frame bad_frame
-                match head with
-                    empty_grid_cell   to identity bad_frame
-                    full_grid_cell x  to match x with
-                        space to identity bad_frame
-                        _ to unsafe_cons_cell cell coordinate sign index y x
-                row_to_frame succ index y sign tail
-
-define column_to_frame of_type fn nat fn fn nat int fn column bad_frame as
-    lambda index lambda sign lambda col match col with
-        empty_column           to empty_frame
-        cons_column head tail  to uwulayer_frames
-            horizontal_to_frame sign index head
-            column_to_frame succ index sign tail
 
 type horizontal_direction contains
     right

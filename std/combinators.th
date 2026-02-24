@@ -1,0 +1,14 @@
+for_all a define identity of_type fn a a as lambda x x
+
+for_all a b c define flip of_type fn fn a fn b c fn b fn a c as
+    lambda f lambda a lambda b f b a
+
+for_all a b c define compose of_type fn fn b c fn fn a b fn a c as
+    lambda g lambda f lambda x g f x
+
+for_all a b define apply of_type fn fn a b fn a b as 
+    lambda f lambda x f x
+
+for_all a b define const of_type fn a fn b a as lambda x lambda _ x
+
+
