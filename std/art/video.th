@@ -1,4 +1,4 @@
-include prelude
+include prelude char
 
 -- types -----------------------------------------------------------------------
 
@@ -181,6 +181,12 @@ define new_frame of_type frame as
     frame empty_column empty_column
 
 -- shift d shifts the coordinates of the frame in the direction d
+
+type direction contains
+    north
+    south
+    east
+    west
 
 define shift of_type fn direction fn frame frame as
     lambda dir lambda f match f with

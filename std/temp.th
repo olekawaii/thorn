@@ -1,46 +1,12 @@
 include prelude
 
+type coordinate contains
+    coordinate int int
+
 for_all a define repeat of_type fn nat fn fn a a fn a a as 
     lambda count lambda f lambda x match count with
         one             to f x
         succ new_count  to f repeat a new_count f x
-
-type direction contains
-    north
-    south
-    east
-    west
-
-define flip_over_y_visible of_type fn visible_character visible_character as 
-    lambda c match c with
-        apostrophe           to grave_accent
-        grave_accent         to apostrophe
-        left_paranthesis     to right_paranthesis
-        right_paranthesis    to left_paranthesis
-        comma                to full_stop
-        solidus              to reverse_solidus
-        reverse_solidus      to solidus
-        less_than_sign       to greater_than_sign
-        greater_than_sign    to less_than_sign
-        left_square_bracket  to right_square_bracket
-        right_square_bracket to left_square_bracket
-        left_curly_brace     to right_curly_brace
-        right_curly_brace    to left_curly_brace
-        semicolon            to colon
-        small_d              to small_b
-        small_b              to small_d
-        small_p              to small_q
-        small_q              to small_p
-        _                    to c
-
-define flip_over_y_char of_type fn character character as 
-    map_over_char flip_over_y_visible
-
-define map_over_char of_type 
-    fn fn visible_character visible_character fn character character
-as lambda f lambda x match x with
-    space         to space
-    char c color  to char f c color
 
 define sum_coordinate of_type fn coordinate fn coordinate coordinate as
     lambda coordinate x_i y_i lambda coordinate x_ii y_ii
@@ -55,24 +21,8 @@ define decrement_whole of_type fn whole int as lambda x match x with
     whole one     to zero
     whole_zero    to neg one
 
-define recolor_character of_type fn color fn character character as
-    lambda color lambda character match character with
-        char a _  to char a color
-        space     to space
-
 define eq_coordinate of_type fn coordinate fn coordinate bool as
     lambda coordinate a b lambda coordinate c d and eq_int a c eq_int b d
-
-define next_color of_type fn color color as lambda x match x with
-    red      to magenta
-    magenta  to blue
-    blue     to cyan
-    cyan     to green
-    green    to yellow
-    yellow   to red
-
-define complementary of_type fn color color as 
-    lambda x next_color next_color next_color x
 
 type option_nat contains
     some_nat nat

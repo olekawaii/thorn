@@ -1,4 +1,4 @@
-include prelude
+include temp
 
 type nat contains
     one
