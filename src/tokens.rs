@@ -316,7 +316,8 @@ impl Tokens {
 
     pub fn new(tokens: LinkedList<Marked<Token>>) -> Self {
         assert!(!tokens.is_empty());
-        let last_mark: Mark = tokens.back().unwrap().mark.clone();
+        let mut last_mark: Mark = tokens.back().unwrap().mark.clone();
+        last_mark.character += last_mark.length;
         Tokens {
             tokens,
             end: last_mark,

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::error::{Error, ErrorType, Mark, Marked};
+use crate::error::{Error, ErrorType, Mark, Marked, make_error};
 use std::sync::Mutex;
 use std::io;
 use std::io::Write;
@@ -38,11 +38,14 @@ pub enum Expression {
         pattern:     Rc<Marked<Pattern>>,
         body:        Box<Expression>,
     },
+    Thunk {
+        value: Rc<RefCell<Expression>>,
+        mark: Option<Rc<Mark>>,  // mark for bottom error
+    },
     Undefined(Box<Mark>),
-    Thunk(Rc<RefCell<Expression>>),
     LocalVarPlaceholder(u32),
     DataConstructor(u32),
-    Variable(usize), // only used during parsing
+    Variable(usize),      // Ignore. only used during parsing
 }
 
 #[derive(Debug, Clone)]
@@ -136,11 +139,12 @@ impl Expression {
         let mut is_simplified = false;
         'uwu: while !is_simplified {
             match std::mem::take(self) {
-                Expression::Thunk(exp) => match Rc::try_unwrap(exp) {
+                Expression::Thunk {value: exp, mark} => match Rc::try_unwrap(exp) {
                     Ok(x) => *self = x.into_inner(),
                     Err(x) => {
                         let Ok(mut inner) = (*x).try_borrow_mut() else {
-                            eprintln!( "\x1b[7;31m RUNTIME ERROR \x1b[0mattempted to evaluate a bottom _|_");
+                            let error = make_error(RuntimeError::EvaluatedBottom, (*mark.unwrap()).clone());
+                            eprintln!("{error}");
                             std::process::exit(1);
                         };
                         inner.simplify();
@@ -252,7 +256,7 @@ impl Expression {
                     .for_each(|(_, i)| i.substitute(map));
                 matched_on.substitute(map);
             }
-            Expression::Undefined { .. } | Expression::Thunk(_) | Expression::DataConstructor(_) => (),
+            Expression::Undefined { .. } | Expression::Thunk { .. } | Expression::DataConstructor(_) => (),
             Expression::Variable(_) => unreachable!()
         }
     }
@@ -314,7 +318,7 @@ impl Expression {
 #[derive(Debug)]
 enum RuntimeError {
     EvaluatedUndefined,
-    // EvaluatedBottom,
+    EvaluatedBottom,
     UnmatchedPattern,
 }
 
@@ -323,7 +327,7 @@ impl ErrorType for RuntimeError {
         match self {
             Self::UnmatchedPattern => "in this expression",
             Self::EvaluatedUndefined => "entered undefined code",
-            // Self::EvaluatedBottom => "evaluated a bottom _|_",
+            Self::EvaluatedBottom => "evaluated a bottom _|_",
         }
     }
 
@@ -337,7 +341,9 @@ impl std::fmt::Display for RuntimeError {
         match self {
             Self::EvaluatedUndefined => write!(f, "attempted to evaluate an undefined expression"),
             Self::UnmatchedPattern => write!(f, "a value did not match the patterns"),
-            // Self::EvaluatedBottom => write!(f, "attempted to evaluate a bottom expression"),
+            Self::EvaluatedBottom => write!(f, 
+"attempted to evaluate a bottom expression.
+this expression will never return a value")
         }
     }
 }
@@ -345,7 +351,10 @@ impl std::fmt::Display for RuntimeError {
 fn build_thunk(mut input: Expression) -> Expression {
     optimize_expression(&mut input);
     match &mut input {
-        Expression::Tree { .. } | Expression::Match { .. } => Expression::Thunk(Rc::new(RefCell::new(input))),
+        Expression::Tree { .. } | Expression::Match { .. } => Expression::Thunk {
+            value: Rc::new(RefCell::new(input)),
+            mark: None,
+        },
         _ => input
     }
 }
@@ -368,7 +377,10 @@ pub fn optimize_expression(input: &mut Expression) {
         Expression::Tree { root: _, arguments} => {
             arguments.iter_mut().for_each(optimize_expression);
             //if !matches!(&**root, Expression::DataConstructor(_)) {
-                *input = Expression::Thunk(Rc::new(RefCell::new(std::mem::take(input))))
+                *input = Expression::Thunk {
+                    value: Rc::new(RefCell::new(std::mem::take(input))),
+                    mark: None,
+                }
             //}
         }
         // // no point in optimizing anything since the simplified output will be optimized later
@@ -379,7 +391,10 @@ pub fn optimize_expression(input: &mut Expression) {
             //        optimize_expression(expression)
             //    }
             //}
-            *input = Expression::Thunk(Rc::new(RefCell::new(std::mem::take(input))));
+            *input = Expression::Thunk {
+                value: Rc::new(RefCell::new(std::mem::take(input))),
+                mark: None,
+            }
         },
         Expression::Lambda { pattern, body } if matches!(pattern.value, Pattern::Dropped) => 
             optimize_expression(body),

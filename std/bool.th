@@ -1,4 +1,4 @@
-include prelude
+include combinators
 
 type bool contains
     true

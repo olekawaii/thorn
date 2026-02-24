@@ -13,11 +13,11 @@ import Data.Bifunctor (first, second, bimap)
 import Data.Either (fromRight, fromLeft)
 import Data.Maybe (isJust, fromJust, listToMaybe, isNothing, fromMaybe)
 import Data.Tuple (swap)
-import Data.List (find, nub, transpose, sortOn, intercalate)
+import Data.List (find, nub, transpose, sortOn, intercalate, singleton)
 import Text.Read (readMaybe) 
 
 getVideo :: IO (Int, Int, [[[Character]]])
-getVideo = getContents >>= pure . changeFormat . parseVideo . words 
+getVideo = getContents >>= pure . changeFormat . map convertNewFrame . (fst . parseNewVideo) . words 
 
 dimensions :: [Map Coordinate Character] -> (Int, Int, Int, Int)
 dimensions gif = case concatMap (map fst) gif of
@@ -66,36 +66,62 @@ data Character = Space | Character Char Color deriving Eq
 data Color = Black | Red | Green | Yellow | Blue | Magenta | Cyan | White 
   deriving (Show, Eq)
 
-parseVideo :: [String] -> [Map Coordinate Character]
-parseVideo ("empty_video": xs) = []
-parseVideo ("cons_frame": xs) = let (frame, leftover) = parseFrame xs in frame : parseVideo leftover
+type Frame = (Column, Column)
 
-parseFrame :: [String] -> (Map Coordinate Character, [String])
-parseFrame ("unsafe_cons_cell" : xs) = 
-  let (cell, leftover) = parseCell xs in 
-  first (cell :) (parseFrame leftover)
-parseFrame ("empty_frame" : xs) = ([], xs)
+type Column = [Horizontal]
 
-parseCell :: [String] -> ((Coordinate, Character), [String])
-parseCell ("cell" : xs) =
-  let (coord, leftover1) = parseCoordinate xs in
-  let (character, leftover2) = parseChar leftover1 in 
-  ((coord, character), leftover2)
+type Horizontal = ([Character], [Character])
 
-parseCoordinate :: [String] -> (Coordinate, [String])
-parseCoordinate ("coordinate": xs) = 
-  let (x, leftover1) = parse_int xs in
-  let (y, leftover2) = parse_int leftover1 in
-  ((x, y), leftover2)
+type Video = [Frame]
 
-parse_int :: [String] -> (Int, [String])
-parse_int ("pos" : xs) = parseNat xs
-parse_int ("neg" : xs) = first (* (-1)) (parseNat xs)
-parse_int ("zero" : xs) = (0, xs)
 
-parseNat :: [String] -> (Int, [String])
-parseNat ("succ": xs) = first (1 +) (parseNat xs)
-parseNat ("one": xs) = (1, xs)
+
+parseGridCell :: [String] -> (Character, [String])
+parseGridCell ("empty_grid_cell": xs) = (Space, xs)
+parseGridCell ("full_grid_cell": xs) = parseChar xs
+
+parseRow :: [String] -> ([Character], [String])
+parseRow ("empty_row" : xs) = ([], xs)
+parseRow ("cons_row" : xs) = let (char, other) = parseGridCell xs in 
+    first (char :) (parseRow other)
+
+parseHorizontal :: [String] -> (Horizontal, [String])
+parseHorizontal ("horizontal" : xs) = 
+    let 
+        (a, other)  = parseRow xs
+        (b, other2) = parseRow other
+    in
+        ((a, b), other2)
+
+parseColumn :: [String] -> (Column, [String])
+parseColumn ("empty_column" : xs) = ([], xs)
+parseColumn ("cons_column" : xs) = let (hor, other) = parseHorizontal xs in 
+    first (hor :) (parseColumn other)
+
+parseNewFrame :: [String] -> (Frame, [String])
+parseNewFrame ("frame" : xs) = 
+    let 
+        (a, other)  = parseColumn xs
+        (b, other2) = parseColumn other
+    in
+        ((a, b), other2)
+
+parseNewVideo :: [String] -> (Video, [String])
+parseNewVideo ("single" : xs) = first singleton $ parseNewFrame xs
+parseNewVideo ("prepend" : xs) = let (frame, other) = parseNewFrame xs in 
+    first (frame :) (parseNewVideo other)
+parseNewVideo _ = error "\x1b[91mshould be of type video starting with either single or prepend\x1b[0m"
+
+
+convertNewFrame :: Frame -> Map Coordinate Character
+convertNewFrame (a, b) = let combined = reverse a <> b in 
+    filter (\(a, b) -> case b of
+        Space -> False
+        _ -> True) $ 
+    concatMap (\(y, (left, right)) -> map (\(a, b) -> ((a, y), b)) (zip [0, -1 ..] left <> zip [1..] right)) $ 
+    zip [0..] combined
+
+
 
 parseChar :: [String] -> (Character, [String])
 parseChar ("space": xs) = (Space, xs)

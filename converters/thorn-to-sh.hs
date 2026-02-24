@@ -1,18 +1,9 @@
 {-# Language MultiWayIf, LambdaCase #-}
 
-import System.Exit (die)
-import System.Process (callCommand)
-import System.Environment (getArgs)
-import Control.Applicative (liftA2)
-import Control.Monad ((<=<), (>=>), guard, unless, when)
-import Control.Arrow ((<<<), (>>>), (***), (&&&), (+++), (|||))
-import qualified Data.Map.Strict as Map 
 import Data.Bifunctor (first, second, bimap)
-import Data.Either (fromRight, fromLeft)
 import Data.Maybe (isJust, fromJust, listToMaybe, isNothing, fromMaybe)
-import Data.Tuple (swap)
 import Data.List (find, nub, transpose, sortOn, intercalate)
-import Text.Read (readMaybe) 
+
 import Parse
 
 colour :: Color -> String -> String 
