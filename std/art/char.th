@@ -1,22 +1,8 @@
-include prelude
--- core types required for the art macro
-
-type coordinate contains
-    coordinate int int
+include color
 
 type character contains
     space
     char visible_character color
-
-type color contains
-    red
-    green
-    yellow
-    blue
-    magenta
-    cyan
-    white
-    black
 
 type visible_character contains
     exclamation_mark
@@ -113,3 +99,39 @@ type visible_character contains
     vertical_line
     right_curly_brace
     tilde
+
+define flip_over_y_visible of_type fn visible_character visible_character as 
+    lambda c match c with
+        apostrophe           to grave_accent
+        grave_accent         to apostrophe
+        left_paranthesis     to right_paranthesis
+        right_paranthesis    to left_paranthesis
+        comma                to full_stop
+        solidus              to reverse_solidus
+        reverse_solidus      to solidus
+        less_than_sign       to greater_than_sign
+        greater_than_sign    to less_than_sign
+        left_square_bracket  to right_square_bracket
+        right_square_bracket to left_square_bracket
+        left_curly_brace     to right_curly_brace
+        right_curly_brace    to left_curly_brace
+        semicolon            to colon
+        small_d              to small_b
+        small_b              to small_d
+        small_p              to small_q
+        small_q              to small_p
+        _                    to c
+
+define flip_over_y_char of_type fn character character as 
+    map_over_char flip_over_y_visible
+
+define map_over_char of_type 
+    fn fn visible_character visible_character fn character character
+as lambda f lambda x match x with
+    space         to space
+    char c color  to char f c color
+
+define recolor_character of_type fn color fn character character as
+    lambda color lambda character match character with
+        char a _  to char a color
+        space     to space

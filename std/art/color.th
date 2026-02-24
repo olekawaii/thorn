@@ -1,0 +1,23 @@
+type color contains
+    red
+    green
+    yellow
+    blue
+    magenta
+    cyan
+    white
+    black
+
+define next_color of_type fn color color as lambda x match x with
+    red      to magenta
+    magenta  to blue
+    blue     to cyan
+    cyan     to green
+    green    to yellow
+    yellow   to red
+
+define complementary of_type fn color color as 
+    lambda x next_color next_color next_color x
+
+
+
