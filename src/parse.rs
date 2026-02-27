@@ -433,7 +433,8 @@ fn build_monolithic_expression(
         let ptr = &mut (**i).borrow_mut();
         monolithic_helper(&expressions, ptr, &marks)
     }
-    let GlobalVarData {id: Id::Variable(a) | Id::Constructor(a), ..} = vars_dummy.get(name).expect("requested function does not exist (usually main)");
+    let GlobalVarData {id: Id::Variable(a) | Id::Constructor(a), ..} = 
+        vars_dummy.get(name).expect("requested function does not exist (usually main)");
     (*expressions[*a]).borrow().clone()
 }
 
@@ -602,14 +603,6 @@ pub fn tokenize_file(input: String, file_name: &str) -> Result<Vec<Tokens>> {
     }
     Ok(output)
 }
-//struct GlobalVarData {
-//    mark: Mark,
-//    var_type: Type,
-//    generics: Generics,
-//    id: Id,
-//}
-
-
 
 fn lookup_global_vars<'a>(
     name:              &str,
