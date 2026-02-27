@@ -3,9 +3,12 @@
 import Data.List 
 import Data.Char (ord)
 
+import System.Directory (getHomeDirectory)
+import System.FilePath ((</>))
+import System.Environment (getArgs)
+
 import Parse
 
-padding = 20
 
 showNum :: Int -> String
 showNum x = take (5 - length s) (cycle ['0']) <> s
@@ -18,13 +21,31 @@ makeFiles header (x:xs) n = writeFile fileName content >> makeFiles header xs (n
         content = header <> x
         fileName = "output" <> showNum n <> ".ppm"
 
+data Config = Config {
+    -- (width * 2) :: Int,
+    fontFile :: String
+}
+
+defaultConfig = Config {
+    -- (width * 2) = 20.
+    fontFile = "tandy_9x14"
+}
+
+parseArgs :: Config -> [String] -> Config
+parseArgs conf ("--font" : f : tail) = parseArgs conf { fontFile = f } tail
+-- parseArgs conf ("--(width * 2)" : f : tail) = parseArgs conf { (width * 2) = read f } tail
+parseArgs conf [] = conf
+parseArgs _ other = error (show other)
+
 main :: IO ()
 main = 
-    parseFontFile <$> readFile "font" >>= \(font, fwidth, fheight) ->
+    getHomeDirectory >>= \home -> 
+    parseArgs defaultConfig <$> getArgs >>= \Config { fontFile } -> 
+    parseFontFile <$> readFile (home </> ".local/share/thorn/fonts" </> fontFile) >>= \(font, fwidth, fheight) ->
     getVideo >>= \(width, height, newGif) ->
     let 
-        horizontalPixels = width  * fwidth  + padding * 2 
-        verticalPixels   = height * fheight + padding * 2 
+        horizontalPixels = width  * fwidth  + (fwidth * 2) * 2 
+        verticalPixels   = height * fheight + (fwidth * 2) * 2 
         gifFrames = map (flip (pipelineGif font fwidth fheight) horizontalPixels) newGif 
         header = "P3\n" <> show (horizontalPixels) <> " " <> show (verticalPixels) <> "\n255\n"
     in
@@ -32,13 +53,13 @@ main =
 
 pipelineGif :: [[[Bool]]] -> Int -> Int -> [[Character]] -> Int -> String
 pipelineGif font width height x y = unlines . map showColor . surround . uwu font width height $ x
-    where surround x = let lns = replicate (y * padding) Black in lns <> x <> lns
+    where surround x = let lns = replicate (y * (width * 2)) Black in lns <> x <> lns
 
 uwu :: [[[Bool]]] -> Int -> Int -> [[Character]] -> [Color]
 uwu font width height x = concat . map 
     (concat . map surround . foldr1 combine . map (\c -> (fontLookup c width height font))) 
     $ x
-    where surround x = replicate padding Black <> x <> replicate padding Black
+    where surround x = replicate (width * 2) Black <> x <> replicate (width * 2) Black
 
 combine :: [[Color]] -> [[Color]] -> [[Color]] 
 combine = (map (uncurry (++)) .) . zip
