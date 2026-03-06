@@ -7,7 +7,9 @@
 
 include video
 
-define main of_type video as layer
+define main of_type video as dragon
+
+define dragon of_type video as layer
     layer entirely shift_by neg vi pos iii center_head layer
         right_half 
         for vi rotate entirely shift west entirely flip_over_y right_half
@@ -67,7 +69,7 @@ define fire of_type video as art vii iii
 -  X   3......-.     33.....-._    133....-.__,  11333.. .__)  .1133..
        .......       .......       .......  .    ..3....  ._   ..13...
    _   ...3...   _   ...3...   _   ...1...   _   ...1...       .......
-  __)  ..133..  '_)  ..311..  ( `  ..3.1..  (_   ..13...  .__  ..113..
+  __)  ..113..  '_)  ..311..  ( `  ..3.1..  (_   ..13...  .__  ..113..
    ._. ...133.     _......13      .......1       .......       .......
        .......       .......
     __ ....11.      _......1

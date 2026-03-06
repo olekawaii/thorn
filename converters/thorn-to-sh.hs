@@ -53,9 +53,26 @@ legalNameChars = '_' : ['a'..'z'] <> ['0'..'9']
 
 formatShell :: Float -> Int -> Int -> Maybe String -> [Either String Int] -> (ShellScript, ShellScript)
 formatShell t wd ht message renderedFrames = case renderedFrames of
-  [Left frame] -> (init2 <> gif <> "\\n'", init2 <> hideprompt <> initMove <> cleanup <> gif <> "'\nsleep 2" <> "\ncleanup")
-    where gif = "printf '" <> frame
-  frames  -> (init2 <> hideprompt <> initMove <> cleanup <> intro <> alloc <> loop <> body <> done, init2 <> hideprompt <> initMove <> cleanup <> intro <> alloc <> body <> "cleanup")
+  -- [Left frame] -> (init2 <> gif <> "\\n'", init2 <> hideprompt <> initMove <> cleanup <> gif <> "'\nsleep 2" <> "\ncleanup")
+  --   where gif = "printf '" <> frame
+  frames  -> (
+        init2 <> 
+        hideprompt <> 
+        initMove <> 
+        cleanup <> 
+        intro <> 
+        alloc <> 
+        loop <> 
+        body <> 
+        done <> "\ncleanup", 
+        init2 <> 
+        hideprompt <> 
+        initMove <> 
+        cleanup <> 
+        intro <> 
+        alloc <> 
+        body <> 
+        "cleanup")
     where 
       newHelper :: [Either String Int] -> String
       newHelper [] = ""

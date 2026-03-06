@@ -404,6 +404,7 @@ impl Tokens {
 pub fn tokenize(
     input: Vec<(usize, &str)>,
     file: &Rc<File>,
+    ignore_special_chars: bool
 ) -> Result<Tokens> {
     let keywords: HashMap<&str, Keyword> = HashMap::from([
         ( "include",   Keyword::Include   ),
@@ -514,7 +515,7 @@ pub fn tokenize(
                     value: match keywords.get(&other) {
                         Some(keyword) => Token::Keyword(*keyword),
                         None => {
-                            if !other.chars().all(|x| x.is_lowercase() || x == '_' || x == '/' || x == '.') {
+                            if !ignore_special_chars && !other.chars().all(|x| x.is_lowercase() || x == '_' || x == '/' || x == '.') {
                                 return Err(Error {
                                     mark,
                                     error_type: Box::new(ParseError::InvalidName),
@@ -648,6 +649,14 @@ pub fn build_tokens_from_art(
                     frame_commands.push_back(build_token(&s, &c1.mark));
                     continue;
                 }
+
+                if c2_char == '^' {
+                    frame_buffer.push_back(build_token("filter_grid_cell", &mark));
+                    let s = String::from(c1_char.to_ascii_lowercase());
+                    frame_buffer.push_back(build_token(&s, &c1.mark));
+                    continue;
+                }
+
                 frame_buffer.push_back(build_token("full_grid_cell", &mark));
                 match (c1_char, c2_char) {
                     (_, ' ') => return Err(make_error(ParseError::InvalidColor, c2.mark)),

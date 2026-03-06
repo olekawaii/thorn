@@ -80,21 +80,21 @@ fn matches_expression(pattern: &Pattern, matched: &mut Expression) -> bool {
     }
 }
 
-fn match_on_expression(pattern: &Pattern, matched: Expression) -> HashMap<u32, Expression> {
-    let mut output = HashMap::new();
+fn match_on_expression(pattern: &Pattern, matched: Expression) -> Vec<(u32, Expression)> {
+    let mut output = Vec::new();
     match_on_expression_helper(&mut output, pattern, matched);
     output
 }
 
 fn match_on_expression_helper(
-    output:       &mut HashMap<u32, Expression>,
+    output:       &mut Vec<(u32, Expression)>,
     pattern:      &Pattern,
     mut matched:  Expression,
 ) {
     match pattern {
         Pattern::Dropped => (),
         Pattern::Captured(id) => {
-            output.insert(*id, build_thunk(matched));
+            output.push((*id, build_thunk(matched)));
         }
         Pattern::DataConstructor(data_constructor, patterns) => {
             matched.simplify();
@@ -159,10 +159,16 @@ impl Expression {
                         self.simplify();
                         match self {
                             Expression::Tree { arguments, .. } => {
-                                let mut vec: Vec<Expression> = std::mem::take(arguments).into();
-                                vec.push(i);
-                                args.for_each(|x| vec.push(x));
-                                *arguments = vec.into();
+                                let mut new_args = Vec::with_capacity(arguments.len() + args.len() + 1);
+                                new_args.extend(std::mem::take(arguments).into_iter());
+                                new_args.push(i);
+                                new_args.extend(args);
+                                *arguments = new_args.into();
+
+                                //let mut vec: Vec<Expression> = std::mem::take(arguments).into();
+                                //vec.push(i);
+                                //args.for_each(|x| vec.push(x));
+                                //*arguments = vec.into();
                                 break 'uwu;
                             }
                             Expression::Lambda { pattern, body } => {
@@ -179,11 +185,14 @@ impl Expression {
                                 *self = std::mem::take(&mut *body);
                             }
                             Expression::DataConstructor(_) => {
-                                let mut vec = vec![i];
-                                args.for_each(|x| vec.push(x));
+                                let mut new_args = Vec::with_capacity(args.len() + 1);
+                                new_args.push(i);
+                                new_args.extend(args);
+                                //let mut vec = vec![i];
+                                //args.for_each(|x| vec.push(x));
                                 *self = Expression::Tree {
                                     root: Box::new(std::mem::take(self)),
-                                    arguments: vec.into(),
+                                    arguments: new_args.into(),
                                 };
                                 break 'uwu
                             }
@@ -236,13 +245,14 @@ impl Expression {
     // Substitute every instance of a LocalVarPlaceholder with a Thunk. To be used with
     // patternmatching (match_on_expression) output
       
-    pub fn substitute(&mut self, map: &HashMap<u32, Expression>) {
+    pub fn substitute(&mut self, map: &Vec<(u32, Expression)>) {
         match self {
             Expression::Lambda { body, .. } => body.substitute(map),
             Expression::LocalVarPlaceholder(id) => {
-                if let Some(new_expression) = map.get(id) {
-                    *self = new_expression.clone()
-                }
+                map
+                    .iter()
+                    .find(|(k, _)| k == id)
+                    .map(|(_, v)| *self = v.clone());
             }
             Expression::Tree { root, arguments, .. } => {
                 root.substitute(map);
@@ -284,7 +294,9 @@ impl Expression {
     // without eating memory at all.
     
     pub fn print(self, names: &mut HashMap<u32, String>) {
+        const BUFFER_SIZE: usize = 8192;
         let mut stdout = io::stdout().lock();
+        let mut buffer = Vec::with_capacity(BUFFER_SIZE);
         let mut cache = HashMap::new();
         let mut to_evaluate: Vec<Expression> = vec![self];
         while let Some(mut x) = to_evaluate.pop() {
@@ -303,13 +315,20 @@ impl Expression {
                             cache.get(&id).unwrap() // safe
                         }
                     };
-                    stdout.write_all(word.as_bytes()).expect("");
-                    stdout.write_all(b" ").expect("");
+                    buffer.extend_from_slice(word.as_bytes());
+                    buffer.push(b' ');
+                    //buffer.write_all(word.as_bytes()).expect("");
+                    //buffer.write_all(b" ").expect("");
+                    if buffer.len() > 8100 {
+                        stdout.write_all(&buffer);
+                        buffer.clear();
+                    }
                 }
                 Expression::Lambda { .. } => stdout.write_all(b"<lambda> ").unwrap(),
                 _ => unreachable!(),
             }
         }
+        stdout.write_all(&buffer);
         stdout.write_all(b"\n").expect("");
         //dbg!(*COUNTER.lock().unwrap());
     }
@@ -351,7 +370,7 @@ this expression will never return a value")
 fn build_thunk(mut input: Expression) -> Expression {
     optimize_expression(&mut input);
     match &mut input {
-        Expression::Tree { .. } | Expression::Match { .. } => Expression::Thunk {
+        Expression::Tree { .. } | Expression::Match { .. } | Expression::Lambda { .. } => Expression::Thunk {
             value: Rc::new(RefCell::new(input)),
             mark: None,
         },

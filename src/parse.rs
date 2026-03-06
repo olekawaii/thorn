@@ -129,7 +129,7 @@ enum Id {
 
 type Globals = HashMap<String, GlobalVarData>;
 
-pub fn get_everything() -> Result<(Expression, HashMap<u32, String>)> {
+pub fn get_everything(name: &str) -> Result<(Expression, HashMap<u32, String>)> {
     let mut global_values_data: Vec<Expression> = Vec::new();
     let mut global_values: Globals = HashMap::new();
     loop {
@@ -151,7 +151,7 @@ pub fn get_everything() -> Result<(Expression, HashMap<u32, String>)> {
 
     let files = String::from_utf8_lossy(&output.stdout);
     let (vars, vars_dummy) = uwu(files.split_whitespace());
-    let main = build_monolithic_expression(vars, &vars_dummy, "main");
+    let main = build_monolithic_expression(vars, &vars_dummy, name);
     let mut map = HashMap::new();
     for (name, GlobalVarData {id, ..}) in vars_dummy {
         map.insert(
@@ -591,6 +591,7 @@ pub fn tokenize_file(input: String, file_name: &str) -> Result<Vec<Tokens>> {
                     output.push(tokenize(
                         current_block,
                         &file,
+                        false,
                     )?);
                     current_block = Vec::new();
                     break 'good_lines;

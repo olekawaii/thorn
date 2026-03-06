@@ -78,6 +78,7 @@ type Video = [Frame]
 
 parseGridCell :: [String] -> (Character, [String])
 parseGridCell ("empty_grid_cell": xs) = (Space, xs)
+parseGridCell ("filter_grid_cell": "<lambda>" : xs) = (Space, xs)
 parseGridCell ("full_grid_cell": xs) = parseChar xs
 
 parseRow :: [String] -> ([Character], [String])
@@ -237,3 +238,4 @@ parseChar ("char": char : color : xs) =
    in
       (Character c col, xs)
 
+parseChar x = error (show (take 3  x))
