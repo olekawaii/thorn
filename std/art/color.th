@@ -15,6 +15,8 @@ define next_color of_type fn color color as lambda x match x with
     cyan     to green
     green    to yellow
     yellow   to red
+    white    to white
+    black    to black
 
 define complementary of_type fn color color as 
     lambda x next_color next_color next_color x

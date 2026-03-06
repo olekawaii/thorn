@@ -22,8 +22,9 @@ type row contains
     cons_row grid_cell row
 
 type grid_cell contains
-    empty_grid_cell
     full_grid_cell character
+    empty_grid_cell
+    filter_grid_cell fn character character
     
 
 -- video functions -------------------------------------------------------------
@@ -43,8 +44,6 @@ define zip_videos of_type fn video fn video video as
 define head of_type fn video frame as lambda x match x with
     single f     to f
     prepend f _  to f
-
--- apply a fn frame frame function to every frame in a video
 
 define entirely of_type fn fn frame frame fn video video as 
     lambda f lambda v match v with
@@ -305,8 +304,13 @@ define layer_rows of_type fn row fn row row as
         tuple_row_row cons_row aa ba  cons_row ab bb  to
             cons_row
                 match aa with
-                    empty_grid_cell   to ab
-                    full_grid_cell _  to aa
+                    empty_grid_cell     to ab
+                    full_grid_cell _    to aa
+                    filter_grid_cell f  to match ab with
+                        empty_grid_cell     to filter_grid_cell f
+                        full_grid_cell c    to full_grid_cell f c
+                        filter_grid_cell g  to filter_grid_cell
+                            lambda x f g x
                 layer_rows ba bb
 
 -- expects videos of equal length. will refactor to use infinite_video in the
@@ -337,7 +341,8 @@ define map_over_grid_cell of_type
 as
     lambda f lambda x match x with
         full_grid_cell a  to full_grid_cell f a
-        empty_grid_cell   to empty_grid_cell
+        empty_grid_cell to empty_grid_cell
+        filter_grid_cell g to filter_grid_cell g
 
 define map_horizontal of_type
     fn fn character character fn horizontal horizontal
@@ -346,7 +351,18 @@ as
         map_row f ra
         map_row f rb
 
+define map_frame of_type 
+    fn fn character character fn frame frame 
+as lambda f lambda x map_columns map_horizontal f x
+
+define dye of_type fn color fn frame frame as lambda color map_frame 
+    lambda c match c with
+        space     to space
+        char ch _ to char ch color
+
 define map_row of_type fn fn character character fn row row as
     lambda f lambda x match x with
-        cons_row head tail  to cons_row map_over_grid_cell f head map_row f tail
+        cons_row head tail  to cons_row 
+            map_over_grid_cell f head 
+            map_row f tail
         empty_row           to empty_row

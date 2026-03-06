@@ -45,7 +45,7 @@ use crate::{
 
 
 fn main() -> std::io::Result<()> {
-    match parse::get_everything() {
+    match parse_cli_arguments().and_then(|name| parse::get_everything(&name)) {
         Err(x) => {
             eprintln!("{x}");
             std::process::exit(1)
@@ -59,7 +59,12 @@ fn main() -> std::io::Result<()> {
 
 type Origins = HashMap<String, HashSet<String>>;
 
-fn parse_cli_arguments() -> error::Result<Marked<String>> {
+struct Arguments {
+    //root_file: String,
+    main_function: String,
+}
+
+fn parse_cli_arguments() -> error::Result<String> {
     let args: Vec<String> = env::args().collect();
     let mut arg_str = String::new();
     args.iter().for_each(|x| {
@@ -70,8 +75,20 @@ fn parse_cli_arguments() -> error::Result<Marked<String>> {
         name: String::from("arguments"),
         lines: vec![arg_str]
     });
-    let mut tokens: tokens::Tokens = tokens::tokenize(vec![(0, &arg_file.lines[0])], &arg_file)?;
-    let _executable = tokens.next_word()?;
-    let file_name = tokens.next_word()?;
-    Ok(file_name)
+    let mut tokens: tokens::Tokens = tokens::tokenize(
+        vec![(0, &arg_file.lines[0])], 
+        &arg_file,
+        true
+    )?;
+    let _program_name = tokens.next_word();
+    let mut name = String::from("main");
+    while let Ok(Marked::<String> {mark, value}) = tokens.next_word() {
+        match value.as_str() {
+            "--eval" => {
+                name = tokens.next_word()?.value;
+            }
+            _ => todo!()
+        }
+    }
+    Ok(name)
 }
