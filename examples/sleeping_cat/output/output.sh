@@ -23,17 +23,17 @@ while true; do
     draw '\33[4E\33[34C \33[97m.\33[5E'
     draw '\n\n\33[26C\33[97mz\n\33[25C \n\33[35C \n\33[32C   \n\33[32C.\n\33[33C\47\n\n'
     draw '\33[6E\33[32C\33[97m:\n\33[32C| \n\n'
-    draw '\n\33[28C\33[97mZ\n\33[26C \33[7E'
+    draw '\n\33[27C\33[97mZ\n\33[26C \33[7E'
     sleep 0.2
-    draw '\n\33[28C \33[8E'
+    draw '\n\33[27C \33[8E'
     sleep 0.2
     draw '\33[3E\33[25C\33[97m\47\33[6E'
     sleep 0.2
     draw '\n\n\33[26C\33[97mz\n\33[25C \33[6E'
     sleep 0.2
-    draw '\n\33[28C\33[97mZ\n\33[26C \33[7E'
+    draw '\n\33[27C\33[97mZ\n\33[26C \33[7E'
     sleep 0.2
-    draw '\n\33[28C \33[5E\33[32C\33[97m.\n\33[32C \47\n\n'
+    draw '\n\33[27C \33[5E\33[32C\33[97m.\n\33[32C \47\n\n'
     draw '\33[4E\33[35C\33[97m.\n\33[32C_.\47\n\33[32C \n\33[33C \n\n'
 done
 cleanup
