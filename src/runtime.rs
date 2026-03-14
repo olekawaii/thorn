@@ -53,12 +53,14 @@ pub enum Pattern {
     Dropped,
     Captured(u32),
     DataConstructor(u32, Vec<Pattern>),
+    Bound(u32, Box<Pattern>)
 }
 
 fn matches_expression(pattern: &Pattern, matched: &mut Expression) -> bool {
     match pattern {
         Pattern::Dropped => true,
         Pattern::Captured(_) => true,
+        Pattern::Bound(_, pat) => matches_expression(pat, matched),
         Pattern::DataConstructor(data_constructor, patterns) => {
             matched.simplify();
             match matched {
@@ -93,6 +95,11 @@ fn match_on_expression_helper(
 ) {
     match pattern {
         Pattern::Dropped => (),
+        Pattern::Bound(id, pat) => {
+            let mut thunk = build_thunk(matched);
+            output.push((*id, thunk.clone()));
+            match_on_expression_helper(output, &**pat, thunk);
+        }
         Pattern::Captured(id) => {
             output.push((*id, build_thunk(matched)));
         }
@@ -176,6 +183,7 @@ impl Expression {
                                     let error = Error {
                                         error_type: Box::new(RuntimeError::UnmatchedPattern),
                                         mark: pattern.mark.clone(),
+                                        note: None,
                                     };
                                     eprintln!("{error}");
                                     std::process::exit(1);
@@ -222,6 +230,7 @@ impl Expression {
                         let error = Error {
                             error_type: Box::new(RuntimeError::UnmatchedPattern),
                             mark: blame.unwrap(),
+                            note: None,
                         };
                         eprintln!("{error}");
                         std::process::exit(1);
@@ -231,6 +240,7 @@ impl Expression {
                     let error = Error {
                         error_type: Box::new(RuntimeError::EvaluatedUndefined),
                         mark: (*mark).clone(),
+                        note: None,
                     };
                     eprintln!("{error}");
                     std::process::exit(1);

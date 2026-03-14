@@ -87,6 +87,15 @@ fn parse_cli_arguments() -> error::Result<String> {
             "--eval" => {
                 name = tokens.next_word()?.value;
             }
+            "--help" | "-h" => {
+                eprintln!("thorn [options]
+
+--help         show this help message
+--eval NAME    evaluate NAME instead of main
+");
+                std::process::exit(1);
+
+            }
             _ => todo!()
         }
     }
