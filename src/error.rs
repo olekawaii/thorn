@@ -16,26 +16,34 @@
 
 use std::rc::Rc;
 
-#[inline]
-pub fn make_error(error: impl ErrorType + 'static, mark: Mark) -> Error {
-    Error {
-        mark,
-        error_type: Box::new(error)
-    }
-}
-
-
 pub type Result<T> = std::result::Result<T, Error>;
-
-pub trait ErrorType: std::fmt::Display + std::fmt::Debug {
-    fn gist(&self) -> &'static str;
-    fn phase(&self) -> &'static str;
-}
 
 #[derive(Debug)]
 pub struct Error {
     pub error_type: Box<dyn ErrorType>,
     pub mark: Mark,
+    pub note: Option<String>
+}
+
+#[inline]
+pub fn make_error(error: impl ErrorType + 'static, mark: Mark) -> Error {
+    Error {
+        mark,
+        error_type: Box::new(error),
+        note: None,
+    }
+}
+
+#[inline]
+pub fn add_note<T>(val: &mut Result<T>, note: &str) {
+    if let Err(err) = val {
+        err.note = Some(String::from(note));
+    }
+}
+
+pub trait ErrorType: std::fmt::Display + std::fmt::Debug {
+    fn gist(&self) -> &'static str;
+    fn phase(&self) -> &'static str;
 }
 
 impl PartialEq for Error {
@@ -66,10 +74,15 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "\n\x1b[7;31m {} ERROR \x1b[0m\x1b[0m {}\n\x1b[90m\n{}\x1b[0m\n",
+            "\n\x1b[7;31m {} ERROR \x1b[0m\x1b[0m {}\n\x1b[90m\n{}{}\x1b[0m\n",
             self.error_type.phase(),
             show_mark(self.mark.clone(), self.error_type.gist()),
-            self.error_type
+            self.error_type,
+            if let Some(x) = &self.note {
+                format!("\x1b[90m\n\n\x1b[97mnote:\x1b[90m {x}")
+            } else {
+                "".into()
+            },
         )
     }
 }

@@ -4,6 +4,81 @@ use std::rc::Rc;
 
 const INDENTATION: u8 = 4;
 
+#[derive(Debug)]
+pub enum ParseError {
+    ConflictingAllignment,
+    BadIndentation,
+    TrailingCharacters,
+    InvalidColor,
+    InvalidName,
+    ExpectedRoman,
+    UnexpectedKeyword,
+    ExpectedAKeyword,
+    ExpectedKeyword(Keyword),
+    BadArtLength { width: usize, got: usize },
+    BadArtHeight { height: usize, got: usize },
+    UnexpectedEnd,
+    ArtMissingArgs,
+    TranspOnChar,
+    ColorOnSpace,
+    KeywordNotFound(Keyword),
+}
+
+impl ErrorType for ParseError {
+    fn gist(&self) -> &'static str {
+        match self {
+            Self::ConflictingAllignment => "conflicting allignment",
+            Self::TrailingCharacters => "trailing characters",
+            Self::KeywordNotFound(_) => "looking for keyword but reached the end",
+            Self::BadIndentation => "indentation not divisible by four",
+            Self::InvalidColor => "invalid color",
+            Self::ColorOnSpace => "can only be used with non-spaces",
+            Self::TranspOnChar => "unexpected character",
+            Self::ArtMissingArgs => "art expected more arguments",
+            Self::UnexpectedEnd => "unexpected end",
+            Self::ExpectedKeyword(_) => "expected a keyword",
+            Self::InvalidName => "invalid name",
+            Self::ExpectedRoman => "expected a roman numeral",
+            Self::UnexpectedKeyword => "unexpected keyword",
+            Self::BadArtLength { .. } => "line length not divisible by 2*width",
+            Self::BadArtHeight { .. } => "number of lines not divisible by height",
+            Self::ExpectedAKeyword => "expected a keyword"
+        }
+    }
+
+    fn phase(&self) -> &'static str {
+        "PARSE"
+    }
+}
+
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::UnexpectedKeyword => write!(f, "encountered an unexpected keyword"),
+            Self::TrailingCharacters => write!(f, "expected an end to the expression"),
+            Self::KeywordNotFound(k) => write!(
+                f, 
+                "expected to find the \x1b[97m{k}\x1b[90m keyword but reached the end"
+            ),
+            Self::ColorOnSpace => write!(f, "colors can not be used on spaces. instead use . or |"),
+            Self::TranspOnChar => write!(f, "colors . and | can only be used with spaces to mark transparency"),
+            Self::UnexpectedEnd => write!(f, "unexpected end to expression"),
+            Self::ExpectedKeyword(k) => write!(f, "expected the keyword '{}'", k),
+            Self::InvalidName => write!(f, "invalid keyword or variable name"),
+            Self::BadArtLength { width, got } => write!(
+                f,
+                "expected line length to be divisible hy {}, but it has {got} chars",
+                width * 2,
+            ),
+            Self::BadArtHeight { height, got } => write!(
+                f,
+                "expected number of lines to be divisible hy {height}, but it has {got} lines",
+            ),
+            _ => write!(f, "todo")
+        }
+    }
+}
+
 pub fn parse_roman_numeral(numeral: &str) -> Option<u32> {
     let mut numerals: Vec<(&str, u32)> = vec![
         ("i", 1),
@@ -67,6 +142,7 @@ pub fn parse_art(
                 got: number_of_lines,
             }),
             mark,
+            note: None,
         });
     }
     for line in text.iter() {
@@ -75,6 +151,7 @@ pub fn parse_art(
             return Err(Error {
                 error_type: Box::new(ParseError::BadArtLength { width, got: length }),
                 mark: line[length - 1].mark.clone(),
+                note: None,
             });
         }
     }
@@ -131,78 +208,6 @@ pub fn words(s: &str) -> Vec<(usize, &str, usize)> {
     output
 }
 
-#[derive(Debug)]
-pub enum ParseError {
-    ConflictingAllignment,
-    BadIndentation,
-    TrailingCharacters,
-    InvalidColor,
-    InvalidName,
-    ExpectedRoman,
-    UnexpectedKeyword,
-    ExpectedKeyword(Keyword),
-    BadArtLength { width: usize, got: usize },
-    BadArtHeight { height: usize, got: usize },
-    UnexpectedEnd,
-    ArtMissingArgs,
-    TranspOnChar,
-    ColorOnSpace,
-    KeywordNotFound(Keyword),
-}
-
-impl ErrorType for ParseError {
-    fn gist(&self) -> &'static str {
-        match self {
-            Self::ConflictingAllignment => "conflicting allignment",
-            Self::TrailingCharacters => "trailing characters",
-            Self::KeywordNotFound(_) => "looking for keyword but reached the end",
-            Self::BadIndentation => "indentation not divisible by four",
-            Self::InvalidColor => "invalid color",
-            Self::ColorOnSpace => "can only be used with non-spaces",
-            Self::TranspOnChar => "unexpected character",
-            Self::ArtMissingArgs => "art expected more arguments",
-            Self::UnexpectedEnd => "unexpected end",
-            Self::ExpectedKeyword(_) => "expected a keyword",
-            Self::InvalidName => "invalid name",
-            Self::ExpectedRoman => "expected a roman numeral",
-            Self::UnexpectedKeyword => "unexpected keyword",
-            Self::BadArtLength { .. } => "line length not divisible by 2*width",
-            Self::BadArtHeight { .. } => "number of lines not divisible by height",
-        }
-    }
-
-    fn phase(&self) -> &'static str {
-        "PARSE"
-    }
-}
-
-impl std::fmt::Display for ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::TrailingCharacters => write!(f, "expected an end to the expression"),
-            Self::KeywordNotFound(k) => write!(
-                f, 
-                "expected to find the \x1b[97m{k}\x1b[90m keyword but reached the end"
-            ),
-            Self::ColorOnSpace => write!(f, "colors can not be used on spaces. instead use . or |"),
-            Self::TranspOnChar => write!(f, "colors . and | can only be used with spaces to mark transparency"),
-            Self::UnexpectedEnd => write!(f, "unexpected end to expression"),
-            Self::ExpectedKeyword(k) => write!(f, "expected the keyword '{}'", k),
-            Self::InvalidName => write!(f, "invalid keyword or variable name"),
-            Self::BadArtLength { width, got } => write!(
-                f,
-                "expected line length to be divisible hy {}, but it has {got} chars",
-                width * 2,
-            ),
-            Self::BadArtHeight { height, got } => write!(
-                f,
-                "expected number of lines to be divisible hy {height}, but it has {got} lines",
-            ),
-            _ => write!(f, "todo")
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Keyword {
     ForAll,
@@ -210,8 +215,10 @@ pub enum Keyword {
     Lambda,
     Match,
     With,
+    Bind,
     Define,
     OfType,
+    The,
     As,
     To,
     Type,
@@ -237,11 +244,13 @@ impl std::fmt::Display for Keyword {
         match self {
             Keyword::ForAll     => write!(f, "for_all"),
             Keyword::Include    => write!(f, "include"),
-            Keyword::Lambda     => write!(f, "lambda"),
             Keyword::Match      => write!(f, "match"),
             Keyword::With       => write!(f, "with"),
+            Keyword::Lambda     => write!(f, "lambda"),
+            Keyword::Bind       => write!(f, "bind"),
             Keyword::Define     => write!(f, "define"),
             Keyword::OfType     => write!(f, "of_type"),
+            Keyword::The        => write!(f, "the"),
             Keyword::As         => write!(f, "as"),
             Keyword::To         => write!(f, "to"),
             Keyword::Type       => write!(f, "type"),
@@ -254,10 +263,15 @@ impl std::fmt::Display for Keyword {
 impl Tokens {
     pub fn peek(&self) -> Result<&Marked<Token>> {
         match self.tokens.front() {
-            None => Err(Error {
-                error_type: Box::new(ParseError::UnexpectedEnd), 
-                mark: self.end.clone(),
-            }),
+            None => {
+                let mut mark = self.end.clone();
+                mark.length = 1;
+                Err(Error {
+                    error_type: Box::new(ParseError::UnexpectedEnd), 
+                    mark,
+                    note: None,
+                })
+            }
             Some(token) => Ok(token)
         }
     }
@@ -309,7 +323,7 @@ impl Tokens {
                 })
             }
             _ => {
-                Err(make_error(ParseError::UnexpectedKeyword, self.end.clone()))
+                Err(make_error(ParseError::ExpectedAKeyword, self.peek().unwrap().mark.clone()))
             }
         }
     }
@@ -413,9 +427,11 @@ pub fn tokenize(
         ( "contains",  Keyword::Contains  ),
         ( "define",    Keyword::Define    ),
         ( "of_type",   Keyword::OfType    ),
+        ( "the",       Keyword::The       ),
         ( "as",        Keyword::As        ),
         ( "lambda",    Keyword::Lambda    ),
         ( "match",     Keyword::Match     ),
+        ( "bind",      Keyword::Bind      ),
         ( "with",      Keyword::With      ),
         ( "to",        Keyword::To        ),
         ( "...",       Keyword::Undefined ),
@@ -519,6 +535,7 @@ pub fn tokenize(
                                 return Err(Error {
                                     mark,
                                     error_type: Box::new(ParseError::InvalidName),
+                                    note: None,
                                 });
                             }
                             Token::Word(other.to_string())
@@ -724,6 +741,7 @@ pub fn build_tokens_from_art(
                                 return Err(Error {
                                     error_type: Box::new(ParseError::ColorOnSpace),
                                     mark: c2.mark,
+                                    note: None,
                                 });
                             }
                             _ => panic!("bad char"),

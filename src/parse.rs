@@ -491,28 +491,46 @@ fn parse_pattern_helper(
     tokens: &mut Tokens,
     global_vars: &Globals,
 ) -> Result<Pattern> {
-    let (name, mark) = tokens.next_word()?.destructure();
-    if name.starts_with('_') {
-        return Ok(Pattern::Dropped)
-    }
-    if let Some(GlobalVarData {id: Id::Constructor(index), var_type: tp, ..}) = global_vars.get(&name)
-        //&& !expected_type.is_a_function()
-        && tp.final_type() == *expected_type {
-            let mut patterns = Vec::new();
-            for t in tp.clone().arg_types() {
-                patterns.push(parse_pattern_helper(
-                    number_of_local,
-                    &t,
-                    output,
-                    tokens,
-                    global_vars,
-                )?)
-            }
-            Ok(Pattern::DataConstructor(*index as u32, patterns))
+    if let Ok(()) = tokens.expect_keyword(Keyword::Bind) {
+        let (name, mark) = tokens.next_word()?.destructure();
+        if !name.starts_with('_') {
+            *number_of_local += 1;
+            output.insert(name, (*number_of_local, expected_type.clone(), mark));
+            Ok(Pattern::Bound(*number_of_local, Box::new(parse_pattern_helper(
+                number_of_local,
+                expected_type,
+                output,
+                tokens,
+                global_vars,
+            )?)))
+        } else {
+            Ok(Pattern::Dropped)
+        }
     } else {
-        *number_of_local += 1;
-        output.insert(name, (*number_of_local, expected_type.clone(), mark));
-        Ok(Pattern::Captured(*number_of_local))
+        let (name, mark) = tokens.next_word()?.destructure();
+        if name.starts_with('_') {
+            return Ok(Pattern::Dropped);
+            output.insert(name, (*number_of_local, expected_type.clone(), mark));
+        }
+        if let Some(GlobalVarData {id: Id::Constructor(index), var_type: tp, ..}) = global_vars.get(&name)
+            //&& !expected_type.is_a_function()
+            && tp.final_type() == *expected_type {
+                let mut patterns = Vec::new();
+                for t in tp.clone().arg_types() {
+                    patterns.push(parse_pattern_helper(
+                        number_of_local,
+                        &t,
+                        output,
+                        tokens,
+                        global_vars,
+                    )?)
+                }
+                Ok(Pattern::DataConstructor(*index as u32, patterns))
+        } else {
+            *number_of_local += 1;
+            output.insert(name, (*number_of_local, expected_type.clone(), mark));
+            Ok(Pattern::Captured(*number_of_local))
+        }
     }
 }
 
@@ -684,7 +702,7 @@ pub fn parse_expression(
                 tokens.remove_leading_newlines();
                 let (value, mark) = tokens.peek()?.clone().destructure();
                 let tp = match value {
-                    Token::Keyword(Keyword::OfType) => {
+                    Token::Keyword(Keyword::The) => {
                         let _ = tokens.next(); // safe
                         parse_type(tokens, generics)?
                     }
@@ -926,10 +944,8 @@ fn extract_name_and_generics(tokens: &mut Tokens) -> Result<NameAndGenerics> {
             }
             x => Err(Error {
                 mark: mark1,
-                error_type: Box::new(CompilationError::Custom(format!(
-                    "expected 'type' or 'define' but found {:?}",
-                    x
-                ))),
+                error_type: Box::new(ParseError::UnexpectedKeyword),
+                note: Some(String::from("\x1b[90mexpected one of \x1b[97mdefine for_all type\x1b[90m")),
             }),
         }
     }
@@ -952,6 +968,7 @@ pub fn parse_type(tokens: &mut Tokens, generics: &Vec<(String, usize)>) -> Resul
             let index = ptr.as_ref().unwrap().get(&word).ok_or(Error {
                 mark,
                 error_type: Box::new(CompilationError::TypeNotInScope(word)),
+                note: None,
             })?;
             Ok(Type::Type {
                 type_constructor: *index,
