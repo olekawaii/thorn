@@ -20,7 +20,7 @@ use std::{
         HashSet,
     },
     env,
-    rc::Rc,
+    sync::Arc,
     cell::RefCell,
     path::Path,
 };
@@ -71,7 +71,7 @@ fn parse_cli_arguments() -> error::Result<String> {
         arg_str.push_str(x);
         arg_str.push(' ')
     });
-    let arg_file = Rc::new(File {
+    let arg_file = Arc::new(File {
         name: String::from("arguments"),
         lines: vec![arg_str]
     });
