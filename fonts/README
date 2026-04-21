@@ -1,0 +1,7 @@
+These are bitmap fonts to be used with thorn-to-gif and thorn-to-ppm. They are
+human-readable and easy to modify. To use them with thorn-to-gif, do
+    
+    thorn | thorn-to-gif --font <fontname>
+
+where <fontname> is a file in this directory. This font directory must be
+in ~/.local/share/thorn/fonts to be visible.
