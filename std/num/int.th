@@ -36,13 +36,12 @@ define decrement of_type fn int int as
 
 define product_int of_type fn int fn int int as 
     lambda x lambda y match tuple_int_int x y with
-        tuple_int_int pos a pos b  to pos product_nat a b
+        either tuple_int_int pos a pos b tuple_int_int neg a neg b to 
+            pos product_nat a b
         tuple_int_int pos a neg b  to neg product_nat a b
-        tuple_int_int neg a neg b  to pos product_nat a b
         tuple_int_int zero  _      to zero
         _                          to product_int y x
 
 define abselute_value of_type fn int whole as lambda x match x with
-    pos x  to whole x
-    neg x  to whole x
-    zero   to whole_zero
+    either pos x neg x  to pred succ x
+    zero                to pred one

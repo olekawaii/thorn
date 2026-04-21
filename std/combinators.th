@@ -7,7 +7,7 @@ for_all a b c define compose of_type fn fn b c fn fn a b fn a c as
     lambda g lambda f lambda x g f x
 
 for_all a b define apply of_type fn fn a b fn a b as 
-    lambda f lambda x f x
+    identity fn a b
 
 for_all a b define const of_type fn a fn b a as lambda x lambda _ x
 

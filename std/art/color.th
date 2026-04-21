@@ -1,4 +1,14 @@
+--
+--  rgb colors found in terminals. note that
+--  black is not black but bright black (gray).
+--  the colors don't have bright/dark variants
+--  because many themes don't support them, and
+--  when they are supported, they're very
+--  inconsistent
+--
+
 type color contains
+    black
     red
     green
     yellow
@@ -6,20 +16,22 @@ type color contains
     magenta
     cyan
     white
-    black
 
 define next_color of_type fn color color as lambda x match x with
-    red      to magenta
-    magenta  to blue
-    blue     to cyan
-    cyan     to green
-    green    to yellow
-    yellow   to red
-    white    to white
-    black    to black
+    red                 to magenta
+    magenta             to blue
+    blue                to cyan
+    cyan                to green
+    green               to yellow
+    yellow              to red
+    either black white  to x
+
+--
+--  get the color on the opposite side of the 
+--  rgb color wheel. black and white are 
+--  uneffected
+--
 
 define complementary of_type fn color color as 
     lambda x next_color next_color next_color x
-
-
 
