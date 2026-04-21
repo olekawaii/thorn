@@ -1,4 +1,4 @@
---      _                             
+--      _
 --   __| |_ __ __ _  __ _  ___  _ __  
 --  / _` | '__/ _` |/ _` |/ _ \| '_ \ 
 -- | (_| | | | (_| | (_| | (_) | | | |
@@ -31,7 +31,7 @@ define right_half of_type video as layer
         entirely shift_by pos x pos i wing
         entirely shift_by pos vi pos vii layer
             sequence blow roar
-            for iii rotate_right entirely shift_by pos xiv pos i fire
+            for iii rotate_right entirely shift_by pos xv pos i fire
     layer 
         slow ii entirely shift_by pos iv neg i foot
         for ii rotate for ii extend art x vii
@@ -43,12 +43,12 @@ define right_half of_type video as layer
                    /  |||||||6..       /  |||||||6..
             _.-'      6666......_.-'      6666......
 
-define roar of_type video as loop art xiii vii
+define roar of_type video as loop entirely by ii shift south art xiii vii
 .            7.............            7.............            7............
  ),__        .7766........ ),__        .7766........ ),__        .7766........
   ( o`---~~^;..6|366666666  ( o`---~~^;..6|366666666  ( o`---~~^;..6|366666666
  /   -^V^V^V .6|||6777777. /    /V`V`V .6||||677777. /    /V`V`V .6||||677777.
-/X `-----.-' 6||666666666./  \  \,A,A. 6||6||677777./    (       6||||6.......
+/  `-----.-' 6||666666666./  \  \,A,A. 6||6||677777./    (       6||||6.......
   /          ||6..........  / `----.-' ||6.66666666.   \  \,A,A. |||6||677777.
              .............             .............    `----.-' ....66666666.
 
@@ -64,16 +64,13 @@ define blow of_type video as loop extend art xiv v
  /       -^V  .6|||||||677.. /    )__   < .6||||666|||6.
 /  `---^-.-'  6||666666666../  `-'   `.-' 6||666...6666.
 
-define fire of_type video as art vii iii
-       .......       .......       .......       .......       .......
--  X   3......-.     33.....-._    133....-.__,  11333.. .__)  .1133..
-       .......       .......       .......  .    ..3....  ._   ..13...
-   _   ...3...   _   ...3...   _   ...1...   _   ...1...       .......
-  __)  ..113..  '_)  ..311..  ( `  ..3.1..  (_   ..13...  .__  ..113..
-   ._. ...133.     _......13      .......1       .......       .......
-       .......       .......
-    __ ....11.      _......1
-       .......       .......
+define fire of_type video as entirely shift south art vi iii
+      ......      ......      ......      ......      ......  _   ..3...
+_     3.....__    33....___   333...___,  3333..___)  1333.. __)  .113..
+      ......      ......      ...... .    .3.... ._   .13...  ._. ..133.
+  _   ..3...  _   ..1...  _   ..1...      ......      ......      ......
+ '_)  .311.. ( `  .3.1.. (_   .13... .__  .113..   __ ...11.     _.....1
+    _.....13     ......1      ......      ......      ......      ......
 
 define wing of_type video as append new_frame art xi iv
 /\         22.........  /T\.     ..2222.....           ...........
