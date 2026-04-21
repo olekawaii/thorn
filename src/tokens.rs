@@ -1,6 +1,6 @@
 use crate::error::*;
 use std::collections::{ LinkedList, HashMap };
-use std::rc::Rc;
+use std::sync::Arc;
 
 const INDENTATION: u8 = 4;
 
@@ -216,6 +216,7 @@ pub enum Keyword {
     Match,
     With,
     Bind,
+    Either,
     Define,
     OfType,
     The,
@@ -248,6 +249,7 @@ impl std::fmt::Display for Keyword {
             Keyword::With       => write!(f, "with"),
             Keyword::Lambda     => write!(f, "lambda"),
             Keyword::Bind       => write!(f, "bind"),
+            Keyword::Either     => write!(f, "either"),
             Keyword::Define     => write!(f, "define"),
             Keyword::OfType     => write!(f, "of_type"),
             Keyword::The        => write!(f, "the"),
@@ -305,7 +307,7 @@ impl Tokens {
                 })
             }
             _ => {
-                Err(make_error(ParseError::UnexpectedKeyword, self.end.clone()))
+                Err(make_error(ParseError::UnexpectedKeyword, self.peek()?.mark.clone()))
             }
         }
     }
@@ -373,7 +375,7 @@ impl Tokens {
     pub fn expect_keyword(&mut self, keyword: Keyword) -> Result<()> {
         self.remove_leading_newlines();
         if !matches!(self.peek()?.value, Token::Keyword(k) if k == keyword) {
-            Err(make_error(ParseError::ExpectedKeyword(keyword), self.end.clone()))
+            Err(make_error(ParseError::ExpectedKeyword(keyword), self.peek().unwrap().mark.clone()))
         } else {
             let _ = self.next();
             Ok(())
@@ -402,8 +404,8 @@ impl Tokens {
         }
     }
 
-    pub fn add_context(&mut self, block_name: &Rc<String>) {
-        self.tokens.iter_mut().for_each(|x| x.mark.block = Some(Rc::clone(block_name)));
+    pub fn add_context(&mut self, block_name: &Arc<String>) {
+        self.tokens.iter_mut().for_each(|x| x.mark.block = Some(Arc::clone(block_name)));
     }
 
     pub fn expect_end(&mut self) -> Result<()> {
@@ -417,7 +419,7 @@ impl Tokens {
 
 pub fn tokenize(
     input: Vec<(usize, &str)>,
-    file: &Rc<File>,
+    file: &Arc<File>,
     ignore_special_chars: bool
 ) -> Result<Tokens> {
     let keywords: HashMap<&str, Keyword> = HashMap::from([
@@ -432,6 +434,7 @@ pub fn tokenize(
         ( "lambda",    Keyword::Lambda    ),
         ( "match",     Keyword::Match     ),
         ( "bind",      Keyword::Bind      ),
+        ( "either",    Keyword::Either    ),
         ( "with",      Keyword::With      ),
         ( "to",        Keyword::To        ),
         ( "...",       Keyword::Undefined ),
@@ -443,7 +446,7 @@ pub fn tokenize(
         let indentation = indentation_length(line);
         if !indentation.is_multiple_of(INDENTATION) {
             return Err(make_error(ParseError::BadIndentation, Mark {
-                file: Rc::clone(file),
+                file: Arc::clone(file),
                 line: line_number,
                 block: None,
                 character: 0,
@@ -452,7 +455,7 @@ pub fn tokenize(
         }
         output.push_back(Marked::<Token> {
             mark: Mark {
-                file: Rc::clone(file),
+                file: Arc::clone(file),
                 line: line_number,
                 block: None,
                 character: last_index,
@@ -465,7 +468,7 @@ pub fn tokenize(
         'words: while let Some((character, word, length)) = words.next() {
             last_index = character + length;
             let mark: Mark = Mark {
-                file: Rc::clone(file),
+                file: Arc::clone(file),
                 line: line_number,
                 block: None,
                 character,
