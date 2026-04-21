@@ -1,0 +1,16 @@
+include combinators
+
+for_all a b type tuple contains
+    tuple a b
+
+for_all a b define fst of_type fn tuple a b a as 
+    lambda tuple x _ x
+
+for_all a b define snd of_type fn tuple a b b as 
+    lambda tuple _ y y
+
+for_all a b c d define bimap of_type fn fn a c fn fn b d fn tuple a b tuple c d as
+    lambda f lambda g lambda tuple x y tuple f x g y
+
+for_all a b c define map_fst of_type fn fn a c fn tuple a b tuple c b as
+    lambda f bimap a b c b f identity b
