@@ -1,0 +1,37 @@
+include combinators
+
+for_all a type option contains
+    none
+    some a
+
+for_all a define unwrap_or_default of_type fn option a fn a a as
+    lambda x lambda d match x with
+        some a to a
+        none   to d
+
+--
+-- functor
+--
+
+for_all a b define map_option of_type fn fn a b fn option a option b as 
+    lambda f lambda x match x with
+        none   to none
+        some x to some f x
+
+--
+-- applicative
+--
+
+for_all a define lift_option of_type fn a option a as some
+
+for_all a b define apply_option of_type fn option fn a b fn option a option b as
+    lambda f lambda x bind_option fn a b b f flip fn a b option a option b map_option a b x
+
+--
+-- monad
+--
+
+for_all a b define bind_option of_type fn option a fn fn a option b option b as
+    lambda x lambda f match x with
+        none   to none
+        some x to f x
