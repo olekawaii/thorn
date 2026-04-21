@@ -1,0 +1,60 @@
+include frame
+
+define box_edge of_type character as char plus_sign white
+
+define draw_box of_type fn nat fn nat frame as lambda x lambda y 
+    insert zero zero box_edge insert pos succ x zero box_edge
+        insert zero pos succ y box_edge insert pos succ x pos succ y box_edge
+            layer_frames
+                layer_frames
+                    draw_line 
+                        pos succ x 
+                        zero 
+                        zero 
+                        pos i 
+                        zero 
+                        char hyphen_minus white
+                    draw_line 
+                        pos succ y 
+                        zero 
+                        zero 
+                        zero 
+                        pos i 
+                        char vertical_line white
+                layer_frames
+                    draw_line 
+                        pos succ x 
+                        pos succ x 
+                        pos succ y 
+                        neg i 
+                        zero 
+                        char hyphen_minus white
+                    draw_line 
+                        pos succ y 
+                        pos succ x 
+                        zero 
+                        zero 
+                        pos i 
+                        char vertical_line white
+
+define draw_line of_type 
+    fn int fn int fn int fn int fn int fn character frame 
+as 
+    lambda num
+    lambda x
+    lambda y
+    lambda dx
+    lambda dy
+    lambda chr
+    match num with
+        zero to new_frame
+        num to insert x y chr draw_line 
+            decrement num
+            sum_int x dx
+            sum_int y dy
+            dx
+            dy
+            chr
+    
+define main of_type video as 
+    single draw_box x v -- lxxviii xxii (assumed max size)
