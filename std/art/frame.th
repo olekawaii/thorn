@@ -1,5 +1,9 @@
 include prelude char video
 
+--
+--  this is just a weirldy defined grid of cells
+--
+
 type frame contains
     frame column column
 
@@ -19,6 +23,24 @@ type grid_cell contains
     empty_grid_cell
     filter_grid_cell fn character character
     
+--
+--  insert x y c inserts the character c at the 
+--  coordinate x y
+--
+
+define insert of_type fn int fn int fn character fn frame frame as
+    lambda x lambda y lambda chr
+        lambda frame col_neg col_pos match y with
+            neg index to frame
+                insert_column x index chr col_neg
+                col_pos
+            pos index to frame
+                col_neg
+                insert_column x succ index chr col_pos
+            zero to frame
+                col_neg
+                insert_column x one chr col_pos
+
 -- same as for but for frames
 
 define by of_type fn nat fn fn frame frame fn frame frame as repeat frame
@@ -37,21 +59,6 @@ define shift_by of_type fn int fn int fn frame frame as
                     zero  to identity frame
                 with
                     fb to fa fb f
-
--- insert x y c inserts the character c at the coordinate x y
-
-define insert of_type fn int fn int fn character fn frame frame as
-    lambda x lambda y lambda chr
-        lambda frame col_neg col_pos match y with
-            neg index to frame
-                insert_column x index chr col_neg
-                col_pos
-            pos index to frame
-                col_neg
-                insert_column x succ index chr col_pos
-            zero to frame
-                col_neg
-                insert_column x one chr col_pos
 
 -- layer_frames a b layers a on top of b
 
@@ -166,8 +173,7 @@ define layer_columns of_type fn column fn column column as
             cons_column
                 layer_horizontal head_a head_b
                 layer_columns tail_a tail_b
-        tuple_col_col empty_column a             to a
-        tuple_col_col a            empty_column  to a
+        either tuple_col_col empty_column a tuple_col_col a empty_column to a
 
 define layer_horizontal of_type fn horizontal fn horizontal horizontal as
     lambda horizontal aa ba lambda horizontal ab bb
@@ -180,7 +186,7 @@ type tuple_row_row contains
 
 define layer_rows of_type fn row fn row row as
     lambda x lambda b match tuple_row_row x b with
-        tuple_row_row cons_row aa ba  cons_row ab bb  to
+        tuple_row_row cons_row aa ba cons_row ab bb to
             cons_row
                 match aa with
                     empty_grid_cell     to ab
@@ -188,11 +194,10 @@ define layer_rows of_type fn row fn row row as
                     filter_grid_cell f  to match ab with
                         empty_grid_cell     to filter_grid_cell f
                         full_grid_cell c    to full_grid_cell f c
-                        filter_grid_cell g  to filter_grid_cell
-                            lambda x f g x
+                        filter_grid_cell g  to 
+                            filter_grid_cell lambda x f g x
                 layer_rows ba bb
-        tuple_row_row empty_row       a               to a
-        tuple_row_row a               empty_row       to a
+        either  tuple_row_row empty_row a  tuple_row_row a empty_row  to a
 
 define over_y_hor of_type fn horizontal horizontal as
     lambda horizontal n p match p with

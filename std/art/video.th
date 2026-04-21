@@ -4,55 +4,83 @@ type video contains
     single frame
     prepend frame video
 
-
--- add infinetly many empty frames to the end of a video
+--
+--  add infinitely many empty frames to the end 
+--  of a video
+--
 
 define pad_right_inf of_type fn video video as 
     flip video video video sequence loop_video_forever single new_frame
 
+--
+--  layers two videos together without preserving
+--  loopingness. the output video will have the
+--  length of the larger video
+--
+
 define zip_videos of_type fn video fn video video as 
     lambda a lambda b match tuple_video_video a b with
-        tuple_video_video prepend a ta prepend b tb to 
-            prepend layer_frames a b zip_videos ta tb
-        tuple_video_video single  a   prepend b t  to prepend layer_frames a b t
-        tuple_video_video prepend a t single  b    to prepend layer_frames a b t
+        tuple_video_video prepend a ta prepend b tb to prepend 
+            layer_frames a b 
+            zip_videos ta tb
+        either 
+                tuple_video_video single  a   prepend b t 
+                tuple_video_video prepend a t single  b   
+            to prepend layer_frames a b t
 
 type tuple_video_video contains
     tuple_video_video video video
 
-define head of_type fn video frame as lambda x match x with
-    prepend f _  to f
-    single  f    to f
+--
+--  return the first frame of a video
+--
+
+define head of_type fn video frame as lambda either single f prepend f _ f
+
+--
+--  apply a function to every frame of a video
+--
 
 define entirely of_type fn fn frame frame fn video video as 
     lambda f lambda v match v with
         prepend head tail  to prepend f head entirely f tail
         single head        to single f head
 
+--
+--  count the number of frames
+--
+
 define video_length of_type fn video nat as
     lambda x match x with
         prepend _ tail  to succ video_length tail
         single  _       to one
 
--- layer a b layers a on top of b while also preserving the loopingness. 
--- layering a video with 2 frames and one with 3 results in a video with
--- 6 frames
+--
+--  `layer a b` layers `a` on top of `b` while 
+--  also preserving the loopingness. layering a
+--  video with 2 frames and one with 3 results 
+--  in a video with 6 frames
+--
 
 define layer of_type fn video fn video video as
     lambda t lambda b take 
         lcm video_length t video_length b 
         layer_helper loop_video_forever t loop_video_forever b
 
+--
+--  reverse a video. will hang for infinite videos
+--
+
 define reverse of_type fn video video as
     lambda x match x with
         prepend a b  to sequence reverse b single a
         single a     to single a
 
- -- +---------------------------------------------------+
- -- |  make the video x loop by adding a cropped        |
- -- |  reversed x to the end of it, making the          |
- -- |  transition smooth.                               |
- -- +---------------------------------------------------+
+-- 
+--  make the video x loop by adding a cropped
+--  reversed x to the end of it, making the  
+--  transition smooth.                       
+-- 
 
 define loop of_type fn video video as lambda x match x with
     prepend heada taila to match reverse taila with
@@ -60,16 +88,28 @@ define loop of_type fn video video as lambda x match x with
         prepend _ tailb  to sequence x tailb
     single _ to x
 
--- duplicate the last frame
+-- 
+--  duplicate the last frame 
+--
 
-define extend of_type fn video video as lambda x append head reverse x x
+define extend of_type fn video video as lambda x match x with
+    single  x    to prepend x single x
+    prepend x xs to prepend x extend xs
 
--- sequence two videos one after the other
+-- 
+--  sequence two videos one after the other
+--
 
 define sequence of_type fn video fn video video as
     lambda x lambda y match x with
         prepend head tail  to prepend head sequence tail y
         single head        to prepend head y
+
+-- 
+--  `take n v` returns a video containing the
+--  first n frames of v. if n is smaller the 
+--  v's length, it will just return v
+--
 
 define take of_type fn nat fn video video as
     lambda counter lambda bad_frames match bad_frames with
@@ -78,7 +118,9 @@ define take of_type fn nat fn video video as
             one     to single head
         single head        to single head
 
--- slow n multiplies every frame n times
+-- 
+--  slow n multiplies every frame n times
+--
 
 define slow of_type fn nat fn video video as
     lambda num lambda vid match vid with
@@ -87,41 +129,60 @@ define slow of_type fn nat fn video video as
             slow num tail
         single head        to take num loop_video_forever single head
 
--- for n f v applies f to v n times
+-- 
+--  for n f v applies f to v n times
+--
 
 define for of_type fn nat fn fn video video fn video video as repeat video
+
+-- 
+--  sequences the video with itself recursively,
+--  creating an infinite video. you can use 
+--  `take` to turn it back into a finite video
+--
 
 define loop_video_forever of_type fn video video as
     lambda x sequence x loop_video_forever x
 
- -- +---------------------------------------------------+
- -- |  push the first frame to the back of the video    |
- -- +---------------------------------------------------+
+--
+--  move the first frame to the back of the video
+--
 
 define rotate of_type fn video video as
     lambda vid match vid with
         prepend head tail  to sequence tail single head
         single  head       to single head
+--
+--  move the last frame to the front of the video
+--
+
+define rotate_right of_type fn video video as lambda x reverse rotate reverse x
+
+--
+--  append a frame to a video. note that this has
+--  a time complexity of O(n). It's much better to 
+--  use prepend if you can.
+--
 
 define append of_type fn frame fn video video as 
     lambda x flip video video video sequence single x
 
-define rotate_right of_type fn video video as lambda x reverse rotate reverse x
-
- -- +---------------------------------------------------+
- -- |  `continuously f` applies the function `f` to     |
- -- |  every frame `n` times where `n` is the index of  |
- -- |  the frame                                        |
- -- +---------------------------------------------------+
+-- 
+--  `continuously f` applies the function `f` to     
+--  every frame `n` times where `n` is the index
+--  of the frame                                        
+--
 
 define continuously of_type fn fn frame frame fn video video as 
     lambda f lambda v match entirely f v with
         prepend head tail to prepend head continuously f tail
         single head       to single head
 
--- expects videos of equal length. 
--- will refactor to use infinite_video in the
--- future.
+-- 
+--  expects videos of equal length.
+--  will refactor to use infinite_video in the
+--  future.
+--
 
 define layer_helper of_type fn video fn video video as
     lambda x lambda y match x with
