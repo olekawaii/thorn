@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -87,16 +87,16 @@ impl std::fmt::Display for Error {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct File {
     pub name: String,
     pub lines: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Mark {
-    pub file: Rc<File>,
-    pub block: Option<Rc<String>>,
+    pub file: Arc<File>,
+    pub block: Option<Arc<String>>,
     pub line: usize,
     pub character: usize,
     pub length: usize,
@@ -115,7 +115,7 @@ impl Mark {
 impl Default for Mark {
     fn default() -> Self {
         Self {
-            file: Rc::new(File {name: String::new(), lines: Vec::new()}),
+            file: Arc::new(File {name: String::new(), lines: Vec::new()}),
             block: None,
             line: 0,
             character: 0,
