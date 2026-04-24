@@ -6,21 +6,18 @@ type int contains
     zero
 
 define eq_int of_type fn int fn int bool as
-    lambda x lambda y match tuple_int_int x y with
-        tuple_int_int pos a pos b  to eq_nat a b
-        tuple_int_int neg a neg b  to eq_nat a b
-        tuple_int_int zero  zero   to true
+    lambda x lambda y match the tuple int int tuple x y with
+        tuple pos a pos b  to eq_nat a b
+        tuple neg a neg b  to eq_nat a b
+        tuple zero  zero   to true
         _                          to false
 
-type tuple_int_int contains
-    tuple_int_int int int
-
 define sum_int of_type fn int fn int int as 
-    lambda x lambda y match tuple_int_int x y with
-        tuple_int_int neg a neg b  to neg sum_nat a b
-        tuple_int_int pos a pos b  to pos sum_nat a b
-        tuple_int_int pos _ _      to sum_int decrement x increment y
-        tuple_int_int zero  _      to y
+    lambda x lambda y match the tuple int int tuple x y with
+        tuple neg a neg b  to neg sum_nat a b
+        tuple pos a pos b  to pos sum_nat a b
+        tuple pos _ _      to sum_int decrement x increment y
+        tuple zero  _      to y
         _                          to sum_int y x
 
 define increment of_type fn int int as lambda x match x with
@@ -35,11 +32,11 @@ define decrement of_type fn int int as
     compose int int int negate compose int int int increment negate
 
 define product_int of_type fn int fn int int as 
-    lambda x lambda y match tuple_int_int x y with
-        either tuple_int_int pos a pos b tuple_int_int neg a neg b to 
+    lambda x lambda y match the tuple int int tuple x y with
+        either tuple pos a pos b tuple neg a neg b to 
             pos product_nat a b
-        tuple_int_int pos a neg b  to neg product_nat a b
-        tuple_int_int zero  _      to zero
+        tuple pos a neg b  to neg product_nat a b
+        tuple zero  _      to zero
         _                          to product_int y x
 
 define abselute_value of_type fn int whole as lambda x match x with

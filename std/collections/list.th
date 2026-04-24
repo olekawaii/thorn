@@ -11,11 +11,6 @@ for_all a define head_list of_type fn non_empty_list a a as lambda prepended h _
 
 for_all a define tail of_type fn non_empty_list a list a as lambda prepended _ t t
 
-for_all a b define map of_type fn fn a b fn list a list b as 
-    lambda f lambda l match l with
-        nil      to nil
-        cons h t to cons f h map a b f t
-
 for_all a b define foldr of_type fn fn a fn b b fn b fn list a b as
     lambda f lambda d lambda l match l with
         nil      to d
@@ -30,7 +25,41 @@ for_all a define list_length of_type fn list a whole as
         one
         l
 
+for_all a define take_list of_type fn whole fn list a list a as
+    lambda pred n lambda l match n with
+        one    to nil
+        succ x to match l with
+            nil       to nil
+            cons h t  to cons h take_list a pred x t
+
 for_all a b define zip of_type fn list a fn list b list tuple a b as 
     lambda x lambda y match the tuple list a list b tuple x y with
         tuple cons ha ta cons hb tb    to cons tuple ha hb zip a b ta tb
         either tuple nil _ tuple _ nil to nil
+
+--
+-- functor
+--
+
+for_all a b define map_list of_type fn fn a b fn list a list b as 
+    lambda f lambda l match l with
+        nil      to nil
+        cons h t to cons f h map_list a b f t
+
+-- 
+-- applicative
+--
+
+for_all a define lift_list of_type fn a list a as lambda x cons x nil
+
+for_all a b define apply_list of_type fn list fn a b fn list a list b as
+    lambda f lambda x match f with
+        nil       to nil
+        cons h t  to concat b map_list a b h x apply_list a b t x
+
+--
+-- monad
+--
+
+for_all a b define bind_list of_type fn list a fn fn a list b list b as 
+    lambda x lambda f foldr list b list b concat b nil map_list a list b f x

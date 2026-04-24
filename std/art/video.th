@@ -19,17 +19,14 @@ define pad_right_inf of_type fn video video as
 --
 
 define zip_videos of_type fn video fn video video as 
-    lambda a lambda b match tuple_video_video a b with
-        tuple_video_video prepend a ta prepend b tb to prepend 
+    lambda a lambda b match the tuple video video tuple a b with
+        tuple prepend a ta prepend b tb to prepend 
             layer_frames a b 
             zip_videos ta tb
         either 
-                tuple_video_video single  a   prepend b t 
-                tuple_video_video prepend a t single  b   
+                tuple single  a   prepend b t 
+                tuple prepend a t single  b   
             to prepend layer_frames a b t
-
-type tuple_video_video contains
-    tuple_video_video video video
 
 --
 --  return the first frame of a video

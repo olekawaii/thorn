@@ -14,9 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// TODO generics
-// for_all a define id of_type fn a a as lambda x x
-
 use std::collections::{
     HashMap, 
     HashSet, 
@@ -590,8 +587,9 @@ fn parse_pattern_helper(
             for t in 
                 get_type_from_constructor(
                     tp.clone(), 
-                    expected_type.clone()
-                ).arg_types() 
+                    expected_type.clone(),
+                    &mark
+                )?.arg_types() 
             {
                 patterns.push(parse_pattern_helper(
                     number_of_local,
@@ -725,7 +723,7 @@ fn lookup_global_vars<'a>(
     Ok(var)
 }
 
-fn get_type_from_constructor(data: Type, expected: Type) -> Type {
+fn get_type_from_constructor(data: Type, expected: Type, mark: &Mark) -> Result<Type> {
     let mut ret = data.clone();
     let Type::Type {type_constructor: tc1, arguments: args1}: Type = data.final_type()
     else {
@@ -734,6 +732,9 @@ fn get_type_from_constructor(data: Type, expected: Type) -> Type {
     };
     let Type::Type {type_constructor: tc2, arguments: args2}: Type = expected.final_type()
     else {unreachable!()};
+    if tc1 != tc2 {
+        return Err(make_error(CompilationError::Custom(String::from("f")), mark.clone()))
+    }
     assert_eq!(tc1, tc2);
     let mut to_replace: Vec<(usize, Type)> = Vec::new();
     args1
@@ -747,7 +748,7 @@ fn get_type_from_constructor(data: Type, expected: Type) -> Type {
     if !to_replace.is_empty() {
         replace_types(&mut ret, &to_replace)
     }
-    ret
+    Ok(ret)
 }
 
 pub fn parse_expression(
@@ -934,7 +935,7 @@ pub fn parse_expression(
                 match a {
                     Id::Constructor(a) => (
                         Expression::DataConstructor(*a as u32),
-                        get_type_from_constructor(b.clone(), expected_type.clone())
+                        get_type_from_constructor(b.clone(), expected_type.clone(), &m)?
                     ),
                     Id::Variable(a) =>  (
                         Expression::Variable(*a), 
