@@ -1,0 +1,16 @@
+include list option
+
+for_all a type non_empty_list contains
+    prepended a list a
+
+for_all a define head_list of_type fn non_empty_list a a as lambda prepended h _ h
+
+for_all a define tail of_type fn non_empty_list a list a as lambda prepended _ t t
+
+for_all a define list_to_non_empty of_type fn list a option non_empty_list a as
+    lambda x match x with   
+        nil       to none
+        cons h t  to some prepended h t
+
+for_all a define non_empty_to_list of_type fn non_empty_list a list a as 
+    lambda prepended h t cons h t

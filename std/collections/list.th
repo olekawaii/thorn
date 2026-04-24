@@ -1,15 +1,8 @@
-include prelude tuple
+include prelude tuple non_empty_list
 
 for_all a type list contains
     nil
     cons a list a
-
-for_all a type non_empty_list contains
-    prepended a list a
-
-for_all a define head_list of_type fn non_empty_list a a as lambda prepended h _ h
-
-for_all a define tail of_type fn non_empty_list a list a as lambda prepended _ t t
 
 for_all a b define foldr of_type fn fn a fn b b fn b fn list a b as
     lambda f lambda d lambda l match l with
@@ -32,10 +25,41 @@ for_all a define take_list of_type fn whole fn list a list a as
             nil       to nil
             cons h t  to cons h take_list a pred x t
 
+--
+--  zip two lists into a single list of tuples.
+--  the output has the length of the smaller list
+--
+
 for_all a b define zip of_type fn list a fn list b list tuple a b as 
     lambda x lambda y match the tuple list a list b tuple x y with
         tuple cons ha ta cons hb tb    to cons tuple ha hb zip a b ta tb
         either tuple nil _ tuple _ nil to nil
+
+for_all a b c 
+define zip_with of_type fn fn a fn b c fn list a fn list b list c as
+    lambda f lambda la lambda lb 
+        map_list tuple a b c uncurry a b c f zip a b la lb
+        
+--
+--  keep elements of a list that return true
+--  for the given function
+--
+
+for_all a define filter of_type fn fn a bool fn list a list a as 
+    lambda f lambda l match l with
+        nil       to nil
+        cons h t  to apply list a list a
+            match f h with
+                true  to cons h
+                false to identity list a
+            filter a f t
+--
+--  find the first element that returns true for
+--  the given function
+--
+
+for_all a define find of_type fn fn a bool fn list a option a as
+    lambda f lambda l map_option non_empty_list a a head_list a list_to_non_empty a filter a f l
 
 --
 -- functor

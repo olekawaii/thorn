@@ -33,13 +33,10 @@ define product_nat of_type fn nat fn nat nat as
 define decrement_nat of_type fn nat whole as lambda x pred x
 
 define eq_nat of_type fn nat fn nat bool as
-    lambda x lambda y match tuple_nat_nat x y with
-        tuple_nat_nat succ a succ b  to eq_nat a b
-        tuple_nat_nat one    one     to true
-        _                            to false
-
-type tuple_nat_nat contains
-    tuple_nat_nat nat nat
+    lambda x lambda y match the tuple nat nat tuple x y with
+        tuple succ a succ b  to eq_nat a b
+        tuple one    one     to true
+        _                    to false
 
 --
 --  check that the first nat is greater than
@@ -47,10 +44,10 @@ type tuple_nat_nat contains
 --
 
 define greater of_type fn nat fn nat bool as 
-    lambda a lambda b match tuple_nat_nat a b with
-        tuple_nat_nat succ _ one     to true
-        tuple_nat_nat succ a succ b  to greater a b
-        _                            to false
+    lambda a lambda b match the tuple nat nat tuple a b with
+        tuple succ _ one     to true
+        tuple succ a succ b  to greater a b
+        _                    to false
 
 --
 --  find the greatest common denominator of two 
