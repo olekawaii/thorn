@@ -2,7 +2,7 @@
 
 set -e
 
-font='tandy_9x14'
+font='ibm_9x14'
 fps=5
 
 while [ $# != 0 ]; do

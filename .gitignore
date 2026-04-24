@@ -2,5 +2,6 @@ target
 thorn-output
 *.hi
 *.o
+*.swp
 thorn-to-ppm
 converters/thorn-to-sh
