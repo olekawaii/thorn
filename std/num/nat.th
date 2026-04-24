@@ -86,8 +86,8 @@ define lcm of_type fn nat fn nat nat as
                 nat_to_whole product_nat x y 
                 nat_to_whole gcd x y 
             with
-                none_whole    to i
-                some_whole x  to match x with
+                none    to i
+                some x  to match x with
                     pred one    to i
                     pred succ x to x
 
@@ -120,63 +120,33 @@ define whole_zero of_type whole as pred one
 
 define nat_to_whole of_type fn nat whole as compose nat nat whole pred succ
 
-type option_nat contains
-    some_nat nat
-    none_nat
-
-type option_whole contains
-    some_whole whole
-    none_whole
-
 define whole_to_int of_type fn whole int as lambda x match x with
     pred one     to zero
     pred succ a  to pos a
 
-define int_to_whole of_type fn int option_whole as lambda x match x with
-    neg _ to none_whole
-    zero  to some_whole whole_zero
-    pos a to some_whole nat_to_whole a
+define int_to_whole of_type fn int option whole as lambda x match x with
+    neg _ to none
+    zero  to some whole_zero
+    pos a to some nat_to_whole a
 
-define subtract_exactly of_type fn whole fn whole option_whole as 
+define subtract_exactly of_type fn whole fn whole option whole as 
     lambda x lambda y int_to_whole sum_int 
         whole_to_int x 
         product_int neg one whole_to_int y
 
-define divide_exactly of_type fn whole fn whole option_whole as
+define divide_exactly of_type fn whole fn whole option whole as
     lambda x match x with
-        pred one    to const option_whole whole some_whole whole_zero
+        pred one    to const option whole whole some whole_zero
         _           to lambda y match subtract_exactly x y with
-            none_whole    to none_whole
-            some_whole a  to map_option_whole
+            none    to none
+            some a  to map_option whole whole
                 lambda x nat_to_whole increment_whole x
                 divide_exactly a y
 
-define map_option_whole of_type fn fn whole whole fn option_whole option_whole as
-    lambda f lambda x match x with
-        some_whole a  to some_whole f a
-        none_whole    to none_whole
-        
-type list_whole contains
-    cons_whole whole list_whole
-    nil_whole
-
-type option_list_whole contains
-    some_list_whole list_whole
-    none_list_whole
-
-define map_option_list_whole of_type 
-    fn 
-        fn list_whole list_whole 
-        fn option_list_whole option_list_whole 
-as
-    lambda f lambda x match x with
-        some_list_whole a  to some_list_whole f a
-        none_list_whole    to none_list_whole
-
 define divisible of_type fn whole fn whole bool as
     lambda x lambda y match divide_exactly x y with
-        some_whole _  to true
-        none_whole    to false
+        some _  to true
+        none    to false
 
 --
 --  these define variables for 1-100 using roman

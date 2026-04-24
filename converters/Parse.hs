@@ -82,8 +82,8 @@ parseGridCell ("filter_grid_cell": "<lambda>" : xs) = (Space, xs)
 parseGridCell ("full_grid_cell": xs) = parseChar xs
 
 parseRow :: [String] -> ([Character], [String])
-parseRow ("empty_row" : xs) = ([], xs)
-parseRow ("cons_row" : xs) = let (char, other) = parseGridCell xs in 
+parseRow ("nil" : xs) = ([], xs)
+parseRow ("cons" : xs) = let (char, other) = parseGridCell xs in 
     first (char :) (parseRow other)
 
 parseHorizontal :: [String] -> (Horizontal, [String])
@@ -95,8 +95,8 @@ parseHorizontal ("horizontal" : xs) =
         ((a, b), other2)
 
 parseColumn :: [String] -> (Column, [String])
-parseColumn ("empty_column" : xs) = ([], xs)
-parseColumn ("cons_column" : xs) = let (hor, other) = parseHorizontal xs in 
+parseColumn ("nil" : xs) = ([], xs)
+parseColumn ("cons" : xs) = let (hor, other) = parseHorizontal xs in 
     first (hor :) (parseColumn other)
 
 parseNewFrame :: [String] -> (Frame, [String])

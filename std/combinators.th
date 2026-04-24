@@ -10,5 +10,3 @@ for_all a b define apply of_type fn fn a b fn a b as
     identity fn a b
 
 for_all a b define const of_type fn a fn b a as lambda x lambda _ x
-
-

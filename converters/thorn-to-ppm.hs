@@ -32,7 +32,7 @@ data Config = Config {
 }
 
 defaultConfig = Config {
-    fontFile = "tandy_9x14"
+    fontFile = "ibm_9x14"
 }
 
 parseArgs :: Config -> [String] -> Config

@@ -604,13 +604,13 @@ pub fn build_tokens_from_art(
         let mut frame_commands = LinkedList::new();
         output.push_back(build_token("prepend", &mark));
         frame_buffer.push_back(build_token("frame", &mark));
-        frame_buffer.push_back(build_token("empty_column", &mark));
+        frame_buffer.push_back(build_token("nil", &mark));
         for line in i.into_iter().rev() {
-            frame_buffer.push_back(build_token("cons_column", &mark));
+            frame_buffer.push_back(build_token("cons", &mark));
             frame_buffer.push_back(build_token("horizontal", &mark));
-            frame_buffer.push_back(build_token("empty_row", &mark));
+            frame_buffer.push_back(build_token("nil", &mark));
             for ((x, y), (c1, c2)) in line.into_iter() {
-                frame_buffer.push_back(build_token("cons_row", &mark));
+                frame_buffer.push_back(build_token("cons", &mark));
                 let c1_char = c1.value;
                 let c2_char = c2.value.to_ascii_lowercase();
                 if matches!((c1_char, c2_char), (_, '.') | (_, '|')) {
@@ -773,9 +773,9 @@ pub fn build_tokens_from_art(
                     }
                 }
             }
-            frame_buffer.push_back(build_token("empty_row", &mark));
+            frame_buffer.push_back(build_token("nil", &mark)); // finish row
         }
-        frame_buffer.push_back(build_token("empty_column", &mark));
+        frame_buffer.push_back(build_token("nil", &mark)); // finish column
         output.append(&mut frame_commands);
         output.append(&mut frame_buffer);
     }

@@ -48,15 +48,52 @@ pub enum Expression {
     Variable(usize),      // Ignore. Only used during parsing
 }
 
+#[derive(Debug)]
+enum RuntimeError {
+    EvaluatedUndefined,
+    EvaluatedBottom,
+    UnmatchedPattern(Expression, HashMap<u32, String>),
+}
+
+impl ErrorType for RuntimeError {
+    fn gist(&self) -> &'static str {
+        match self {
+            Self::UnmatchedPattern { .. } => "contains incomplete pattern matching",
+            Self::EvaluatedUndefined => "entered undefined code",
+            Self::EvaluatedBottom => "evaluated a bottom _|_",
+        }
+    }
+
+    fn phase(&self) -> &'static str {
+        "RUNTIME"
+    }
+}
+
+impl std::fmt::Display for RuntimeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::EvaluatedUndefined => write!(f, "attempted to evaluate an undefined expression"),
+            Self::UnmatchedPattern(expr, names) => write!(f, 
+"a value did not match the patterns
+the value was \x1b[97m{}\x1b[0m",
+
+debug_print(expr, names)),
+            Self::EvaluatedBottom => write!(f, 
+"attempted to evaluate a bottom expression.
+this expression will never return a value")
+        }
+    }
+}
+
 fn debug_print(expr: &Expression, names: &HashMap<u32, String>) -> String {
     match expr {
         Expression::Tree { root, arguments }   => {
-            let mut s = format!(" ({}", debug_print(root, names));
+            let mut s = format!("{}", debug_print(root, names));
             arguments.iter().for_each(|x| {
                 let mut a = debug_print(x, names);
                 s.push_str(&a);
             });
-            s.push_str(" )");
+            //s.push_str(" )");
             s
         }
         Expression::DataConstructor(x) => format!(" {}", names.get(x).unwrap()),
@@ -379,42 +416,6 @@ impl Expression {
         stdout.write_all(&buffer);
         stdout.write_all(b"\n").expect("");
         //dbg!(*COUNTER.lock().unwrap());
-    }
-}
-
-#[derive(Debug)]
-enum RuntimeError {
-    EvaluatedUndefined,
-    EvaluatedBottom,
-    UnmatchedPattern(Expression, HashMap<u32, String>),
-}
-
-impl ErrorType for RuntimeError {
-    fn gist(&self) -> &'static str {
-        match self {
-            Self::UnmatchedPattern { .. } => "in this expression",
-            Self::EvaluatedUndefined => "entered undefined code",
-            Self::EvaluatedBottom => "evaluated a bottom _|_",
-        }
-    }
-
-    fn phase(&self) -> &'static str {
-        "RUNTIME"
-    }
-}
-
-impl std::fmt::Display for RuntimeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::EvaluatedUndefined => write!(f, "attempted to evaluate an undefined expression"),
-            Self::UnmatchedPattern(expr, names) => write!(f, 
-"a value did not match the patterns
-the value was \x1b[97m{}\x1b[0m",
-debug_print(expr, names)),
-            Self::EvaluatedBottom => write!(f, 
-"attempted to evaluate a bottom expression.
-this expression will never return a value")
-        }
     }
 }
 
