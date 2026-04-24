@@ -16,23 +16,19 @@ I'm working on documentation on my website to replace this readme:
 INSTALLATION
 ====================
 
-thorn has no dependencies. You can build it with 
+thorn has no dependencies. Assuming you have cargo and ghc, you can build it 
+with 
 
-    $ cargo build --release  
+    $ ./build.sh
 
-The executable is at target/release/thorn. Move it to somewhere in your $PATH
-
-The programs to generate shell scripts and images are found in the converters/
-directory. You can build those with ghc. Once you get those installed, there is
-also a useful shell script 'uwu' in the scripts/ directory to make building 
-your projects quick and easy. You need ffmpeg for generating gifs with uwu. All 
-of these are optional.
+this compiles thorn, thorn-to-sh, thorn-to-gif, and thorn-to-ppm, and moves
+them to ~/.local/bin make sure it's in pour $PATH
 
 The thorn compiler works like a calculator. It parses and compiles the source
 code into an internal representation, but afterwards also executes it, printing
 the evaluated main function.
 
-    $ thorn main.th | thorn-to-shell | sh
+    $ thorn | thorn-to-sh | sh
 
 to convert a thorn program to a posix shell animation and play it.
 
@@ -503,4 +499,4 @@ After compiling/running the program, the output is the fully-evaluated main
 function (a tree of data constructors). In fact, if you plug the output into 
 the main function, you will get the same output. To turn this output into 
 something you actually want, you have to interpret it with an external 
-program (like thorn-to-shell for ascii art animations for example).
+program (like thorn-to-sh for ascii art animations for example).
