@@ -3,14 +3,30 @@ include combinators
 for_all a b type tuple contains
     tuple a b
 
-for_all a b define fst of_type fn tuple a b a as 
-    lambda tuple x _ x
+for_all a b define fst of_type fn tuple a b a as lambda tuple x _ x
 
-for_all a b define snd of_type fn tuple a b b as 
-    lambda tuple _ y y
+for_all a b define snd of_type fn tuple a b b as lambda tuple _ y y
+
+--
+--  turn a curried function into a function that
+--  takes a tuple instead
+--
+
+for_all a b c define uncurry of_type fn fn a fn b c fn tuple a b c as
+    lambda f lambda tuple a b f a b
+
+for_all a b c define curry of_type fn fn tuple a b c fn a fn b c as 
+    lambda f lambda a lambda b f tuple a b
+
+--
+--  bifunctor
+--
 
 for_all a b c d define bimap of_type fn fn a c fn fn b d fn tuple a b tuple c d as
     lambda f lambda g lambda tuple x y tuple f x g y
 
 for_all a b c define map_fst of_type fn fn a c fn tuple a b tuple c b as
     lambda f bimap a b c b f identity b
+
+for_all a b c define map_snd of_type fn fn b c fn tuple a b tuple a c as
+    lambda f bimap a b a c identity a f

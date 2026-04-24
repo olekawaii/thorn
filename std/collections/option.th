@@ -1,8 +1,17 @@
 include combinators
 
+--
+--  represents a value that may or may not exist
+--
+
 for_all a type option contains
     none
     some a
+
+--
+--  attempt to unwrap an optional value. if it's
+--  none, return the given default value instead
+--
 
 for_all a define unwrap_or_default of_type fn option a fn a a as
     lambda x lambda d match x with
@@ -10,7 +19,18 @@ for_all a define unwrap_or_default of_type fn option a fn a a as
         none   to d
 
 --
--- functor
+--  unwraps an optional value assuming it can't 
+--  be none. be careful with this one because it
+--  will crash your program on a none
+--
+
+for_all a define unsafe_unwrap of_type fn option a a as 
+    lambda x match x with
+        some a  to a
+        none    to ...     -- you tried to unwrap a none
+
+--
+--  functor
 --
 
 for_all a b define map_option of_type fn fn a b fn option a option b as 
@@ -19,16 +39,18 @@ for_all a b define map_option of_type fn fn a b fn option a option b as
         some x to some f x
 
 --
--- applicative
+--  applicative
 --
 
 for_all a define lift_option of_type fn a option a as some
 
 for_all a b define apply_option of_type fn option fn a b fn option a option b as
-    lambda f lambda x bind_option fn a b b f flip fn a b option a option b map_option a b x
+    lambda f lambda x bind_option fn a b b 
+        f 
+        flip fn a b option a option b map_option a b x
 
 --
--- monad
+--  monad
 --
 
 for_all a b define bind_option of_type fn option a fn fn a option b option b as
