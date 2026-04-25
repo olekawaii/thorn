@@ -1,4 +1,4 @@
-include combinators
+include combinators list
 
 --
 --  represents a value that may or may not exist
@@ -57,3 +57,12 @@ for_all a b define bind_option of_type fn option a fn fn a option b option b as
     lambda x lambda f match x with
         none   to none
         some x to f x
+
+--
+--  Convert an option to a list
+--
+
+for_all a define fold_option of_type fn option a list a as
+    lambda x match x with
+        none   to        nil
+        some x to cons x nil

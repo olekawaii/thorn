@@ -2,21 +2,57 @@ include prelude tuple non_empty_list
 
 for_all a type list contains
     nil
-    cons a list a
+    cons 
+        a          --  head
+        list a     --  tail
+
+--
+--  foldr takes a binary function, a default 
+--  value, and a list of values. Using that
+--  function, it folds the list into a single
+--  value
+--
 
 for_all a b define foldr of_type fn fn a fn b b fn b fn list a b as
     lambda f lambda d lambda l match l with
         nil      to d
         cons h t to f h foldr a b f d t
 
-for_all a define concat of_type fn list a fn list a list a as 
-    lambda fst lambda snd foldr a list a cons snd fst
+--
+--  Like foldr but doesn't use a default value.
+--  Crashes if list contains less than 2 values
+--
+
+for_all a define unsafe_foldr_i of_type fn fn a fn a a fn list a a as
+    lambda f lambda l match l with
+        cons x cons y nil to f x y
+        cons x xs         to f x unsafe_foldr_i a f xs
+        _                 to ...  --  list's size was less than 2
+--
+--  Concatinate two lists into a single list
+--
+
+for_all a define cat of_type fn list a fn list a list a as 
+    foldr a list a cons
+
+--
+--  flatten a list of lists into a single list
+--
+
+for_all a define flatten_list of_type fn list list a list a as 
+    foldr list a list a cat a nil
+
+--
+--  Find the length of a list
+--
 
 for_all a define list_length of_type fn list a whole as 
-    lambda l pred foldr a nat 
-        lambda _ lambda b succ b
-        one
-        l
+    compose list a nat whole pred foldr a nat const fn nat nat a succ one
+
+--
+--  Takes the first n elements of a list. May
+--  return less than n
+--
 
 for_all a define take_list of_type fn whole fn list a list a as
     lambda pred n lambda l match n with
@@ -26,8 +62,8 @@ for_all a define take_list of_type fn whole fn list a list a as
             cons h t  to cons h take_list a pred x t
 
 --
---  zip two lists into a single list of tuples.
---  the output has the length of the smaller list
+--  Zip two lists into a single list of tuples.
+--  The output has the length of the smaller list
 --
 
 for_all a b define zip of_type fn list a fn list b list tuple a b as 
@@ -41,28 +77,27 @@ define zip_with of_type fn fn a fn b c fn list a fn list b list c as
         map_list tuple a b c uncurry a b c f zip a b la lb
         
 --
---  keep elements of a list that return true
+--  Keep elements of a list that return true
 --  for the given function
 --
 
 for_all a define filter of_type fn fn a bool fn list a list a as 
     lambda f lambda l match l with
         nil       to nil
-        cons h t  to apply list a list a
-            match f h with
-                true  to cons h
-                false to identity list a
-            filter a f t
+        cons h t  to match f h with
+            true   to cons h filter a f t
+            false  to        filter a f t
 --
---  find the first element that returns true for
+--  Find the first element that returns true for
 --  the given function
 --
 
 for_all a define find of_type fn fn a bool fn list a option a as
-    lambda f lambda l map_option non_empty_list a a head_list a list_to_non_empty a filter a f l
+    lambda f lambda l map_option non_empty_list a a head_list a 
+        list_to_non_empty a filter a f l
 
 --
--- functor
+--  Functor
 --
 
 for_all a b define map_list of_type fn fn a b fn list a list b as 
@@ -71,19 +106,19 @@ for_all a b define map_list of_type fn fn a b fn list a list b as
         cons h t to cons f h map_list a b f t
 
 -- 
--- applicative
+--  Applicative
 --
 
 for_all a define lift_list of_type fn a list a as lambda x cons x nil
 
 for_all a b define apply_list of_type fn list fn a b fn list a list b as
-    lambda f lambda x match f with
-        nil       to nil
-        cons h t  to concat b map_list a b h x apply_list a b t x
+    lambda f lambda x flatten_list b map_list fn a b list b
+        lambda a map_list a b a x
+        f
 
 --
--- monad
+--  Monad
 --
 
 for_all a b define bind_list of_type fn list a fn fn a list b list b as 
-    lambda x lambda f foldr list b list b concat b nil map_list a list b f x
+    lambda x lambda f flatten_list b map_list a list b f x
