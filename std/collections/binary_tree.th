@@ -15,6 +15,6 @@ for_all a b define map_tree of_type fn fn a b fn tree a tree b as
 for_all a define fold_tree of_type fn tree a list a as 
     lambda x match x with
         empty                 to nil
-        node root left right  to concat a
+        node root left right  to cat a
             fold_tree a left
             cons root fold_tree a right
