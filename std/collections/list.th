@@ -2,9 +2,34 @@ include prelude tuple non_empty_list
 
 for_all a type list contains
     nil
-    cons 
-        a          --  head
-        list a     --  tail
+    cons a list a
+
+--
+--  Functor
+--
+
+for_all a b define map_list of_type fn fn a b fn list a list b as 
+    lambda f lambda l match l with
+        nil      to nil
+        cons h t to cons f h map_list a b f t
+
+-- 
+--  Applicative
+--
+
+for_all a define lift_list of_type fn a list a as lambda x cons x nil
+
+for_all a b define apply_list of_type fn list fn a b fn list a list b as
+    lambda f lambda x flatten_list b map_list fn a b list b
+        lambda a map_list a b a x
+        f
+
+--
+--  Monad
+--
+
+for_all a b define bind_list of_type fn list a fn fn a list b list b as 
+    lambda x lambda f flatten_list b map_list a list b f x
 
 --
 --  foldr takes a binary function, a default 
@@ -33,7 +58,7 @@ for_all a define unsafe_foldr_i of_type fn fn a fn a a fn list a a as
 --
 
 for_all a define cat of_type fn list a fn list a list a as 
-    foldr a list a cons
+    lambda x lambda y foldr a list a cons y x
 
 --
 --  flatten a list of lists into a single list
@@ -97,28 +122,17 @@ for_all a define find of_type fn fn a bool fn list a option a as
         list_to_non_empty a filter a f l
 
 --
---  Functor
+--  Concatinate a list with itself to make an 
+--  infinite list
 --
 
-for_all a b define map_list of_type fn fn a b fn list a list b as 
-    lambda f lambda l match l with
-        nil      to nil
-        cons h t to cons f h map_list a b f t
-
--- 
---  Applicative
---
-
-for_all a define lift_list of_type fn a list a as lambda x cons x nil
-
-for_all a b define apply_list of_type fn list fn a b fn list a list b as
-    lambda f lambda x flatten_list b map_list fn a b list b
-        lambda a map_list a b a x
-        f
+for_all a define cycle of_type fn list a list a as
+    lambda x cat a x cycle a x
 
 --
---  Monad
+--  Make a list containing n elements of a value
 --
 
-for_all a b define bind_list of_type fn list a fn fn a list b list b as 
-    lambda x lambda f flatten_list b map_list a list b f x
+for_all a define replicate of_type fn whole fn a list a as
+    lambda n lambda x take_list a n cycle a lift_list a x
+
