@@ -422,10 +422,10 @@ variable name like so:
     .----------------------------------------------------------.
     | define dragon_tail of_type fn color video as             |
     |     lambda c art vi iv                                   |
-    |          \   ).C|||C(   / C|||C.                         |
-    |           ) / ..C|C. \ (  .C|C..                         |
-    |          ( /  .C|C..  \ ) ..C|C.                         |
-    |           V   ..C...   V  ...C..                         |
+    |          \   ).c|||c(   / c|||c.                         |
+    |           ) / ..c|c. \ (  .c|c..                         |
+    |          ( /  .c|c..  \ ) ..c|c.                         |
+    |           V   ..c...   V  ...c..                         |
     '----------------------------------------------------------'
 
 Now instead of the tail being hardcoded cyan, the calling function decides
@@ -440,7 +440,7 @@ name in the art section. you can have a custom tail tip for example:
     |          \   ).6|||6(   / 6|||6.                         |
     |           ) / ..6|6. \ (  .6|6..                         |
     |          ( /  .6|6..  \ ) ..6|6.                         |
-    |           T   ..$...   T  ...$..                         |
+    |           t   ..$...   t  ...$..                         |
     '----------------------------------------------------------'
 
 Note that the character type contains both the character and the color.
@@ -455,7 +455,7 @@ of f.
     |          \   ).6|||6(   / 6|||6.                         |
     |           ) / ..6|6. \ (  .6|6..                         |
     |          ( /  .6|6..  \ ) ..6|6.                         |
-    |           F   ..#...   F  ...#..                         |
+    |           f   ..#...   f  ...#..                         |
     '----------------------------------------------------------'
 
 To layer a variable video, do the same but with '&' instead.
@@ -466,7 +466,7 @@ To layer a variable video, do the same but with '&' instead.
     |          \   ).6|||6(   / 6|||6.                         |
     |           ) / ..6|6. \ (  .6|6..                         |
     |          ( /  .6|6..  \ ) ..6|6.                         |
-    |           V   ..6...   F  ...&..                         |
+    |           V   ..6...   f  ...&..                         |
     '----------------------------------------------------------'
                              ^
 It does several things:
