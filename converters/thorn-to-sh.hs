@@ -3,6 +3,7 @@
 import Data.Bifunctor (first, second, bimap)
 import Data.Maybe (isJust, fromJust, listToMaybe, isNothing, fromMaybe)
 import Data.List (find, nub, transpose, sortOn, intercalate)
+import Control.Monad (guard)
 
 import Parse
 
@@ -25,59 +26,42 @@ format ('%':xs) [] = error xs
 format ('%':xs) (a:as) = a <> format xs as
 format (x:xs) as = x : format xs as
 
-get :: (Eq a) => a -> HashMap a b -> Maybe b
-get a (HashMap list) = fmap snd $ find ((== a) . fst) list
+get :: (Eq a) => a -> BadMap a b -> Maybe b
+get a (BadMap list) = fmap snd $ find ((== a) . fst) list
 
-insert :: (Eq a) => a -> b -> HashMap a b -> Maybe (HashMap a b)
-insert a b hashmap@(HashMap list) = 
-  if isJust (get a hashmap) 
+insert :: (Eq a) => a -> b -> BadMap a b -> Maybe (BadMap a b)
+insert a b badmap@(BadMap list) = 
+  if isJust (get a badmap) 
   then Nothing
-  else pure $ HashMap ((a, b) : list)
+  else pure $ BadMap ((a, b) : list)
 
-keys :: HashMap a b -> [a]
-keys (HashMap list) = map fst list
+keys :: BadMap a b -> [a]
+keys (BadMap list) = map fst list
 
-new :: HashMap a b
-new = HashMap []
+new :: BadMap a b
+new = BadMap []
 
 main :: IO ()
 main = getVideo >>= \(width, height, newGif) -> 
-  let
-    fileSh = fst . formatShell 0.2 width height Nothing . pipeline $ newGif
-  in
-  putStrLn fileSh
+    putStrLn . fst . formatShell 0.2 width height Nothing . pipeline $ newGif
 
 legalNameChars = '_' : ['a'..'z'] <> ['0'..'9'] 
 
-(...) = (.).(.)
-
-formatShell :: Float -> Int -> Int -> Maybe String -> [Either String Int] -> (ShellScript, ShellScript)
+formatShell :: Float -> Int -> Int -> Maybe String -> [Either String Int] 
+    -> (ShellScript, ShellScript)
 formatShell t wd ht message renderedFrames = case renderedFrames of
-  -- [Left frame] -> (init2 <> gif <> "\\n'", init2 <> hideprompt <> initMove <> cleanup <> gif <> "'\nsleep 2" <> "\ncleanup")
-  --   where gif = "printf '" <> frame
   frames  -> (
-        init2 <> 
-        hideprompt <> 
-        initMove <> 
-        cleanup <> 
-        intro <> 
-        alloc <> 
-        loop <> 
-        body <> 
-        done <> "\ncleanup", 
-        init2 <> 
-        hideprompt <> 
-        initMove <> 
-        cleanup <> 
-        intro <> 
-        alloc <> 
-        body <> 
-        "cleanup")
+        init2 <> hideprompt <> initMove <> cleanup <> 
+        intro <> alloc <> loop <> body <> done <> "\ncleanup", 
+        init2 <> hideprompt <> initMove <> cleanup <> intro <> 
+        alloc <> body <> "cleanup"
+    )
     where 
       newHelper :: [Either String Int] -> String
       newHelper [] = ""
       newHelper (Left s : xs) = "    draw '" <> s <> "'\n" <> newHelper xs
-      newHelper (Right i : xs) = "    sleep " <> show (fromIntegral i * t) <> "\n" <> newHelper xs
+      newHelper (Right i : xs) = "    sleep " <> show (fromIntegral i * t) 
+        <> "\n" <> newHelper xs
       intro = "draw() {\n    printf \"$move_up$1\"\n    sleep " <> 
         show t <> "\n}\n\n"
       alloc = "yes '' | head -n " <> show (ht - 1) <> "\n\n"
@@ -87,23 +71,41 @@ formatShell t wd ht message renderedFrames = case renderedFrames of
   where
     hideprompt = "printf '\\33[?25l'\n\n"
     initMove = "move_up=\"\\33[" <> show (ht - 1) <> "F\"\n\n"
-    cleanup = "cleanup() {\n    printf \"$move_up\\33[0J\\33[0m\\33[?25h\"\n    exit 0\n}\n\ntrap cleanup INT\n\n"
-    comment = "#!/bin/sh\n" <> maybe "" (('\n' :) . unlines . map ("# " <>) . lines) message <> "\n"
-    sizeCheck = "if [ $(tput cols) -lt " <> show wd <> " -o $(tput lines) -lt " <> show ht <> 
-        " ]; then\n    printf \"\\33[91mterminal is too small\\nmust be at least " <> show wd 
-        <> " by " <> show ht <> " cells\\33[0m\\n\" >&2\n    exit 1\nfi\n\n" 
+    cleanup = "cleanup() {\n    printf \"$move_up\\33[0J\\33[0m\\33[?25h\"\
+        \\n    exit 0\n}\n\ntrap cleanup INT\n\n"
+    comment = "#!/bin/sh\n" <> maybe "" (('\n' :) 
+        . unlines . map ("# " <>) . lines) message <> "\n"
+    sizeCheck = "if [ $(tput cols) -lt " <> show wd <> " -o $(tput lines) -lt " 
+        <> show ht <> 
+        " ]; then\n    printf \"\\33[91mterminal is too small\\nmust be at least " 
+        <> show wd <> " by " <> show ht 
+        <> " cells\\33[0m\\n\" >&2\n    exit 1\nfi\n\n" 
     init2 = comment
 
 pipeline :: [[[Character]]] -> [Either String Int]
 pipeline input = case reduce2 input of
-  [x] -> pure . Left . fromMaybe "" . formatCommands . intercalate [Move Down] . map (map Draw . removeExtraSpaces) $ x
-  (x:xs) -> (Left (tail . tail $ renderer x) :) . init . countUp . map formatCommands . reduce $ (x:xs)
+  [x] -> 
+      pure 
+    . Left 
+    . fromMaybe "" 
+    . formatCommands 
+    . intercalate [Move Down] 
+    . map (map Draw . removeExtraSpaces) 
+    $ x
+  (x:xs) -> 
+      (Left (tail . tail $ renderer x) :) 
+    . init 
+    . countUp 
+    . map formatCommands 
+    . reduce 
+    $ (x:xs)
   [] -> []
 
 countUp :: [Maybe String] -> [Either String Int]
 countUp [] = []
 countUp (Just s: xs) = Left s : countUp xs
-countUp (Nothing: xs) = let (num, other) = first ((+ 1) . length) $ span isNothing xs in Right num : countUp other
+countUp (Nothing: xs) = Right num : countUp other
+    where (num, other) = first ((+ 1) . length) $ span isNothing xs 
       
 data Command = Draw Character | Move Dir
 data Dir = Down | Next
@@ -114,21 +116,21 @@ reduce [x] = pure . intercalate [Move Down] . map (map Draw) $ map removeExtraSp
 reduce (x:xs) = reverse . map (uncurry (helper Black)) $ chunksOf2 (x: reverse (x: xs))
   where 
     helper :: Color -> [[Character]] -> [[Character]] -> [Command]
-    helper _ [] [] = []
-    helper _ ([[]]) ([[]]) = []
-    helper c ([]:xs) ([]:ys) = Move Down : helper c xs ys
+    helper _ [] []                   = []
+    helper _ ([[]]) ([[]])           = []
+    helper c ([]:xs) ([]:ys)         = Move Down : helper c xs ys
     helper c ((x:xx):xs) ((y:yy):ys) = 
         if x == y 
         then 
           let 
             (same, different) = first (map fst) . span (uncurry (==)) $ zip (x:xx) (y:yy) 
-            len = length same
-            leftover = uncurry (helper c) . bimap (: xs) (: ys) $ unzip different
+            len        = length same
+            leftover   = uncurry (helper c) . bimap (: xs) (: ys) $ unzip different
           in 
           if different /= [] && sum (map (getSize c) same) < 6 
           then map Draw same <> leftover
-          else take len (repeat $ Move Next) <> leftover
-        else Draw x : helper (case getColor x of Nothing -> c; Just x -> x) (xx: xs) (yy: ys)
+          else replicate len (Move Next) <> leftover
+        else Draw x : helper (fromMaybe c (getColor x)) (xx: xs) (yy: ys)
 
 getSize :: Color -> Character -> Int
 getSize c = \case
@@ -144,7 +146,7 @@ getColor = \case
   Character _ color -> Just color
 
 formatCommands :: [Command] -> Maybe String
-formatCommands x = if all isMove x then Nothing else pure $ showCommands x Black
+formatCommands x = guard (not $ all isMove x) >> pure (showCommands x Black)
   where
     isMove (Move _) = True
     isMove _ = False
@@ -152,9 +154,8 @@ formatCommands x = if all isMove x then Nothing else pure $ showCommands x Black
 showCommands :: [Command] -> Color -> String
 showCommands [] _ = []
 showCommands m@(Move x : xs) oldColor = case cleanMove m of 
-  (f, []) -> show f {next = 0}
+  (f, []   ) -> show f {next = 0}
   (f, other) -> show f <> showCommands other oldColor
-  -- where (str, other) = cleanMove m
 showCommands (Draw x : xs) oldColor = case x of
   Space -> ' ' : showCommands xs oldColor
   c@(Character char color) -> 
@@ -238,9 +239,7 @@ clean a    = pure a
 type ShellScript   = String
 type Map a b       = [(a,b)]
 
-data HashMap a b = HashMap [(a, b)]
-
+data BadMap a b = BadMap [(a, b)]
 type Coordinate    = (Int,Int)
-
 data Direction = East | West | North | South deriving (Show, Eq)
 

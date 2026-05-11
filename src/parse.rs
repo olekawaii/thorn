@@ -935,7 +935,7 @@ pub fn parse_expression(
                 match a {
                     Id::Constructor(a) => (
                         Expression::DataConstructor(*a as u32),
-                        get_type_from_constructor(b.clone(), expected_type.clone(), &m)?
+                        get_type_from_constructor(b.clone(), expected_type.clone(), &keyword_mark)?
                     ),
                     Id::Variable(a) =>  (
                         Expression::Variable(*a), 

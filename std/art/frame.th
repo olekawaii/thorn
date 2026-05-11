@@ -16,7 +16,7 @@ include prelude char video
 --    -----|----- -+
 --
 --
---  this is just a coordinate grid. (0, 0) is at 
+--  This is just a coordinate grid. (0, 0) is at 
 --  the bottom left of the top right quadrant.
 --  the bottom half of the video are the 
 --  coordinates with negative Ys, the left halves
@@ -58,7 +58,7 @@ define insert of_type fn int fn int fn character fn frame frame as
                 insert_column x one chr col_pos
 
 --
---  repeatedly apply a function to a frame n 
+--  Repeatedly apply a function to a frame n 
 --  times. same as repeat frame
 --
 
@@ -126,7 +126,7 @@ define shift of_type fn direction fn frame frame as
         west to map_columns shift_horizontal left f
 
 --
---  essentially multiply all x coordinates by -1. 
+--  Essentially multiply all x coordinates by -1. 
 --  this also flips some characters horizontally.
 --
 --      flip_over_y . flip_over_y /= identity
@@ -138,7 +138,7 @@ define flip_over_y of_type fn frame frame as map_columns over_y_hor
 
 
 --
---  the following are helper functions you 
+--  The following are helper functions you 
 --  probably don't need 
 --
 
@@ -182,9 +182,7 @@ as
         match dir with
             right to match r_l with
                 cons head tail  to horizontal tail cons head r_r
-                nil             to horizontal 
-                    nil 
-                    cons empty_grid_cell r_r
+                nil             to horizontal nil cons empty_grid_cell r_r
             left to match r_r with
                 cons head tail  to horizontal cons head r_l tail
                 nil             to horizontal cons empty_grid_cell r_l nil
@@ -204,7 +202,7 @@ as
                 cons
                     layer_horizontal head_a head_b
                     layer_columns tail_a tail_b
-            either  tuple nil a  tuple a nil  to a
+            either tuple nil a tuple a nil  to a
 
 define layer_horizontal of_type fn horizontal fn horizontal horizontal as
     lambda horizontal aa ba lambda horizontal ab bb
@@ -230,12 +228,12 @@ define layer_rows of_type fn list grid_cell fn list grid_cell list grid_cell as
 
 define over_y_hor of_type fn horizontal horizontal as
     lambda horizontal n p match p with
-        cons h t  to horizontal 
-            map_row flip_over_y_char t 
-            cons map_over_grid_cell flip_over_y_char h 
+        cons x xs  to horizontal 
+            map_row flip_over_y_char xs
+            cons map_over_grid_cell flip_over_y_char x
                 map_row flip_over_y_char n
-        empty_row  to horizontal 
-            empty_row 
+        nil  to horizontal 
+            nil
             cons empty_grid_cell map_row flip_over_y_char n
 
 define map_over_grid_cell of_type

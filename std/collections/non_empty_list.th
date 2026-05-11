@@ -1,11 +1,35 @@
 include list option
 
+--
+--  A list that contains at least one element
+--
+
 for_all a type non_empty_list contains
     prepended a list a
 
-for_all a define head_list of_type fn non_empty_list a a as lambda prepended h _ h
+--
+--  head   tail
+--   \   +-----+
+--  [ 1, 2, 2, 4 ]
+--    +-----+   \
+--     init    last
+--
 
-for_all a define tail of_type fn non_empty_list a list a as lambda prepended _ t t
+for_all a 
+define head_list of_type fn non_empty_list a a as lambda prepended h _ h
+
+for_all a 
+define tail of_type fn non_empty_list a list a as lambda prepended _ t t
+
+for_all a define last of_type fn non_empty_list a a as 
+    lambda prepended head tail match tail with
+        nil       to head
+        cons x xs to last a prepended x xs
+
+for_all a define init of_type fn non_empty_list a list a as 
+    lambda prepended head tail match tail with
+        nil       to nil
+        cons x xs to cons head init a prepended x xs
 
 for_all a define list_to_non_empty of_type fn list a option non_empty_list a as
     lambda x match x with   
