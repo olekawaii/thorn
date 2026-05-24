@@ -377,7 +377,7 @@ impl Expression {
 
     // The print function is a combination of evaluate_strictly and 
     // convert_to_file. It exists to eat much less memory while evaluating large 
-    // structures. It's also able to print stuff like infinity (succ succ ...)
+    // structures. It's also able to print some infinitely large structures
     // without eating memory at all.
     
     pub fn print(self, names: &mut HashMap<u32, String>) {
@@ -409,7 +409,7 @@ impl Expression {
                         buffer.clear();
                     }
                 }
-                Expression::Lambda { .. } => stdout.write_all(b"<lambda> ").unwrap(),
+                Expression::Lambda { .. } => buffer.extend_from_slice(b"<lambda> "),
                 _ => unreachable!(),
             }
         }
@@ -441,8 +441,6 @@ fn optimize_branches(input: &mut Expression) {
     }
 }
 
-
-//TODO
 pub fn optimize_expression(input: &mut Expression) {
     match input {
         Expression::Tree { root: _, arguments} => {

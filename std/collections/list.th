@@ -20,7 +20,7 @@ for_all a b define map_list of_type fn fn a b fn list a list b as
 for_all a define lift_list of_type fn a list a as lambda x cons x nil
 
 for_all a b define apply_list of_type fn list fn a b fn list a list b as
-    lambda f lambda x flatten_list b map_list fn a b list b
+    lambda f lambda x flatten_list map_list fn a b list b
         lambda a map_list a b a x
         f
 
@@ -29,7 +29,7 @@ for_all a b define apply_list of_type fn list fn a b fn list a list b as
 --
 
 for_all a b define bind_list of_type fn list a fn fn a list b list b as 
-    lambda x lambda f flatten_list b map_list a list b f x
+    lambda x lambda f flatten_list map_list a list b f x
 
 --
 --  foldr takes a binary function, a default 
@@ -65,7 +65,7 @@ for_all a define cat of_type fn list a fn list a list a as
 --
 
 for_all a define flatten_list of_type fn list list a list a as 
-    foldr list a list a cat a nil
+    foldr list a list a cat nil
 
 --
 --  Find the length of a list
@@ -84,7 +84,18 @@ for_all a define take_list of_type fn whole fn list a list a as
         one    to nil
         succ x to match l with
             nil       to nil
-            cons h t  to cons h take_list a pred x t
+            cons h t  to cons h take_list pred x t
+
+--
+--  Drops the first n elements of a list
+--
+
+for_all a define drop_list of_type fn whole fn list a list a as
+    lambda pred n lambda l match n with
+        one    to l
+        succ x to match l with
+            nil       to nil
+            cons _ t  to take_list pred x t
 
 --
 --  Zip two lists into a single list of tuples.
@@ -93,13 +104,13 @@ for_all a define take_list of_type fn whole fn list a list a as
 
 for_all a b define zip of_type fn list a fn list b list tuple a b as 
     lambda x lambda y match the tuple list a list b tuple x y with
-        tuple cons ha ta cons hb tb    to cons tuple ha hb zip a b ta tb
+        tuple cons ha ta cons hb tb    to cons tuple ha hb zip ta tb
         either tuple nil _ tuple _ nil to nil
 
 for_all a b c 
 define zip_with of_type fn fn a fn b c fn list a fn list b list c as
     lambda f lambda la lambda lb 
-        map_list tuple a b c uncurry a b c f zip a b la lb
+        map_list tuple a b c uncurry a b c f zip la lb
         
 --
 --  Keep elements of a list that return true
@@ -110,8 +121,9 @@ for_all a define filter of_type fn fn a bool fn list a list a as
     lambda f lambda l match l with
         nil       to nil
         cons h t  to match f h with
-            true   to cons h filter a f t
-            false  to        filter a f t
+            true   to cons h filter f t
+            false  to        filter f t
+
 --
 --  Find the first element that returns true for
 --  the given function
@@ -119,7 +131,7 @@ for_all a define filter of_type fn fn a bool fn list a list a as
 
 for_all a define find of_type fn fn a bool fn list a option a as
     lambda f lambda l map_option non_empty_list a a head_list a 
-        list_to_non_empty a filter a f l
+        list_to_non_empty filter f l
 
 --
 --  Concatinate a list with itself to make an 
@@ -127,11 +139,11 @@ for_all a define find of_type fn fn a bool fn list a option a as
 --
 
 for_all a define cycle of_type fn list a list a as
-    lambda x cat a x cycle a x
+    lambda x cat x cycle x
 
 --
 --  Make a list containing n elements of a value
 --
 
 for_all a define replicate of_type fn whole fn a list a as
-    lambda n lambda x take_list a n cycle a lift_list a x
+    lambda n lambda x take_list n cycle lift_list x

@@ -723,6 +723,15 @@ fn lookup_global_vars<'a>(
     Ok(var)
 }
 
+//
+//  because we always know the final type of
+//  whatever we're trying to parse and because
+//  the data constructor prevents any further 
+//  function applicatin, it's trivial to swap
+//  in the generics for a data constructor and 
+//  figure out the types of its arguments.
+//
+
 fn get_type_from_constructor(data: Type, expected: Type, mark: &Mark) -> Result<Type> {
     let mut ret = data.clone();
     let Type::Type {type_constructor: tc1, arguments: args1}: Type = data.final_type()
@@ -733,7 +742,10 @@ fn get_type_from_constructor(data: Type, expected: Type, mark: &Mark) -> Result<
     let Type::Type {type_constructor: tc2, arguments: args2}: Type = expected.final_type()
     else {unreachable!()};
     if tc1 != tc2 {
-        return Err(make_error(CompilationError::Custom(String::from("f")), mark.clone()))
+        return Err(make_error(
+            CompilationError::TypeMismatch(expected, Some(data)), 
+            mark.clone()
+        ))
     }
     assert_eq!(tc1, tc2);
     let mut to_replace: Vec<(usize, Type)> = Vec::new();
@@ -741,7 +753,7 @@ fn get_type_from_constructor(data: Type, expected: Type, mark: &Mark) -> Result<
         .into_iter()
         .zip(args2.into_iter())
         .for_each(|(t1, t2)| {
-            if let Type::Generic(a) = t1 {
+            if let Type::Generic(a) = t1 { // TODO probably broken
                 to_replace.push((a, t2))
             }
         });
@@ -749,6 +761,83 @@ fn get_type_from_constructor(data: Type, expected: Type, mark: &Mark) -> Result<
         replace_types(&mut ret, &to_replace)
     }
     Ok(ret)
+}
+
+fn infer_type(expected: &Type, got: &Type, mark: &Mark) -> Result<Option<Type>> {
+    let mut ret = got.clone();
+    let Type::Type {
+        type_constructor: tc1, 
+        arguments: args1
+    }: Type = expected.final_type() else {
+        return Ok(None);
+    };
+    let Type::Type {
+        type_constructor: tc2, 
+        arguments: args2
+    }: Type = ret.final_type() else {
+        return Ok(None);
+    };
+    let expected_final = Type::Type {
+        type_constructor: tc1, 
+        arguments: args1.clone()
+    };
+    let got_final = Type::Type {
+        type_constructor: tc2, 
+        arguments: args2.clone()
+    };
+    if tc1 != tc2 {
+        return Err(make_error(
+            CompilationError::TypeMismatch(expected.clone(), Some(got.clone())), 
+            mark.clone()
+        ))
+    }
+    let mut v1: Vec<usize> = Vec::new();
+    let mut v2: Vec<usize> = Vec::new();
+    find_all_generics(&got, &mut v1);
+    find_all_generics(&got_final, &mut v2);
+    if v1.len() != v2.len() {
+        return Ok(None);
+    }
+    let mut to_replace: Vec<(usize, Type)> = Vec::new();
+    merge_types(&got_final, &expected_final, &mut to_replace);
+    if !to_replace.is_empty() {
+        replace_types(&mut ret, &to_replace)
+    }
+    Ok(Some(ret))
+}
+
+fn merge_types(old: &Type, new: &Type, output: &mut Vec<(usize, Type)>) {
+    match (old, new) {
+        (Type::Generic(x), _) => output.push((*x, new.clone())),
+        (Type::Function(a1,b1), Type::Function(a2,b2)) => {
+            merge_types(a1, a2, output);
+            merge_types(b1, b2, output);
+        }
+        (Type::Type { arguments: args1, .. }, Type::Type { arguments: args2, .. } ) => {
+            args1
+                .iter()
+                .zip(args2.iter())
+                .for_each(|(a, b)| merge_types(a, b, output));
+        }
+        _ => todo!()
+    }
+}
+
+fn find_all_generics(t: &Type, out: &mut Vec<usize>) {
+    match t {
+        Type::Generic(x) => {
+            if !out.contains(x) {
+                out.push(*x);
+            }
+        }
+        Type::Type { arguments: args, .. } => {
+            args.iter().for_each(|x| find_all_generics(x, out));
+        }
+        Type::Function(a, b) => {
+            find_all_generics(a, out);
+            find_all_generics(b, out);
+        }
+    }
 }
 
 pub fn parse_expression(
@@ -939,7 +1028,10 @@ pub fn parse_expression(
                     ),
                     Id::Variable(a) =>  (
                         Expression::Variable(*a), 
-                        parse_generic_call(tokens, g, generics, b.clone())?
+                        match infer_type(&expected_type, b, &keyword_mark)? {
+                            Some(x) => x,
+                            None => parse_generic_call(tokens, g, generics, b.clone())?
+                        }
                     )
                 }
             };
