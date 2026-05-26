@@ -1,271 +1,204 @@
-thorn is pure lazy functional programming language for making ascii art 
-animations
+thorn is pure lazy functional programming language for making
+hand-drawn ASCII art animations.
+
+It's still in active development. If you encounter any bugs or issues,
+please let me know. Use https://codeberg.org/olekawaii/thorn for issues
+and contributions.
 
 check out some examples in the examples/ directory.
 
-It's still in active development. If you encounter any bugs or issues, please
-let me know.
+--------------------------   INSTALLATION   ----------------------------
 
-Please use https://codeberg.org/olekawaii/thorn for issues and contributions
+thorn has no dependencies. Assuming you have cargo and ghc, you can
+build it with
 
+  $ ./build.sh   # make sure ~/.local/bin is in the $PATH
+      _    ___   _
+     / \   \  \ / \        If you have nix, there's a flake
+     \  \   \  '  /        you can play around with
+   ---`  `---\   /  ,
+  /___________\  \ / \         $ nix develop
+     /  /      \  /  /
+/''''  /        \/  '''\   or install it with
+\--.  /\        /  ----/
+  /  /  \      /  /            $ nix profile add .
+  \ / \  \------------
+   `  /   \ ___   __/      I hope to eventually package it
+     /  ,  \   \  \        for nixpkgs
+     \_/ \__\   \_/
 
-INSTALLATION
-====================
+thorn works like a calculator. It parses and compiles the source code
+into an internal representation, but afterwards also executes it,
+printing the evaluated main function.
 
-thorn has no dependencies. Assuming you have cargo and ghc, you can build it 
-with 
+  $ thorn | thorn-to-sh  | sh             # play in terminal
+  $ thorn | thorn-to-gif | ffplay -       # play as a gif (with ffmpeg)
 
-    $ ./build.sh
+Note that thorn expects to find a main.th file and a main function.
 
-this compiles thorn, thorn-to-sh, thorn-to-gif, and thorn-to-ppm, and moves
-them to ~/.local/bin make sure it's in pour $PATH
+------------------------------   WHY   ---------------------------------
 
-The thorn compiler works like a calculator. It parses and compiles the source
-code into an internal representation, but afterwards also executes it, printing
-the evaluated main function.
+What's the point of this language? The point is to have
+  * Lovely error messages
+  * Cool syntax
+  * Simplicity and no modules (I encourage circular imports)
 
-    $ thorn | thorn-to-sh | sh
+One of my main goals is to make the thorn source code as
+pretty as the actual ASCII art. see for yourself:
 
-to convert a thorn program to a posix shell animation and play it.
+define center_head of_type list frame as loop art xii ix
+   )  (     ...7..7.....    )  (    ....7..7....     )  (   .....7..7...
+  ((__))    ..776677....   ((__))   ...776677...    ((__))  ....776677..
+  /o..o\    ..636636....   /o..o\   ...636636...    /o..o\  ....636636..
+ ( -vv- )   .6|6776|6...  ( -vv- )  ..6|6776|6..   ( -vv- ) ...6|6776|6.
+  \ __. \   ..6|666|6...   ) __ (   ...6|66|6...   / .__ /  ...6|666|6..
+   )     \  ...6|||||6..  /      \  ..6||||||6..  /     (   ..6|||||6...
+  /       \ ..6|||||||6. /        \ .6||||||||6. /       \  .6|||||||6..
+ '         ).6|||||||||6(          )6||||||||||6(         ` 6|||||||||6.
+          ' ..||||||||6.            .||||||||||. `          .6||||||||..
 
+The source code looks nice because
+  * No special characters are allowed in the code (this includes
+    paranthesis) to make a nice contrast with the ASCII art blocks,
+    which are made up almost entirely of special charecters.
+  * Drawings are isolated in their own blocks, so they're never
+    disturbed by escaped characters or colors.
 
-Expression Syntax
-====================
+The paranthesis are not needed because
+  * If you know the types of everything, you don't need paranthesis.
+    Function arguments can be groupd with prefix Polix notation.
+  * When you don't know the type of something (because it's generic or
+    whatnot), you can just provide the type.
+  * Indentation acts like paranthesis in some cases, allowing you to
+    pass lambdas and match expressions directly as function arguments.
+    It can also help with type inference.
 
-An expression is either a lambda, match, or function with arguments (a tree).
+The error messages are lovely because
+  * The errors show the highlighted line and explenation of the error.
+    It also shows the previous line for context as well as all the
+    other stuff you'd expect.
+  * You get both compile-time and run-time errors in the same format.
+    That includes runtime errors like evaluation an undefined or
+    bottom expression.
+  * There are no paranthesis, meaning all errors are found left to
+    right. If you get, say, a type error at the end of a line, you
+    know that everything that came before it was correct, not needing
+    to worry about it. There's also no concept of misplacing
+    paranthesis, which are a pain to debug in Haskell.
+  * There are no warnings, only errors. Unused variables and bad
+    indentation are caught before an ugly error message can surface.
 
-match expression
---------------------
+------------------------   ALGEBRAIC TYPES   ---------------------------
 
-All branches must have the same indentation. The mandetory keywords are
-'match', 'with', and 'to'.
+Thorn has algebraic types and generics. The for_all keyword is used to
+declare any type variables. Here's a demo of the list and option types
 
-    .----------------------------------------------------------.
-    | match <expression> with                                  |
-    |     <pattern> to <expression>                            |
-    |     <pattern> to <expression>                            |
-    |     ...                                                  |
-    '----------------------------------------------------------'
+| type bool contains
+|     true                               .----.----.----.
+|     false                              ['   |'   |'   ]
+|                                      .--.   :    :   .--.
+| for-all a type list contains         |' |---.----.---|' |
+|     nil                              |  |___|____|___|  |
+|     cons a list a                    :__|            :__|
+|
+| for_all a type option contains
+|     none
+|     some a
+|
+| define first_bool of_type fn list bool option bool as
+|     lambda input_list match input_list with
+|         nil              to none
+|         cons head _tail  to some head
 
-lambda expression
---------------------
-    .----------------------------------------------------------.
-    | lambda <pattern> <expression>                            |
-    '----------------------------------------------------------'
+The lambda keyword starts a lambda expression, followed by a pattern,
+in which the input value will be placed. The match expression
+patternmatches on a value, returning the first branch that matched.
 
-argument tree
---------------------
-  1 .----------------------------------------------------------.
-    | root word word ... <expression>?                         |
-    '----------------------------------------------------------'
+In the last line, `cons` is a data constructor and `head/tail` are
+variable names for the `a` and `list a` in the list definition. _tail
+is prepended with an underscore to drop the value.
 
-sum(v, product(iii, x)) (in C syntax) as an argument tree would be
+| define main of_type option bool as
+|     first_bool cons true cons false nil
 
-    .----------------------------------------------------------.
-    | sum v product iii x                                      |
-    '----------------------------------------------------------'
+>>  some true        (thorn's output, assuming the above is in main.th)
 
-This is possible because the types of all variables are known at all times,
-letting us use polish notation to group them into expressions
+| define main of_type option bool as first_bool nil
 
-  2 .----------------------------------------------------------.
-    | root                                                     |
-    |     <expression>                                         |
-    |     <expression>                                         |
-    |     ...                                                  |
-    '----------------------------------------------------------'
+>>  none
 
-With the second syntax every argument of the root must be on its own line 
-with the correct indentation. This the only way to use a lambda or match
-expresion directly as an argument to a function.
+Functions can also be generic, but I'm still figuring out the syntax
+for calling a generic function whose type can't be inferred. The std/
+directory has a bunch of thorn code you can read, including code for
+the frame type itself. There is very little built into the language,
+not even numbers (defined in std/num/nat.th as roman numerals).
 
+-------------------------   DESTRUCTURING   ----------------------------
 
+Consider the following function that finds the distance between
+two points. Ignore the undefined types/functions.
 
-ALGEBRAIC TYPES
-====================
-
-    .----------------------------------------------------------.
-    | type bool contains                                       |
-    |     true                                                 |
-    |     false                                                |
-    |                                                          |
-    | type list_of_bools contains                              |
-    |     empty_list                                           |
-    |     prepend bool list_of_bools                           |
-    |                                                          |
-    | type maybe_bool contains                                 |
-    |     none                                                 |
-    |     some bool                                            |
-    |                                                          |
-    | define head of_type fn list_of_bools maybe_bool as       |
-    |     lambda input_list match input_list with              |
-    |         empty_list         to none                       |
-    |         prepend head tail  to some head                  |
-    '----------------------------------------------------------'
-
-    .----------------------------------------------------------.
-    | define main of_type maybe_bool as                        |
-    |     head prepend true prepend false empty_list           |
-    '----------------------------------------------------------'
-    output: some true
-
-    .----------------------------------------------------------.
-    | define main of_type maybe_bool as                        |
-    |    head empty_list                                       |
-    '----------------------------------------------------------'
-    output: none
-
-
-GENERICS
-====================
-
-Here is a generic identity function that takes a value and returns it.
-
-    .----------------------------------------------------------.
-    | for_all a define identity of_type fn a a as lambda x x   |
-    '----------------------------------------------------------'
-
-To call this function on a `bool` do `identity bool true` where `bool` will
-fill the `a` slot. For multiple generics:
-
-    .----------------------------------------------------------.
-    | for_all a for_all b for_all c define ...                 |
-    |                                                          |
-    | -- or                                                    |
-    |                                                          |
-    | for_all a b c define ...                                 |
-    '----------------------------------------------------------'
-
-In the future there will also be a `where` keyword to specify constraints like
-typeclasses or kinds.
-
-
-TYPE ERRORS
-====================
-
-One of the main goals of this language is to have good (and I mean VERY good) 
-errors. Consider this example that has multiple type errors:
-
-    .----------------------------------------------------------.
-    | define or of_type fn bool fn bool bool as ...            |
-    |                                                          |
-    | define sum of_type fn int fn int int as ...              |
-    |                                                          |
-    | define true of_type bool as ...                          |
-    |                                                          |
-    | define five of_type int as ...                           |
-    |                                                          |
-    | define main of_type int as sum five or true five         | <-
-    '----------------------------------------------------------'
-
-There are two issues with this code:
-
-  1. `or` expects two bool arguments but the second argument is an int
-
-  2. `sum` expects two ints but the second argument is whatever the 
-     output of `or` would be (a bool)
-
-In all programming languages that I know of, you get the most nested errror 
-first (1) and after it's resolved you get the less nested one (2). The error 
-C would give would be something like:
-
-   compilation error
-       |
-    10 | sum(five, or(true, five)
-       |                    ~~~~ mismatched types
-   second argument of `or` expected a `bool` but found an `int`
-
-However, in my implementation, you actually get the least nested error first.
-
-   compilation error
-       |
-    10 | sum five or true five
-       |          ~~ mismatched types
-   `sum five` expected an `int` but `or` could never evaluate to it
-
-It is a more logical approach. The bigger error in this program isn't that 
-the argumunts to `or` are incorrect, it's that the whole `or` expression
-shouldn't even be there.
-
-This also makes it so all errors are found from left to right. if you get an error
-at the end of the line, you know that everything that came before it was 
-correct. This also eliminates the painful type errors you get in haskell when 
-you misplace paranthesis.
-
-
-
-DESTRUCTURING
-====================
-
-Consider the following function that finds the distance between 
-two points. Ignore the functions that we haven't defined.
-
-    .----------------------------------------------------------.
-    | type point contains                                      |
-    |     point int int                                        |
-    |                                                          |
-    | define distance of_type fn point fn point float as       |
-    |     lambda first_point lambda second_point               |
-    |         match first_point with                           |
-    |             point xa ya to match second_point with       |
-    |                 point xb yb to sqrt sum                  |
-    |                     squared diff xb xa                   |
-    |                     squared diff yb ya                   |
-    '----------------------------------------------------------'
+| type point contains
+|     point int int
+|
+| define distance of_type fn point fn point float as
+|     lambda first_point lambda second_point
+|         match first_point with
+|             point xa ya to match second_point with
+|                 point xb yb to sqrt sum
+|                     squared diff xb xa
+|                     squared diff yb ya
 
 This is very verbose because we're patternmatching on all the points to get
 their x and y values. However, because the point type only contains one
-variant, we can actually patternmatch directly in the lambda expression 
+variant, we can actually patternmatch directly in the lambda expression
 like so
 
-    .----------------------------------------------------------.
-    | define distance of_type fn point fn point float as       |
-    |     lambda point xa ya lambda point xb yb sqrt sum       |
-    |         squared diff xb xa                               |
-    |         squared diff yb ya                               |
-    '----------------------------------------------------------'
+| define distance of_type fn point fn point float as
+|     lambda point xa ya lambda point xb yb  sqrt sum
+|         squared diff xb xa
+|         squared diff yb ya
 
-In fact, lambda, match, and (in the future) let expressions share the same 
-syntax and semantics for capturing variables.
+In fact, lambda, match, and (in the future) let expressions all share
+the same syntax and semantics for capturing variables.
 
-
-
-RECURSION
-====================
-
-There are no loops. The only way to 'loop' is to use recursion.
-
-    .----------------------------------------------------------.
-    | define main of_type nat as                               |
-    |     sum                                                  '
-    |         three                          .----------------------.
-    |         succ one                       | one              = 1 |
-    |                                        | succ one         = 2 |
-    | type nat contains                      | succ (succ one)  = 3 |
-    |     one                                | and so on            |
-    |     succ nat                           '----------------------'
-    |                                                          .
-    | define three of_type nat as succ succ one                |
-    |                                                          |
-    | define sum of_type fn nat fn nat nat as                  |
-    |     lambda x match x with                                |
-    |         one     to succ                                  |  <---.
-    |         succ a  to lambda y succ sum a y    -- recursive |      |
-    '----------------------------------------------------------'      | 
-     output: succ succ succ succ one                                  |
-
-By the way, if you look at the third to last line, the `one` branch returns a 
-`succ` while the 'succ pred_x' branch returs a lambda expression. This is 
-because the `succ` data constructor is a function. (succ one) has the type (nat) 
-but (succ) has the type (fn nat nat). All data constructors are curried.
-
-Alternatively we could've rewritten `succ` as `lambda x succ x`, which would 
-have the same meaning.
+More Patterns:
+  VAR                        Capture the value in VAR, matches anything
+  CONSTRUCTOR [PATTERN]      Constructor and PATTERNs must match
+  either PATTERN PATTERN     Either branch must match (same vars)
+  bind VAR Pattern           Additionally bind the pattern to a VAR
+  _                          Drop the value, matches anything
 
 
+---------------------------   RECURSION   ------------------------------
 
-LAZY EVALUATION
-====================
+There are no loops. The only way to "loop" is to recurse.
+
+| define main of_type nat as
+|     sum
+|         three                +----------------------+
+|         succ one             | one              = 1 |
+|                              | succ one         = 2 |
+| type nat contains            | succ (succ one)  = 3 |
+|     one                      | and so on            |
+|     succ nat                 +----------------------+
+|
+| define three of_type nat as succ succ one
+|
+| define sum of_type fn nat fn nat nat as
+|     lambda x match x with
+|         one     to succ
+|         succ a  to lambda y succ sum a y    -- recursive
+
+>>  succ succ succ succ one
+
+By the way, if you look at the second to last line, the `one` branch
+returns a `succ` while the 'succ pred_x' branch returs a lambda
+expression. This is because the `succ` data constructor is a function.
+(succ one) has the type (nat) but (succ) has the type (fn nat nat).
+All data constructors are curried.
+
+------------------------   LAZY EVALUATION   ---------------------------
 
 The whole language is lazily evaluated. The only thing evaluated strictly
 is the main function.
@@ -275,224 +208,117 @@ If you don't try to match on something, it will never be evaluated.
 To evaluate an expression, it is rewritten until it starts with a
 data constructor.
 
-    .----------------------------------------------------------.
-    | type tuple_of_nats contains                              |
-    |     tuple nat nat                                        |
-    |                                                          |
-    | define is_equal of_type fn nat fn nat bool as            |
-    |     lambda x lambda y match tuple x y with               |
-    |         tuple one    one     to true                     |
-    |         tuple succ a succ b  to is_equal a b             |
-    |         _                    to false                    |
-    '----------------------------------------------------------'
+| type tuple_of_nats contains
+|     tuple nat nat
+|
+| define is_equal of_type fn nat fn nat bool as
+|     lambda x lambda y match tuple x y with
+|         tuple one    one     to true
+|         tuple succ a succ b  to is_equal a b
+|         _                    to false
+|
+| define infinity of_type nat as succ infinity
 
-    .----------------------------------------------------------.
-    | define main of_type bool as                              |
-    |     is_equal                                             |
-    |         succ succ one                                    |
-    |         succ succ one                                    |
-    '----------------------------------------------------------'
-    output: true
+Let's see the results of evaluating the following expressions. I won't
+bother writing `define main of_type bool as` for each of them.
 
-    .----------------------------------------------------------.
-    | define main of_type bool as                              |
-    |     is_equal                                             |
-    |         succ succ one                                    |
-    |         succ succ succ one                               |
-    '----------------------------------------------------------'
-    output: false
+| is_equal                       -- Despite infinity being infinitely
+|     succ succ succ one         -- large, we can still work with it
+|     infinity                   -- because it's evaluated lazily.
+|
+>>  false
 
-    .----------------------------------------------------------.
-    | define main of_type bool as                              |
-    |     is_equal                                             |
-    |         succ succ succ one                               |
-    |         infinity                                         |
-    |                                                          |
-    | define infinity of_type nat as succ infinity             |
-    '----------------------------------------------------------'
-     output: false
+| is_equal                       -- Note that despite working with two
+|     infinity                   -- infinite structures, and is_equal
+|     infinity                   -- being recursive, the program does
+|                                -- not eat memory as it hangs.
+>>  *hangs at runtime*
 
-    .----------------------------------------------------------.
-    | define main of_type bool as                              |
-    |     is_equal infinity infinity                           |
-    '----------------------------------------------------------'
-     output: *hangs at runtime*
-                                                 .---------------.
-    .------------------------------------------- | ... is syntax |
-    | define main of_type bool as                | for undefined |
-    |     is_equal                               '---------------'
-    |         succ succ one                                    .
-    |         succ succ succ succ ...                          |
-    '----------------------------------------------------------'
-    output: false
-                                                                  
-    .----------------------------------------------------------.  
-    | define main of_type bool as                              |  
-    |     is_equal                                             |  
-    |         succ succ succ one                               |
-    |         succ succ ...                                    |
-    '----------------------------------------------------------'
-    output: *panics at runtime*
+| is_equal                       -- ... is syntax for undefined. It
+|     succ one                   -- can be used in place of any
+|     succ succ succ ...         -- expression.
+|
+>>  false
 
+| is_equal                       -- If ... is evaluated, the program
+|     succ succ succ one         -- crashes with an error message
+|     succ succ ...              -- pointing to it.
+|
+>>  *panics at runtime*
 
+---------------------------   ART BLOCKS   -----------------------------
 
-UNDEFINED
-====================
+The art macro is expanded into regular thorn code during the
+tokenization phase. This code defines an animation of a swinging tail.
+The animation is 6x4 in size and has 2 frames.
 
-Undefined expressions panic at runtime if you attempt to evaluate them.
-They are useful for unimplemented or unreachable code
+| include video
+|
+| define main of_type list frame as dragon_tail
+|
+| define dragon_tail of_type list frame as art vi iv
+|  \   ).6|||6(   / 6|||6.
+|   ) / ..6|6. \ (  .6|6..
+|  ( /  .6|6..  \ ) ..6|6.
+|   V   ..6...   V  ...6..
 
-    .----------------------------------------------------------.
-    | define main of_type video as ...                         |
-    '----------------------------------------------------------'
+Every frame is made up of who rectangles, one with the ascii art and
+the other with the corresponding colors. Colors 0-7 correspond to ANSI
+colors black-white and `|`/`.` distinguish between spaces and
+transparency. The `vi iv` after the art keyword are the width and height
+of each frame in romal numerals.
 
-
-
-ART
-====================
-
-This code defines an animation of a swinging tail. The animation is 6x4 in
-size and has 2 frames.
-
-    .----------------------------------------------------------.
-    | define dragon_tail of_type video as art vi iv            |
-    |  \   ).6|||6(   / 6|||6.                                 |
-    |   ) / ..6|6. \ (  .6|6..                                 |
-    |  ( /  .6|6..  \ ) ..6|6.                                 |
-    |   V   ..6...   V  ...6..                                 |
-    '----------------------------------------------------------'
-
-The art macro is expanded into regular code during the tokenization phase.
-
-Every frame is made up of who rectangles, one with the ascii art and the 
-other with the corresponding colors. Colors 0..7 correspond to ANSI colors
-black..white, '.' marks transparency, and '|' marks a space.
-
-You can also have a X/Y/Z marked '.' or '|' to change (0, 0) to that location 
-
-    .----------------------------------------------------------.
-    | define box of_type video as art vii v                    |
-    | +-----+7777777  .^.  ..777..                             |
-    | |     |7.....7 /   \ .7...7.                             |
-    | |  Z  |7.....7<     >7.....7                             |
-    | |     |7.....7 \   / .7...7.                             |
-    | +-----+7777777  `v'  ..777..                             |
-    '----------------------------------------------------------'
-or
-
-    .----------------------------------------------------------.
-    | define box of_type video as art vii v                    |
-    | +-----+7777777  .^.  ..777..                             |
-    | |  Y  |7.....7 /   \ .7...7.                             |
-    | |    X|7.....7<     >7.....7                             |
-    | |     |7.....7 \   / .7...7.                             |
-    | +-----+7777777  `v'  ..777..                             |
-    '----------------------------------------------------------'
-
-Now this box animation is centered at (0, 0). Before, (0, 0) was the 
-bottom left corner.
-
-These are equivelent to this code
-
-    .----------------------------------------------------------.
-    | define box of_type video as                              |
-    |     entirely move_by pos iii pos ii art vii v            |
-    |         +-----+7777777  .^.  ..777..                     |
-    |         |     |7.....7 /   \ .7...7.                     |
-    |         |     |7.....7<     >7.....7                     |
-    |         |     |7.....7 \   / .7...7.                     |
-    |         +-----+7777777  `v'  ..777..                     |
-    '----------------------------------------------------------'
-
-Note that the indentation rules are different for art blocks. if the 
-indentation of the line with 'art' is zero, so is the art's indentation. 
-Otherwise it's the line's indentation + 4.
-
-Yes, the indentation length is hardcoded to 4. This makes multiple errors
-impossible and improves error messages.
+Note that the indentation rules are different for art blocks. if the
+indentation of the line with 'art' is zero, so is the art's
+indentation.  Otherwise it's the line's indentation + 4.  Yes, the
+indentation length is hardcoded to 4. This improves error messages.
 
 There is special syntax for including local/global variables in the
-art. To use a color variable you just replace the color number with the 
-variable name like so:
+art. To use a color variable you just replace the color number with the
+variable name like so
 
-    .----------------------------------------------------------.
-    | define dragon_tail of_type fn color video as             |
-    |     lambda c art vi iv                                   |
-    |          \   ).c|||c(   / c|||c.                         |
-    |           ) / ..c|c. \ (  .c|c..                         |
-    |          ( /  .c|c..  \ ) ..c|c.                         |
-    |           V   ..c...   V  ...c..                         |
-    '----------------------------------------------------------'
+| define dragon_tail of_type fn color list frame as
+|     lambda c art vi iv
+|          \   ).c|||c(   / c|||c.
+|           ) / ..c|c. \ (  .c|c..
+|          ( /  .c|c..  \ ) ..c|c.
+|           V   ..c...   V  ...c..
 
-Now instead of the tail being hardcoded cyan, the calling function decides
-its color.
+Now instead of the tail being hardcoded cyan, the calling function
+decides its color. Here's the full table of supported art syntax.
 
-To include a variable character, set the color to '$' and use the variable 
-name in the art section. you can have a custom tail tip for example:
+       +------+-------+-----------------------------------------+
+       | left | right |                 effect                  |
+       +------+-------+-----------------------------------------+
+       | CHAR | 0     | Grey                                    |
+       | CHAR | 1     | Red                                     |
+       | CHAR | 2     | Green                                   |
+       | CHAR | 3     | Yellow                                  |
+       | CHAR | 4     | Blue                                    |
+       | CHAR | 5     | Magenta                                 |
+       | CHAR | 6     | Cyan                                    |
+       | CHAR | 7     | White                                   |
+       | CHAR | VAR   | Uses VAR as the color                   |
+       |      | |     | Space character                         |
+       |      | .     | Transparent                             |
+       | VAR  | $     | uses VAR as the character               |
+       | VAR  | #     | layers the frame VAR on top             |
+       | VAR  | ^     | applies fn VAR to the character below   |
+       +------+-------+-----------------------------------------+
+where  VAR  is a single-letter variable name
+       CHAR is a visible ASCII character
 
-    .----------------------------------------------------------.
-    | define dragon_tail of_type fn character video as         |
-    |     lambda t art vi iv                                   |
-    |          \   ).6|||6(   / 6|||6.                         |
-    |           ) / ..6|6. \ (  .6|6..                         |
-    |          ( /  .6|6..  \ ) ..6|6.                         |
-    |           t   ..$...   t  ...$..                         |
-    '----------------------------------------------------------'
+You can see how the core types are implemented in the std. Ther are 
+many useful functions in video.th, list.th, and frame.th . To find 
+the definition of a function, just run
+  
+  $ grep -rn 'define function_name'
 
-Note that the character type contains both the character and the color.
+-----------------------------   OUTPUT   -------------------------------
 
-To layer a variable frame, do the same but with '#' instead. In this example 
-the frame f will be layered on top of both frames, with '#' marking (0, 0) 
-of f.
-
-    .----------------------------------------------------------.
-    | define dragon_tail of_type fn frame video as             |
-    |     lambda f art vi iv                                   |
-    |          \   ).6|||6(   / 6|||6.                         |
-    |           ) / ..6|6. \ (  .6|6..                         |
-    |          ( /  .6|6..  \ ) ..6|6.                         |
-    |           f   ..#...   f  ...#..                         |
-    '----------------------------------------------------------'
-
-To layer a variable video, do the same but with '&' instead.
-
-    .----------------------------------------------------------.
-    | define dragon_tail of_type fn video video as             |
-    |     lambda f art vi iv                                   |
-    |          \   ).6|||6(   / 6|||6.                         |
-    |           ) / ..6|6. \ (  .6|6..                         |
-    |          ( /  .6|6..  \ ) ..6|6.                         |
-    |           V   ..6...   f  ...&..                         |
-    '----------------------------------------------------------'
-                             ^
-It does several things:
-    - moves the variable video to allign its (0,0) with &
-    - rotates it until its first frame starts at the frame it was called in
-    - layers it with the main video, adjusting the length of both videos
-
-The above example is equivelent to 
-
-    .----------------------------------------------------------.
-    | define dragon_tail of_type fn video video as             |
-    |     lambda x layer                                       |
-    |         rotate entirely by iii shift east x              |
-    |         art vi iv                                        |
-    |              \   ).6|||6(   / 6|||6.                     |
-    |               ) / ..6|6. \ (  .6|6..                     |
-    |              ( /  .6|6..  \ ) ..6|6.                     |
-    |               V   ..6...      ......                     |
-    '----------------------------------------------------------'
-
-You can see how the core types is implemented in the core.th and there are
-many useful functions in video.th
-
-
-
-OUTPUT
-====================
-
-After compiling/running the program, the output is the fully-evaluated main
-function (a tree of data constructors). In fact, if you plug the output into 
-the main function, you will get the same output. To turn this output into 
-something you actually want, you have to interpret it with an external 
-program (like thorn-to-sh for ascii art animations for example).
+After running thorn on the above program, the output is the 
+fully-evaluated main function, a tree of data constructors, a string 
+of words when printed out. In fact, if you copy-paste the output into 
+the main function, you will get the same output. To turn this output 
+into something you actually want, you have to interpret it with an 
+external program (like thorn-to-sh for ascii art animations).

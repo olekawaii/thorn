@@ -138,7 +138,7 @@ pub fn get_everything(name: &str) -> Result<(Expression, HashMap<u32, String>)> 
     let mut global_values: Globals = HashMap::new();
     loop {
         if std::env::current_dir().unwrap() == std::path::Path::new("/") {
-            println!("reached root");
+            println!("\x1b[91merror:\x1b[0m reached root without finding main.th\n       make sure you're in a project");
             std::process::exit(1);
         }
         if std::path::Path::new("main.th").exists() {
