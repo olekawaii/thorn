@@ -108,8 +108,8 @@ parseNewFrame ("frame" : xs) =
         ((a, b), other2)
 
 parseNewVideo :: [String] -> (Video, [String])
-parseNewVideo ("single" : xs) = first singleton $ parseNewFrame xs
-parseNewVideo ("prepend" : xs) = let (frame, other) = parseNewFrame xs in 
+parseNewVideo ("nil" : xs) = ([], xs)
+parseNewVideo ("cons" : xs) = let (frame, other) = parseNewFrame xs in 
     first (frame :) (parseNewVideo other)
 parseNewVideo _ = error "\x1b[91mshould be of type video starting with either single or prepend\x1b[0m"
 

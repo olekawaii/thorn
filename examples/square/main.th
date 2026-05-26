@@ -1,15 +1,15 @@
 include video
 
-define main of_type video as layer
-    single layer_frames 
+define main of_type list frame as take nat_to_whole xii layer
+    cycle lift_list layer_frames 
         by xxiv shift east block
         by xxiv shift west block
-    sequence
+    cycle cat
         animation
-        take vi continuously by ii shift east 
-            loop_video_forever single head reverse animation
+        take nat_to_whole vi continuously by ii shift east 
+            cycle lift_list first_frame reverse animation
 
-define squish of_type video as art x vi
+define squish of_type list frame as art x vi
   +----+  ..666666..  +-.     ..666.....  +-.     ..666.....
   |    |  ..6||||6..  |  \    ..6||2....  |  \    ..6||2....
   | .. |  ..6|66|6..  | ..`-+ ..6|66266.  |   \   ..6|||2...
@@ -23,15 +23,15 @@ define squish of_type video as art x vi
  |      \ .6||||||2.|       \ 6|||||||2. /      \ .2||||||2.
  +-------+.666622222+--------+6662222222+--------+2222222222
 
-define animation of_type video as layer
+define animation of_type list frame as layer
     squish
-    single layer_frames
-        by xxiv shift west head squish
+    replicate nat_to_whole vi layer_frames
+        by xxiv shift west first_frame squish
         layer_frames 
-            by xii shift east head reverse squish
-            by xii shift west head squish
+            by xii shift east first_frame reverse squish
+            by xii shift west first_frame squish
 
-define block of_type frame as head art x vi
+define block of_type frame as first_frame art x vi
           ||||||||||
           ||||||||||
           ||||||||||

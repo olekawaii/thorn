@@ -602,7 +602,7 @@ pub fn build_tokens_from_art(
     for (index, i) in input.into_iter().enumerate() {
         let mut frame_buffer = LinkedList::new();
         let mut frame_commands = LinkedList::new();
-        output.push_back(build_token("prepend", &mark));
+        output.push_back(build_token("cons", &mark));
         frame_buffer.push_back(build_token("frame", &mark));
         frame_buffer.push_back(build_token("nil", &mark));
         for line in i.into_iter().rev() {
@@ -779,15 +779,10 @@ pub fn build_tokens_from_art(
         output.append(&mut frame_commands);
         output.append(&mut frame_buffer);
     }
+    output.push_back(build_token("nil", &mark));
     if !video_commands.is_empty() {
         video_commands.append(&mut output);
         output = video_commands;
-    }
-    for i in output.iter_mut().rev() {
-        if let Token::Word(ref mut x) = i.value && x == "prepend" {
-            *x = "single".to_owned();
-            break;
-        }
     }
     Ok(output)
 }

@@ -1,16 +1,19 @@
-include frame
+include frame non_empty_list
 
-type video contains
-    single frame
-    prepend frame video
+--
+--  A video is represented as a list of frames.
+--  Thus, you can use any of the functions in
+--  list.th on them. Functions defined here are
+--  just more specific to videos.
+--
 
 --
 --  add infinitely many empty frames to the end 
 --  of a video
 --
 
-define pad_right_inf of_type fn video video as 
-    flip video video video sequence loop_video_forever single new_frame
+define pad_right_inf of_type fn list frame list frame as 
+    lambda v cat v cycle lift_list new_frame
 
 --
 --  layers two videos together without preserving
@@ -18,60 +21,20 @@ define pad_right_inf of_type fn video video as
 --  length of the larger video
 --
 
-define zip_videos of_type fn video fn video video as 
-    lambda a lambda b match the tuple video video tuple a b with
-        tuple prepend a ta prepend b tb to prepend 
-            layer_frames a b 
-            zip_videos ta tb
-        either 
-                tuple single  a   prepend b t 
-                tuple prepend a t single  b   
-            to prepend layer_frames a b t
+define layer of_type fn list frame fn list frame list frame as 
+    lambda a lambda b 
+        match the tuple list frame list frame tuple a b with
+            either tuple nil xs tuple xs nil to xs
+            tuple cons x xs cons y ys        to cons
+                layer_frames x y
+                layer xs ys
 
 --
---  return the first frame of a video
+--  Apply a function to every frame of a video
 --
 
-define head of_type fn video frame as lambda either single f prepend f _ f
-
---
---  apply a function to every frame of a video
---
-
-define entirely of_type fn fn frame frame fn video video as 
-    lambda f lambda v match v with
-        prepend head tail  to prepend f head entirely f tail
-        single head        to single f head
-
---
---  count the number of frames
---
-
-define video_length of_type fn video nat as
-    lambda x match x with
-        prepend _ tail  to succ video_length tail
-        single  _       to one
-
---
---  `layer a b` layers `a` on top of `b` while 
---  also preserving the loopingness. layering a
---  video with 2 frames and one with 3 results 
---  in a video with 6 frames
---
-
-define layer of_type fn video fn video video as
-    lambda t lambda b take 
-        lcm video_length t video_length b 
-        layer_helper loop_video_forever t loop_video_forever b
-
---
---  reverse a video. will hang for infinite videos
---
-
-define reverse of_type fn video video as
-    lambda x match x with
-        prepend a b  to sequence reverse b single a
-        single a     to single a
+define entirely of_type fn fn frame frame fn list frame list frame as 
+    map_list frame frame
 
 -- 
 --  make the video x loop by adding a cropped
@@ -79,116 +42,65 @@ define reverse of_type fn video video as
 --  transition smooth.                       
 -- 
 
-define loop of_type fn video video as lambda x match x with
-    prepend heada taila to match reverse taila with
-        single headb     to prepend heada single headb
-        prepend _ tailb  to sequence x tailb
-    single _ to x
+define loop of_type fn list frame list frame as
+    lambda v cat v drop nat_to_whole one reverse drop nat_to_whole one v
 
 -- 
 --  duplicate the last frame 
 --
 
-define extend of_type fn video video as lambda x match x with
-    single  x    to prepend x single x
-    prepend x xs to prepend x extend xs
-
--- 
---  sequence two videos one after the other
---
-
-define sequence of_type fn video fn video video as
-    lambda x lambda y match x with
-        prepend head tail  to prepend head sequence tail y
-        single head        to prepend head y
-
--- 
---  `take n v` returns a video containing the
---  first n frames of v. if n is smaller the 
---  v's length, it will just return v
---
-
-define take of_type fn nat fn video video as
-    lambda counter lambda bad_frames match bad_frames with
-        prepend head tail  to match counter with
-            succ a  to prepend head take a tail
-            one     to single head
-        single head        to single head
+define extend of_type fn list frame list frame as lambda x match x with
+    cons x nil  to cons x lift_list x
+    cons x xs   to cons x extend xs
 
 -- 
 --  slow n multiplies every frame n times
 --
 
-define slow of_type fn nat fn video video as
+define slow of_type fn nat fn list frame list frame as
     lambda num lambda vid match vid with
-        prepend head tail  to sequence
-            take num loop_video_forever single head
-            slow num tail
-        single head        to take num loop_video_forever single head
-
--- 
---  for n f v applies f to v n times
---
-
-define for of_type fn nat fn fn video video fn video video as repeat video
-
--- 
---  sequences the video with itself recursively,
---  creating an infinite video. you can use 
---  `take` to turn it back into a finite video
---
-
-define loop_video_forever of_type fn video video as
-    lambda x sequence x loop_video_forever x
+        cons x xs to cat replicate nat_to_whole num x slow num xs
+        nil to nil
 
 --
 --  move the first frame to the back of the video
 --
 
-define rotate of_type fn video video as
+define rotate of_type fn list frame list frame as
     lambda vid match vid with
-        prepend head tail  to sequence tail single head
-        single  head       to single head
+        cons x xs to cat xs lift_list x
+        nil       to nil
 --
 --  move the last frame to the front of the video
 --
 
-define rotate_right of_type fn video video as lambda x reverse rotate reverse x
-
---
---  append a frame to a video. note that this has
---  a time complexity of O(n). It's much better to 
---  use prepend if you can.
---
-
-define append of_type fn frame fn video video as 
-    lambda x flip video video video sequence single x
+define rotate_right of_type fn list frame list frame as lambda x 
+    match the option non_empty_list frame list_to_non_empty x with
+        none    to nil
+        some l  to cons last frame l init l
 
 -- 
 --  `continuously f` applies the function `f` to     
 --  every frame `n` times where `n` is the index
---  of the frame                                        
+--  of the frame (0 based)                                       
 --
 
-define continuously of_type fn fn frame frame fn video video as 
-    lambda f lambda v match entirely f v with
-        prepend head tail to prepend head continuously f tail
-        single head       to single head
+define continuously of_type fn fn frame frame fn list frame list frame as 
+    lambda f lambda v match v with
+        cons x xs to cons x continuously f entirely f xs
+        nil       to nil
 
--- 
---  expects videos of equal length.
---  will refactor to use infinite_video in the
---  future.
+--
+--  apply a function to video n times
 --
 
-define layer_helper of_type fn video fn video video as
-    lambda x lambda y match x with
-        prepend head_a tail_a to match y with
-            single _head_b         to ...
-            prepend head_b tail_b  to prepend
-                layer_frames head_a head_b
-                layer_helper tail_a tail_b
-        single a to match y with
-            single b     to single layer_frames a b
-            prepend _ _  to ...
+define for of_type fn nat fn fn list frame list frame fn list frame list frame as
+    repeat list frame 
 
+--
+--  Returns the first frame of a video. Panics
+--  if the video is empty
+--
+
+define first_frame of_type fn list frame frame as
+    lambda cons x _  x

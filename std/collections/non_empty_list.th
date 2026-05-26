@@ -10,16 +10,18 @@ for_all a type non_empty_list contains
 --
 --  head   tail
 --   \   +-----+
---  [ 1, 2, 2, 4 ]
+--  [ 1, 2, 3, 4 ]
 --    +-----+   \
 --     init    last
 --
+--  Note that init and tail have a return type of
+--  `list a` while head and last return an `a`
+--
 
-for_all a 
-define head_list of_type fn non_empty_list a a as lambda prepended h _ h
+for_all a define head of_type fn non_empty_list a a as lambda prepended x _ x
 
-for_all a 
-define tail of_type fn non_empty_list a list a as lambda prepended _ t t
+for_all a define tail of_type fn non_empty_list a list a as 
+    lambda prepended _ xs xs
 
 for_all a define last of_type fn non_empty_list a a as 
     lambda prepended head tail match tail with
@@ -31,10 +33,28 @@ for_all a define init of_type fn non_empty_list a list a as
         nil       to nil
         cons x xs to cons head init prepended x xs
 
+--
+--  Turn a list into an option non_empty_list,
+--  returning a none if the list was empty
+--
+
 for_all a define list_to_non_empty of_type fn list a option non_empty_list a as
-    lambda x match x with   
-        nil       to none
-        cons h t  to some prepended h t
+    lambda l match l with   
+        nil        to none
+        cons x xs  to some prepended x xs
+
+--
+--  A partial list_to_non_empty function that
+--  panics if the list was empty
+--
+
+for_all a define assert_non_empty of_type fn list a non_empty_list a as
+    lambda cons x xs  prepended x xs    -- fails on nil
+
+--
+--  Turn a non_empty_list back into a regular 
+--  list
+--
 
 for_all a define non_empty_to_list of_type fn non_empty_list a list a as 
     lambda prepended h t cons h t
