@@ -1,8 +1,9 @@
 set -e
 BINDIR=~/.local/bin
+cd thorn
 cargo build --release
 mv target/release/thorn $BINDIR || true
-cd converters
+cd ../converters
 ghc thorn-to-ppm.hs
 ghc thorn-to-sh.hs
 cp thorn-to-sh thorn-to-ppm thorn-to-gif $BINDIR || true

@@ -120,11 +120,11 @@ is prepended with an underscore to drop the value.
 
 | define main of_type option bool as
 |     first_bool cons true cons false nil
-
+|
 >>  some true        (thorn's output, assuming the above is in main.th)
 
 | define main of_type option bool as first_bool nil
-
+|
 >>  none
 
 Functions can also be generic, but I'm still figuring out the syntax
@@ -189,7 +189,7 @@ There are no loops. The only way to "loop" is to recurse.
 |     lambda x match x with
 |         one     to succ
 |         succ a  to lambda y succ sum a y    -- recursive
-
+|
 >>  succ succ succ succ one
 
 By the way, if you look at the second to last line, the `one` branch
