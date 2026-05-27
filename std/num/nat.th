@@ -1,14 +1,12 @@
 include prelude
 
---
 --  a recursive definition of a natural number 
 --  using church numerals. a nat is either one
 --  or the successor of a nat
 --  
---  one            = 1
---  succ one       = 2
---  succ succ one  = 3
---
+--  one              = 1
+--  succ one         = 2
+--  succ (succ one)  = 3
 
 type nat contains
     one
@@ -24,11 +22,9 @@ define product_nat of_type fn nat fn nat nat as
         one     to y
         succ a  to sum_nat y product_nat a y
 
---
 --  decrement a nat. since decrementing one is 
 --  zero, it returns a whole number, which has 
 --  a zero variant.
---
 
 define decrement_nat of_type fn nat whole as lambda x pred x
 
@@ -38,10 +34,8 @@ define eq_nat of_type fn nat fn nat bool as
         tuple one    one     to true
         _                    to false
 
---
 --  check that the first nat is greater than
 --  the second one
---
 
 define greater of_type fn nat fn nat bool as 
     lambda a lambda b match the tuple nat nat tuple a b with
@@ -49,10 +43,8 @@ define greater of_type fn nat fn nat bool as
         tuple succ a succ b  to greater a b
         _                    to false
 
---
 --  find the greatest common denominator of two 
 --  nats
---
 
 define gcd of_type fn nat fn nat nat as
     lambda x lambda y gcd_helper i ii x y
@@ -73,9 +65,7 @@ define gcd_helper of_type fn nat fn nat fn nat fn nat nat as
                 y
         true to output
 
---
 --  find the least common multiple of two nats
---
 
 define lcm of_type fn nat fn nat nat as
     lambda x lambda y
@@ -145,10 +135,8 @@ define divisible of_type fn whole fn whole bool as
         some _  to true
         none    to false
 
---
 --  these define variables for 1-100 using roman
 --  numerals
---
 
 define i of_type nat as one
 

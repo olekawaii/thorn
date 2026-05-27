@@ -1,9 +1,7 @@
 {
   description = "A language for making ascii art animations";
 
-  inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
-  };
+  inputs.nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 
   outputs =
     { self, nixpkgs }:

@@ -4,18 +4,14 @@ for_all a type list contains
     nil
     cons a list a
 
---
 --  Functor
---
 
 for_all a b define map_list of_type fn fn a b fn list a list b as 
     lambda f lambda l match l with
         nil      to nil
         cons h t to cons f h map_list a b f t
 
--- 
 --  Applicative
---
 
 for_all a define lift_list of_type fn a list a as lambda x cons x nil
 
@@ -24,60 +20,46 @@ for_all a b define apply_list of_type fn list fn a b fn list a list b as
         lambda a map_list a b a x
         f
 
---
 --  Monad
---
 
 for_all a b define bind_list of_type fn list a fn fn a list b list b as 
     lambda x lambda f flatten_list map_list a list b f x
 
---
 --  foldr takes a binary function, a default 
 --  value, and a list of values. Using that
 --  function, it folds the list into a single
 --  value
---
 
 for_all a b define foldr of_type fn fn a fn b b fn b fn list a b as
     lambda f lambda d lambda l match l with
         nil      to d
         cons h t to f h foldr a b f d t
 
---
 --  Like foldr but doesn't use a default value.
 --  Crashes if list contains less than 2 values
---
 
 for_all a define unsafe_foldr_i of_type fn fn a fn a a fn list a a as
     lambda f lambda l match l with
         cons x cons y nil to f x y
         cons x xs         to f x unsafe_foldr_i a f xs
         _                 to ...  --  list's size was less than 2
---
 --  Concatinate two lists into a single list
---
 
 for_all a define cat of_type fn list a fn list a list a as 
     lambda x lambda y foldr a list a cons y x
 
---
 --  flatten a list of lists into a single list
---
 
 for_all a define flatten_list of_type fn list list a list a as 
     foldr list a list a cat nil
 
---
 --  Find the length of a list
---
 
 for_all a define list_length of_type fn list a whole as 
     compose list a nat whole pred foldr a nat const fn nat nat a succ one
 
---
 --  Takes the first n elements of a list. May
 --  return less than n
---
 
 for_all a define take of_type fn whole fn list a list a as
     lambda pred n lambda l match n with
@@ -86,9 +68,7 @@ for_all a define take of_type fn whole fn list a list a as
             nil       to nil
             cons h t  to cons h take pred x t
 
---
 --  Drops the first n elements of a list
---
 
 for_all a define drop of_type fn whole fn list a list a as
     lambda pred n lambda l match n with
@@ -97,10 +77,8 @@ for_all a define drop of_type fn whole fn list a list a as
             nil       to nil
             cons _ t  to drop pred x t
 
---
 --  Zip two lists into a single list of tuples.
 --  The output has the length of the smaller list
---
 
 for_all a b define zip of_type fn list a fn list b list tuple a b as 
     lambda x lambda y match the tuple list a list b tuple x y with
@@ -112,10 +90,8 @@ define zip_with of_type fn fn a fn b c fn list a fn list b list c as
     lambda f lambda la lambda lb 
         map_list tuple a b c uncurry a b c f zip la lb
         
---
 --  Keep elements of a list that return true
 --  for the given function
---
 
 for_all a define filter of_type fn fn a bool fn list a list a as 
     lambda f lambda l match l with
@@ -124,44 +100,34 @@ for_all a define filter of_type fn fn a bool fn list a list a as
             true   to cons h filter f t
             false  to        filter f t
 
---
 --  Find the first element that returns true for
 --  the given function
---
 
 for_all a define find of_type fn fn a bool fn list a option a as
     lambda f lambda l map_option non_empty_list a a head a 
         list_to_non_empty filter f l
 
---
 --  Concatinate a list with itself to make an 
 --  infinite list
---
 
 for_all a define cycle of_type fn list a list a as
     lambda x cat x cycle x
 
---
 --  Make a list containing n elements of a value
---
 
 for_all a define replicate of_type fn whole fn a list a as
     lambda n lambda x take n cycle lift_list x
 
---
 --  Reverse a list
---
 
 for_all a define reverse of_type fn list a list a as 
     lambda x match x with
         nil        to nil
         cons x xs  to append x reverse xs
 
---
 --  Append an element to the end of a list. Note
 --  that this is quite slow compared to cons, 
 --  taking O(n) time
---
 
 for_all a define append of_type fn a fn list a list a as
     lambda x lambda xs cat xs lift_list x

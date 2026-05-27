@@ -149,10 +149,10 @@ two points. Ignore the undefined types/functions.
 |                     squared diff xb xa
 |                     squared diff yb ya
 
-This is very verbose because we're patternmatching on all the points to get
-their x and y values. However, because the point type only contains one
-variant, we can actually patternmatch directly in the lambda expression
-like so
+This is very verbose because we're patternmatching on all the points to
+get their x and y values. However, because the point type only contains
+one variant, we can actually patternmatch directly in the lambda
+expression like so
 
 | define distance of_type fn point fn point float as
 |     lambda point xa ya lambda point xb yb  sqrt sum
@@ -287,38 +287,38 @@ variable name like so
 Now instead of the tail being hardcoded cyan, the calling function
 decides its color. Here's the full table of supported art syntax.
 
-       +------+-------+-----------------------------------------+
-       | left | right |                 effect                  |
-       +------+-------+-----------------------------------------+
-       | CHAR | 0     | Grey                                    |
-       | CHAR | 1     | Red                                     |
-       | CHAR | 2     | Green                                   |
-       | CHAR | 3     | Yellow                                  |
-       | CHAR | 4     | Blue                                    |
-       | CHAR | 5     | Magenta                                 |
-       | CHAR | 6     | Cyan                                    |
-       | CHAR | 7     | White                                   |
-       | CHAR | VAR   | Uses VAR as the color                   |
-       |      | |     | Space character                         |
-       |      | .     | Transparent                             |
-       | VAR  | $     | uses VAR as the character               |
-       | VAR  | #     | layers the frame VAR on top             |
-       | VAR  | ^     | applies fn VAR to the character below   |
-       +------+-------+-----------------------------------------+
+  +------+-------+-----------------------------------------+
+  | left | right |                 effect                  |
+  +------+-------+-----------------------------------------+
+  | CHAR | 0     | Grey                                    |
+  | CHAR | 1     | Red                                     |
+  | CHAR | 2     | Green                                   |
+  | CHAR | 3     | Yellow                                  |
+  | CHAR | 4     | Blue                                    |
+  | CHAR | 5     | Magenta                                 |
+  | CHAR | 6     | Cyan                                    |
+  | CHAR | 7     | White                                   |
+  | CHAR | VAR   | Uses VAR as the color                   |
+  |      | |     | Space character                         |
+  |      | .     | Transparent                             |
+  | VAR  | $     | uses VAR as the character               |
+  | VAR  | #     | layers the frame VAR on top             |
+  | VAR  | ^     | applies fn VAR to the character below   |
+  +------+-------+-----------------------------------------+
 where  VAR  is a single-letter variable name
        CHAR is a visible ASCII character
 
-You can see how the core types are implemented in the std. Ther are 
-many useful functions in video.th, list.th, and frame.th . To find 
+You can see how the core types are implemented in the std. Ther are
+many useful functions in video.th, list.th, and frame.th . To find
 the definition of a function, just run
-  
+
   $ grep -rn 'define function_name'
 
 -----------------------------   OUTPUT   -------------------------------
 
-After running thorn on the above program, the output is the 
-fully-evaluated main function, a tree of data constructors, a string 
-of words when printed out. In fact, if you copy-paste the output into 
-the main function, you will get the same output. To turn this output 
-into something you actually want, you have to interpret it with an 
+After running thorn on the above program, the output is the
+fully-evaluated main function, a tree of data constructors, a string
+of words when printed out. In fact, if you copy-paste the output into
+the main function, you will get the same output. To turn this output
+into something you actually want, you have to interpret it with an
 external program (like thorn-to-sh for ascii art animations).

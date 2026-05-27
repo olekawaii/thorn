@@ -1,25 +1,19 @@
 include frame non_empty_list
 
---
 --  A video is represented as a list of frames.
 --  Thus, you can use any of the functions in
 --  list.th on them. Functions defined here are
 --  just more specific to videos.
---
 
---
 --  add infinitely many empty frames to the end 
 --  of a video
---
 
 define pad_right_inf of_type fn list frame list frame as 
     lambda v cat v cycle lift_list new_frame
 
---
 --  layers two videos together without preserving
 --  loopingness. the output video will have the
 --  length of the larger video
---
 
 define layer of_type fn list frame fn list frame list frame as 
     lambda a lambda b 
@@ -29,78 +23,60 @@ define layer of_type fn list frame fn list frame list frame as
                 layer_frames x y
                 layer xs ys
 
---
 --  Apply a function to every frame of a video
---
 
 define entirely of_type fn fn frame frame fn list frame list frame as 
     map_list frame frame
 
--- 
 --  make the video x loop by adding a cropped
 --  reversed x to the end of it, making the  
 --  transition smooth.                       
--- 
 
 define loop of_type fn list frame list frame as
     lambda v cat v drop nat_to_whole one reverse drop nat_to_whole one v
 
--- 
 --  duplicate the last frame 
---
 
 define extend of_type fn list frame list frame as lambda x match x with
     cons x nil  to cons x lift_list x
     cons x xs   to cons x extend xs
 
--- 
 --  slow n multiplies every frame n times
---
 
 define slow of_type fn nat fn list frame list frame as
     lambda num lambda vid match vid with
         cons x xs to cat replicate nat_to_whole num x slow num xs
         nil to nil
 
---
 --  move the first frame to the back of the video
---
 
 define rotate of_type fn list frame list frame as
     lambda vid match vid with
         cons x xs to cat xs lift_list x
         nil       to nil
---
 --  move the last frame to the front of the video
---
 
 define rotate_right of_type fn list frame list frame as lambda x 
     match the option non_empty_list frame list_to_non_empty x with
         none    to nil
         some l  to cons last frame l init l
 
--- 
 --  `continuously f` applies the function `f` to     
 --  every frame `n` times where `n` is the index
 --  of the frame (0 based)                                       
---
 
 define continuously of_type fn fn frame frame fn list frame list frame as 
     lambda f lambda v match v with
         cons x xs to cons x continuously f entirely f xs
         nil       to nil
 
---
 --  apply a function to video n times
---
 
 define for of_type fn nat fn fn list frame list frame fn list frame list frame as
     repeat list frame 
 
---
 --  Returns the first frame of a video. Panics
 --  if the video is empty
---
 
 define first_frame of_type fn list frame frame as
-    lambda cons x _  x
+    lambda cons x _  x    -- fails on nil
