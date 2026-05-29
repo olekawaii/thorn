@@ -146,9 +146,9 @@ define insert_horizontal of_type fn int fn character fn horizontal horizontal as
 define insert_row of_type 
     fn nat fn character fn list grid_cell list grid_cell 
 as lambda index lambda chr lambda r match r with
-        cons head tail to match index with
-            one     to cons full_grid_cell chr tail
-            succ i  to cons head insert_row i chr tail
+        cons x xs to match index with
+            one     to cons full_grid_cell chr xs
+            succ i  to cons x insert_row i chr xs
         nil to insert_row index chr cons empty_grid_cell nil
 
 define insert_column of_type 

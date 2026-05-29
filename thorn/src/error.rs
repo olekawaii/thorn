@@ -74,7 +74,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "\n\x1b[7;31m {} ERROR \x1b[0m\x1b[0m {}\n\x1b[90m\n{}{}\x1b[0m\n",
+            "\n\x1b[91m {} ERROR \x1b[0m\x1b[0m {}\n\x1b[90m\n{}{}\x1b[0m\n",
             self.error_type.phase(),
             show_mark(self.mark.clone(), self.error_type.gist()),
             self.error_type,

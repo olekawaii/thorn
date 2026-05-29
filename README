@@ -1,11 +1,21 @@
-thorn is pure lazy functional programming language for making
-hand-drawn ASCII art animations.
-
-It's still in active development. If you encounter any bugs or issues,
-please let me know. Use https://codeberg.org/olekawaii/thorn for issues
-and contributions.
-
-check out some examples in the examples/ directory.
+---------------------------  INTRODUCTION   ----------------------------
+          ,.       ,.     
+        ,A@@@,   .A@@c    
+       f^T@@@@ ,PM@@@@L      thorn is a pure, lazy, strongly-typed
+          @@@@p`  "@@@@      functional  programming  language for 
+          @@@@     @@@@      making colorful hand-drown  ASCII art 
+          @@@@     @@@@      animations.
+          @@@@     @@@f      
+          @@W@    .@@F       It's still in active development.  If 
+          @@@@   ,@@'        you  encounter  any  bugs  or issues,
+          @@@@  ,@'          please  let  me  know.   Use the repo
+          @@@@.@'            https://codeberg.org/olekawaii/thorn
+          @@jF'              for issues and contributions.
+        .@F'
+       eF`                   Most importantly,   check  out  some 
+      !@       _             examples in the examples/ directory.
+      'e.    ,@@;
+        "9wew7F"
 
 --------------------------   INSTALLATION   ----------------------------
 
@@ -13,19 +23,23 @@ thorn has no dependencies. Assuming you have cargo and ghc, you can
 build it with
 
   $ ./build.sh   # make sure ~/.local/bin is in the $PATH
-      _    ___   _
-     / \   \  \ / \        If you have nix, there's a flake
-     \  \   \  '  /        you can play around with
-   ---`  `---\   /  ,
-  /___________\  \ / \         $ nix develop
-     /  /      \  /  /
-/''''  /        \/  '''\   or install it with
-\--.  /\        /  ----/
-  /  /  \      /  /            $ nix profile add .
-  \ / \  \------------
-   `  /   \ ___   __/      I hope to eventually package it
-     /  ,  \   \  \        for nixpkgs
-     \_/ \__\   \_/
+
+This installs thorn (the interpriter), thorn-to-sh, and thorn-to-gif to
+~/.local/bin (make sure it's in your $PATH). It also 
+the fonts used by thorn-to-gif ( ~/.local/shore/thorn/fonts )
+                                          _    ___   _
+If you have nix, there's a flake         / \   \  \ / \     
+you can play around with                 \  \   \  '  /     
+                                       ---`  `---\   /  ,
+  $ nix develop                       /___________\  \ / \  
+                                         /  /      \  /  /
+or install it with                  /''''  /        \/  '''\
+                                    \--.  /\        /  ----/
+  $ nix profile add .                 /  /  \      /  /     
+                                      \ / \  \------------
+In the future, I will package          `  /   \ ___   __/   
+thorn for nixpkgs.                       /  ,  \   \  \     
+                                         \_/ \__\   \_/     
 
 thorn works like a calculator. It parses and compiles the source code
 into an internal representation, but afterwards also executes it,
@@ -203,10 +217,8 @@ All data constructors are curried.
 The whole language is lazily evaluated. The only thing evaluated strictly
 is the main function.
 
-Here are some examples. Expressions are only evaluated when patternmatched on.
-If you don't try to match on something, it will never be evaluated.
-To evaluate an expression, it is rewritten until it starts with a
-data constructor.
+Here are some examples. Expressions are only evaluated when 
+patternmatched on.
 
 | type tuple_of_nats contains
 |     tuple nat nat

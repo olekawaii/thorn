@@ -1,4 +1,4 @@
-include frame non_empty_list
+include frame
 
 --  A video is represented as a list of frames.
 --  Thus, you can use any of the functions in
@@ -57,7 +57,7 @@ define rotate of_type fn list frame list frame as
 --  move the last frame to the front of the video
 
 define rotate_right of_type fn list frame list frame as lambda x 
-    match the option non_empty_list frame list_to_non_empty x with
+    match the option non_empty frame list_to_non_empty x with
         none    to nil
         some l  to cons last frame l init l
 
