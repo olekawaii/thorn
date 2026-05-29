@@ -1,32 +1,84 @@
 ---------------------------  INTRODUCTION   ----------------------------
-          ,.       ,.     
-        ,A@@@,   .A@@c    
-       f^T@@@@ ,PM@@@@L      thorn is a pure, lazy, strongly-typed
-          @@@@p`  "@@@@      functional  programming  language for 
-          @@@@     @@@@      making colorful hand-drown  ASCII art 
-          @@@@     @@@@      animations.
-          @@@@     @@@f      
-          @@W@    .@@F       It's still in active development.  If 
-          @@@@   ,@@'        you  encounter  any  bugs  or issues,
-          @@@@  ,@'          please  let  me  know.   Use the repo
-          @@@@.@'            https://codeberg.org/olekawaii/thorn
-          @@jF'              for issues and contributions.
-        .@F'
-       eF`                   Most importantly,   check  out  some 
-      !@       _             examples in the examples/ directory.
-      'e.    ,@@;
-        "9wew7F"
+         ,.       ,.        
+       ,A$$$,   .A$$c       
+      f"Y$$$$ ,PM$$$$L         thorn is a pure, lazy, strongly-typed
+         $$$$p`  "$$$$         functional programming language for 
+         $$$$     $$$$         making colorful hand-drown ASCII-art 
+         $$$$     $$$$         animations.
+         $$$$     $$$f         
+         $$$$    .$$F          It's still in active development. If 
+         $$$$   ,$$'           you encounter any bugs or issues,
+         $$$$  ,B'             please let me know. Send me an email
+         $$$R.f'               to olekawaii@yahoo.com or make an 
+         $RjF'                 issue at codeberg.org/olekawaii/thorn
+       .$F'                
+      eF`                      Make sure to check out some examples
+     !$       _                in the examples/ directory.
+     'e.    ,$$;           
+       "*wew7*"            
+
+------------------------------   WHY   ---------------------------------
+
+What's the point of this language? The point is to have
+  * Lovely error messages
+  * Cool syntax
+  * Simplicity and no modules (I encourage circular imports)
+
+A goal I have is to make the thorn source code as pretty as the actual 
+ASCII-art. See for yourself:
+
+define center_head of_type list frame as loop art xii ix
+   )  (     ...7..7.....    )  (    ....7..7....     )  (   .....7..7...
+  ((__))    ..776677....   ((__))   ...776677...    ((__))  ....776677..
+  /o..o\    ..636636....   /o..o\   ...636636...    /o..o\  ....636636..
+ ( -vv- )   .6|6776|6...  ( -vv- )  ..6|6776|6..   ( -vv- ) ...6|6776|6.
+  \ __. \   ..6|666|6...   ) __ (   ...6|66|6...   / .__ /  ...6|666|6..
+   )     \  ...6|||||6..  /      \  ..6||||||6..  /     (   ..6|||||6...
+  /       \ ..6|||||||6. /        \ .6||||||||6. /       \  .6|||||||6..
+ '         ).6|||||||||6(          )6||||||||||6(         ` 6|||||||||6.
+          ' ..||||||||6.            .||||||||||. `          .6||||||||..
+
+The source code looks nice because
+  * No special characters are allowed in the code (this includes
+    paranthesis) to make a nice contrast with the ASCII-art blocks,
+    which are made up almost entirely of special charecters.
+  * Drawings are isolated in their own blocks, so they're never
+    interrupted by escaped characters or colors.
+
+The paranthesis are not needed because
+  * If you know the types of everything, you don't need paranthesis.
+    Function arguments can be groupd with prefix Polix notation.
+  * When you don't know the type of something (because it's generic or
+    whatnot), you can just provide the type.
+  * Indentation acts like paranthesis in some cases, allowing you to
+    pass lambdas and match expressions directly as function arguments.
+    It can also help with type inference.
+
+The error messages are lovely because
+  * The errors show the highlighted line, an explenation of the error,
+    the previous line for context, and as all the other stuff you'd 
+    expect. But it also emphesizes what's important, hiding other noise.
+  * You get both compile-time and run-time errors in the same format.
+    That includes runtime errors like evaluation of an undefined or
+    bottom expression.
+  * There are no paranthesis, meaning all errors are found left to
+    right. If you get, say, a type error at the end of a line, you
+    know that everything that came before it was correct, not needing
+    to worry about it. There's also no concept of misplacing
+    paranthesis, which are a pain to debug in Haskell.
+  * There are no warnings, only errors. Unused variables and bad
+    indentation are caught before an ugly error message can surface.
 
 --------------------------   INSTALLATION   ----------------------------
 
 thorn has no dependencies. Assuming you have cargo and ghc, you can
 build it with
 
-  $ ./build.sh   # make sure ~/.local/bin is in the $PATH
+  $ ./build.sh
 
 This installs thorn (the interpriter), thorn-to-sh, and thorn-to-gif to
-~/.local/bin (make sure it's in your $PATH). It also 
-the fonts used by thorn-to-gif ( ~/.local/shore/thorn/fonts )
+~/.local/bin (make sure it's in your $PATH). It also installs the fonts 
+used by thorn-to-gif to ~/.local/share/thorn/fonts
                                           _    ___   _
 If you have nix, there's a flake         / \   \  \ / \     
 you can play around with                 \  \   \  '  /     
@@ -45,62 +97,12 @@ thorn works like a calculator. It parses and compiles the source code
 into an internal representation, but afterwards also executes it,
 printing the evaluated main function.
 
-  $ thorn | thorn-to-sh  | sh             # play in terminal
+  $ thorn | thorn-to-sh  | sh             # play as a shell script
   $ thorn | thorn-to-gif | ffplay -       # play as a gif (with ffmpeg)
 
-Note that thorn expects to find a main.th file and a main function.
-
-------------------------------   WHY   ---------------------------------
-
-What's the point of this language? The point is to have
-  * Lovely error messages
-  * Cool syntax
-  * Simplicity and no modules (I encourage circular imports)
-
-One of my main goals is to make the thorn source code as
-pretty as the actual ASCII art. see for yourself:
-
-define center_head of_type list frame as loop art xii ix
-   )  (     ...7..7.....    )  (    ....7..7....     )  (   .....7..7...
-  ((__))    ..776677....   ((__))   ...776677...    ((__))  ....776677..
-  /o..o\    ..636636....   /o..o\   ...636636...    /o..o\  ....636636..
- ( -vv- )   .6|6776|6...  ( -vv- )  ..6|6776|6..   ( -vv- ) ...6|6776|6.
-  \ __. \   ..6|666|6...   ) __ (   ...6|66|6...   / .__ /  ...6|666|6..
-   )     \  ...6|||||6..  /      \  ..6||||||6..  /     (   ..6|||||6...
-  /       \ ..6|||||||6. /        \ .6||||||||6. /       \  .6|||||||6..
- '         ).6|||||||||6(          )6||||||||||6(         ` 6|||||||||6.
-          ' ..||||||||6.            .||||||||||. `          .6||||||||..
-
-The source code looks nice because
-  * No special characters are allowed in the code (this includes
-    paranthesis) to make a nice contrast with the ASCII art blocks,
-    which are made up almost entirely of special charecters.
-  * Drawings are isolated in their own blocks, so they're never
-    disturbed by escaped characters or colors.
-
-The paranthesis are not needed because
-  * If you know the types of everything, you don't need paranthesis.
-    Function arguments can be groupd with prefix Polix notation.
-  * When you don't know the type of something (because it's generic or
-    whatnot), you can just provide the type.
-  * Indentation acts like paranthesis in some cases, allowing you to
-    pass lambdas and match expressions directly as function arguments.
-    It can also help with type inference.
-
-The error messages are lovely because
-  * The errors show the highlighted line and explenation of the error.
-    It also shows the previous line for context as well as all the
-    other stuff you'd expect.
-  * You get both compile-time and run-time errors in the same format.
-    That includes runtime errors like evaluation an undefined or
-    bottom expression.
-  * There are no paranthesis, meaning all errors are found left to
-    right. If you get, say, a type error at the end of a line, you
-    know that everything that came before it was correct, not needing
-    to worry about it. There's also no concept of misplacing
-    paranthesis, which are a pain to debug in Haskell.
-  * There are no warnings, only errors. Unused variables and bad
-    indentation are caught before an ugly error message can surface.
+Note that thorn expects to find a main.th file in your working directory
+or in any of its parent directories. That directory is the root of your
+project.
 
 ------------------------   ALGEBRAIC TYPES   ---------------------------
 
@@ -108,12 +110,12 @@ Thorn has algebraic types and generics. The for_all keyword is used to
 declare any type variables. Here's a demo of the list and option types
 
 | type bool contains
-|     true                               .----.----.----.
-|     false                              ['   |'   |'   ]
-|                                      .--.   :    :   .--.
-| for-all a type list contains         |' |---.----.---|' |
-|     nil                              |  |___|____|___|  |
-|     cons a list a                    :__|            :__|
+|     true                             
+|     false                            
+|                                      
+| for-all a type list contains         
+|     nil                              
+|     cons a list a                    
 |
 | for_all a type option contains
 |     none
@@ -181,21 +183,20 @@ More Patterns:
   CONSTRUCTOR [PATTERN]      Constructor and PATTERNs must match
   either PATTERN PATTERN     Either branch must match (same vars)
   bind VAR Pattern           Additionally bind the pattern to a VAR
-  _                          Drop the value, matches anything
-
+  _                          Like VAR but drops the value
 
 ---------------------------   RECURSION   ------------------------------
 
-There are no loops. The only way to "loop" is to recurse.
+There is no mutation and therefore there are no loops. The only way to 
+loop is to recurse or use a function that recurses.
 
-| define main of_type nat as
-|     sum
-|         three                +----------------------+
-|         succ one             | one              = 1 |
-|                              | succ one         = 2 |
-| type nat contains            | succ (succ one)  = 3 |
-|     one                      | and so on            |
-|     succ nat                 +----------------------+
+| define main of_type nat as sum
+|     three                          +----------------------+
+|     succ one                       | one              = 1 |
+|                                    | succ one         = 2 |
+| type nat contains                  | succ (succ one)  = 3 |
+|     one                            | and so on            |
+|     succ nat                       +----------------------+
 |
 | define three of_type nat as succ succ one
 |
@@ -207,27 +208,25 @@ There are no loops. The only way to "loop" is to recurse.
 >>  succ succ succ succ one
 
 By the way, if you look at the second to last line, the `one` branch
-returns a `succ` while the 'succ pred_x' branch returs a lambda
+returns a `succ` while the 'succ a' branch returs a lambda
 expression. This is because the `succ` data constructor is a function.
-(succ one) has the type (nat) but (succ) has the type (fn nat nat).
-All data constructors are curried.
+(succ one) is of type (nat) but (succ) is of type (fn nat nat).  All 
+data constructors are curried.
 
 ------------------------   LAZY EVALUATION   ---------------------------
 
-The whole language is lazily evaluated. The only thing evaluated strictly
-is the main function.
+The whole language is lazily evaluated. Expressions are only evaluated 
+when patternmatched on and evaluation starts at the main function. Here 
+are some examples.
 
-Here are some examples. Expressions are only evaluated when 
-patternmatched on.
-
-| type tuple_of_nats contains
-|     tuple nat nat
-|
 | define is_equal of_type fn nat fn nat bool as
 |     lambda x lambda y match tuple x y with
-|         tuple one    one     to true
-|         tuple succ a succ b  to is_equal a b
-|         _                    to false
+|         tuple one    one     to true               .----.----.----.
+|         tuple succ a succ b  to is_equal a b       ['   |'   |'   ]
+|         _                    to false            .--.   :    :   .--.
+|                                                  |' |---.----.---|' |
+| type tuple_of_nats contains                      |  |___|____|___|  |
+|     tuple nat nat                                :__|            :__|
 |
 | define infinity of_type nat as succ infinity
 
@@ -240,10 +239,10 @@ bother writing `define main of_type bool as` for each of them.
 |
 >>  false
 
-| is_equal                       -- Note that despite working with two
-|     infinity                   -- infinite structures, and is_equal
-|     infinity                   -- being recursive, the program does
-|                                -- not eat memory as it hangs.
+| is_equal                       -- Despite working with two "infinite"
+|     infinity                   -- structures, and is_equal being
+|     infinity                   -- recursive, the program does not
+|                                -- eat memory as it hangs.
 >>  *hangs at runtime*
 
 | is_equal                       -- ... is syntax for undefined. It
@@ -256,7 +255,7 @@ bother writing `define main of_type bool as` for each of them.
 |     succ succ succ one         -- crashes with an error message
 |     succ succ ...              -- pointing to it.
 |
->>  *panics at runtime*
+>>  *runtime error*
 
 ---------------------------   ART BLOCKS   -----------------------------
 
@@ -274,7 +273,7 @@ The animation is 6x4 in size and has 2 frames.
 |  ( /  .6|6..  \ ) ..6|6.
 |   V   ..6...   V  ...6..
 
-Every frame is made up of who rectangles, one with the ascii art and
+Every frame is made up of who rectangles, one with the ASCII-art and
 the other with the corresponding colors. Colors 0-7 correspond to ANSI
 colors black-white and `|`/`.` distinguish between spaces and
 transparency. The `vi iv` after the art keyword are the width and height
@@ -333,4 +332,10 @@ fully-evaluated main function, a tree of data constructors, a string
 of words when printed out. In fact, if you copy-paste the output into
 the main function, you will get the same output. To turn this output
 into something you actually want, you have to interpret it with an
-external program (like thorn-to-sh for ascii art animations).
+external program.
+
+thorn tries to adhere to the UNIX philosophy. All programs do one thing
+and their outputs are intended to be inputs for other programs. That's
+how you end up with the lovely pipelines shown at the start
+
+  $ thorn | thorn-to-sh | sh
