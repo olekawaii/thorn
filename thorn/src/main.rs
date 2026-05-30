@@ -96,6 +96,7 @@ fn parse_cli_arguments() -> error::Result<String> {
                 std::process::exit(1);
 
             }
+            x => std::env::set_current_dir(x).expect("not a valid directory"),
             _ => todo!()
         }
     }

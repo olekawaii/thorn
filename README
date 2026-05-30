@@ -1,17 +1,17 @@
 ---------------------------  INTRODUCTION   ----------------------------
          ,.       ,.        
        ,A$$$,   .A$$c       
-      f"Y$$$$ ,PM$$$$L         thorn is a pure, lazy, strongly-typed
+      f^Y$$$$ ,&M$$$$L         thorn is a pure, lazy, strongly-typed
          $$$$p`  "$$$$         functional programming language for 
-         $$$$     $$$$         making colorful hand-drown ASCII-art 
+         $$$$     $$$$         making colorful hand-drown ASCII art 
          $$$$     $$$$         animations.
          $$$$     $$$f         
          $$$$    .$$F          It's still in active development. If 
          $$$$   ,$$'           you encounter any bugs or issues,
          $$$$  ,B'             please let me know. Send me an email
-         $$$R.f'               to olekawaii@yahoo.com or make an 
-         $RjF'                 issue at codeberg.org/olekawaii/thorn
-       .$F'                
+         $$$R.f"               to olekawaii@yahoo.com or make an 
+         $Rj*'                 issue at codeberg.org/olekawaii/thorn
+       .$F"                
       eF`                      Make sure to check out some examples
      !$       _                in the examples/ directory.
      'e.    ,$$;           
@@ -25,7 +25,7 @@ What's the point of this language? The point is to have
   * Simplicity and no modules (I encourage circular imports)
 
 A goal I have is to make the thorn source code as pretty as the actual 
-ASCII-art. See for yourself:
+ASCII art. See for yourself:
 
 define center_head of_type list frame as loop art xii ix
    )  (     ...7..7.....    )  (    ....7..7....     )  (   .....7..7...
@@ -40,7 +40,7 @@ define center_head of_type list frame as loop art xii ix
 
 The source code looks nice because
   * No special characters are allowed in the code (this includes
-    paranthesis) to make a nice contrast with the ASCII-art blocks,
+    paranthesis) to make a nice contrast with the ASCII art blocks,
     which are made up almost entirely of special charecters.
   * Drawings are isolated in their own blocks, so they're never
     interrupted by escaped characters or colors.
@@ -273,7 +273,7 @@ The animation is 6x4 in size and has 2 frames.
 |  ( /  .6|6..  \ ) ..6|6.
 |   V   ..6...   V  ...6..
 
-Every frame is made up of who rectangles, one with the ASCII-art and
+Every frame is made up of who rectangles, one with the ASCII art and
 the other with the corresponding colors. Colors 0-7 correspond to ANSI
 colors black-white and `|`/`.` distinguish between spaces and
 transparency. The `vi iv` after the art keyword are the width and height

@@ -148,11 +148,9 @@ pub fn get_everything(name: &str) -> Result<(Expression, HashMap<u32, String>)> 
     }
     let output = std::process::Command::new("sh")
         .arg("-c")
-        .arg("find -L . -maxdepth 3 | grep '\\.th$'")
+        .arg("find -L . -maxdepth 4 | grep '\\.th$'")
         .output().unwrap();
-
     let mut numbor_of_vars = 0;
-
     let files = String::from_utf8_lossy(&output.stdout);
     let (vars, vars_dummy) = uwu(files.split_whitespace());
     let main = build_monolithic_expression(vars, &vars_dummy, name);
