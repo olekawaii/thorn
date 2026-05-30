@@ -2,12 +2,9 @@ include frame
 
 define horizontal_line_helper of_type 
     fn nat fn grid_cell fn character horizontal 
-as 
-    lambda x lambda c lambda b 
+as lambda x lambda c lambda b 
         horizontal nil cons full_grid_cell b append full_grid_cell b
-            replicate  
-                nat_to_whole x
-                c
+            replicate nat_to_whole x c
 
 define draw_box of_type fn nat fn nat frame as lambda x lambda y
     match the tuple horizontal horizontal 

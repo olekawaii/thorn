@@ -1,8 +1,6 @@
 include frame
 
-define main of_type list frame as layer 
-    nixos_small
-    entirely shift_by pos xxv pos iii nixos_big
+define main of_type list frame as nixos_big
 
 --        ____________              _    __    _              _    ___   _      
 --       /\    /\    /\            /\     \    /\            / \   \  \ / \     
@@ -17,11 +15,6 @@ define main of_type list frame as layer
 --     \    /\    /\    /        \    /\     \    /        `  /   \ ___   __/   
 --      \  /  \  /  \  /             /  \     \              /  ,  \   \  \     
 --       \/____\/____\/            \/_  _\_   _\/            \_/ \__\   \_/     
---
---  My take on the nixos logo. Surprisingly,
---  nixos_big turned out perfect using this
---  method, with no compromises. Though
---  nixos_small had more texture
 
 define nixos_small of_type list frame as art xxiv xiii
       _    ___   _      ......4....666...6......
