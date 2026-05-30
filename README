@@ -1,6 +1,6 @@
 ---------------------------  INTRODUCTION   ----------------------------
-         ,.       ,.        
-       ,A$$$,   .A$$c       
+         ,.       ,.
+       ,A$$$,   .A$$c
       f^Y$$$$ ,&M$$$$L         thorn is a pure, lazy, strongly-typed
          $$$$p`  "$$$$         functional programming language for 
          $$$$     $$$$         making colorful hand-drown ASCII art 
@@ -13,9 +13,9 @@
          $Rj*'                 issue at codeberg.org/olekawaii/thorn
        .$F"                
       eF`                      Make sure to check out some examples
-     !$       _                in the examples/ directory.
-     'e.    ,$$;           
-       "*wew7*"            
+     !$       _                in examples/ and std/
+     'e.    ,$$;
+       "*wew7*"
 
 ------------------------------   WHY   ---------------------------------
 
@@ -25,7 +25,7 @@ What's the point of this language? The point is to have
   * Simplicity and no modules (I encourage circular imports)
 
 A goal I have is to make the thorn source code as pretty as the actual 
-ASCII art. See for yourself:
+ASCII art. See for yourself (snippet from examples/dragon/main.th)
 
 define center_head of_type list frame as loop art xii ix
    )  (     ...7..7.....    )  (    ....7..7....     )  (   .....7..7...
