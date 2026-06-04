@@ -14,18 +14,34 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::sync::Arc;
+use std::{
+    sync::{Arc, Mutex},
+    fs::read_to_string
+};
+
+// debug info used by compile-time/run-time errors
+
+pub struct DebugInfo {
+    pub files:       Vec<String>,   // paths to all .th files
+}
+
+pub static DEBUG_INFO: Mutex<DebugInfo> = Mutex::new(DebugInfo { 
+    files:       Vec::new(),
+});
+
+pub fn get_file_name(index: u32) -> String {
+    DEBUG_INFO.lock().unwrap().files[index as usize].clone()
+}
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub struct Error {
-    pub error_type: Box<dyn ErrorType>,
-    pub mark: Mark,
-    pub note: Option<String>
+    pub error_type:  Box<dyn ErrorType>,
+    pub mark:        Mark,
+    pub note:        Option<String>
 }
 
-#[inline]
 pub fn make_error(error: impl ErrorType + 'static, mark: Mark) -> Error {
     Error {
         mark,
@@ -34,7 +50,6 @@ pub fn make_error(error: impl ErrorType + 'static, mark: Mark) -> Error {
     }
 }
 
-#[inline]
 pub fn add_note<T>(val: &mut Result<T>, note: &str) {
     if let Err(err) = val {
         err.note = Some(String::from(note));
@@ -48,8 +63,8 @@ pub trait ErrorType: std::fmt::Display + std::fmt::Debug {
 
 impl PartialEq for Error {
     fn eq(&self, other: &Error) -> bool {
-        (&self.mark.file.name, self.mark.line, self.mark.character).eq(
-        &(&other.mark.file.name, other.mark.line, other.mark.character))
+        (&self.mark.file, self.mark.line, self.mark.character).eq(
+        &(&other.mark.file, other.mark.line, other.mark.character))
     }
 }
 
@@ -58,15 +73,15 @@ impl Eq for Error {
 
 impl PartialOrd for Error {
     fn partial_cmp(&self, other: &Error) -> Option<std::cmp::Ordering> {
-        (&self.mark.file.name, self.mark.line, self.mark.character).partial_cmp(
-        &(&other.mark.file.name, other.mark.line, other.mark.character))
+        (&self.mark.file, self.mark.line, self.mark.character).partial_cmp(
+        &(&other.mark.file, other.mark.line, other.mark.character))
     }
 }
 
 impl Ord for Error {
     fn cmp(&self, other: &Error) -> std::cmp::Ordering {
-        (&self.mark.file.name, self.mark.line, self.mark.character).cmp(
-        &(&other.mark.file.name, other.mark.line, other.mark.character))
+        (&self.mark.file, self.mark.line, self.mark.character).cmp(
+        &(&other.mark.file, other.mark.line, other.mark.character))
     }
 }
 
@@ -95,7 +110,7 @@ pub struct File {
 
 #[derive(Debug, Clone, Hash)]
 pub struct Mark {
-    pub file: Arc<File>,
+    pub file: u32,
     pub block: Option<Arc<String>>,
     pub line: usize,
     pub character: usize,
@@ -115,7 +130,7 @@ impl Mark {
 impl Default for Mark {
     fn default() -> Self {
         Self {
-            file: Arc::new(File {name: String::new(), lines: Vec::new()}),
+            file: 67,
             block: None,
             line: 0,
             character: 0,
@@ -129,12 +144,15 @@ pub fn show_mark(mark: Mark, message: &'static str) -> String {
     let mut number = (mark.line + 1).to_string();
     number.push(' ');
     let indentation = number.chars().count();
-
+    let file_name = get_file_name(mark.file);
+    let file_contents = read_to_string(&file_name).unwrap();
+    let mut lines = file_contents.lines().enumerate();
     let line_before = if mark.line == 0 { 
         ""
     } else {
-        mark.file.lines[mark.line - 1].as_str()
+        lines.find(|(n, _)| *n == mark.line - 1).unwrap().1
     };
+    let current_line = lines.next().unwrap().1;
 
     let mut underline = String::new();
     underline.push_str(&" ".repeat(mark.character));
@@ -145,7 +163,7 @@ pub fn show_mark(mark: Mark, message: &'static str) -> String {
     format!(
         "\x1b[90min \x1b[0m{}\x1b[90m:\x1b[0m{}\x1b[90m:\x1b[0m{}\x1b[90m{}\n\n\
 \x1b[91m{}| \x1b[90m{}\n\x1b[91m{} | \x1b[0m{}\n\x1b[91m{}| {}\x1b[0m",
-        mark.file.name,
+        file_name,
         mark.line + 1,
         mark.character + 1,
         //mark.line + 1,
@@ -156,7 +174,7 @@ pub fn show_mark(mark: Mark, message: &'static str) -> String {
         &empty_space,
         line_before,
         mark.line + 1,
-        &mark.file.lines[mark.line],
+        current_line,
         &empty_space,
         underline,
     )

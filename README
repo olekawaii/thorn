@@ -1,7 +1,7 @@
 ---------------------------  INTRODUCTION   ----------------------------
          ,.       ,.
        ,A$$$,   .A$$c
-      f^Y$$$$ ,&M$$$$L         thorn is a pure, lazy, strongly-typed
+      f"Y$$$$ ,&M$$$$L         thorn is a pure, lazy, strongly-typed
          $$$$p`  "$$$$         functional programming language for 
          $$$$     $$$$         making colorful hand-drown ASCII art 
          $$$$     $$$$         animations.
@@ -9,7 +9,7 @@
          $$$$    .$$F          It's still in active development. If 
          $$$$   ,$$'           you encounter any bugs or issues,
          $$$$  ,B'             please let me know. Send me an email
-         $$$R.f"               to olekawaii@yahoo.com or make an 
+         $$$R,f"               to olekawaii@yahoo.com or make an 
          $Rj*'                 issue at codeberg.org/olekawaii/thorn
        .$F"                
       eF`                      Make sure to check out some examples
@@ -97,10 +97,10 @@ thorn works like a calculator. It parses and compiles the source code
 into an internal representation, but afterwards also executes it,
 printing the evaluated main function.
 
-  $ thorn | thorn-to-sh  | sh             # play as a shell script
-  $ thorn | thorn-to-gif | ffplay -       # play as a gif (with ffmpeg)
+  $ thorn examples/dragon/ | thorn-to-sh  | sh        # shell animation
+  $ thorn examples/dragon/ | thorn-to-gif | ffplay -  # gif
 
-Note that thorn expects to find a main.th file in your working directory
+Note that thorn expects to find a main.th file in the given directory
 or in any of its parent directories. That directory is the root of your
 project.
 
@@ -323,7 +323,7 @@ You can see how the core types are implemented in the std. Ther are
 many useful functions in video.th, list.th, and frame.th . To find
 the definition of a function, just run
 
-  $ grep -rn 'define function_name'
+  $ grep -Rn 'define function_name'
 
 -----------------------------   OUTPUT   -------------------------------
 

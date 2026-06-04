@@ -419,7 +419,7 @@ impl Tokens {
 
 pub fn tokenize(
     input: Vec<(usize, &str)>,
-    file: &Arc<File>,
+    file: u32,
     ignore_special_chars: bool
 ) -> Result<Tokens> {
     let keywords: HashMap<&str, Keyword> = HashMap::from([
@@ -446,7 +446,7 @@ pub fn tokenize(
         let indentation = indentation_length(line);
         if !indentation.is_multiple_of(INDENTATION) {
             return Err(make_error(ParseError::BadIndentation, Mark {
-                file: Arc::clone(file),
+                file,
                 line: line_number,
                 block: None,
                 character: 0,
@@ -455,7 +455,7 @@ pub fn tokenize(
         }
         output.push_back(Marked::<Token> {
             mark: Mark {
-                file: Arc::clone(file),
+                file,
                 line: line_number,
                 block: None,
                 character: last_index,
@@ -468,7 +468,7 @@ pub fn tokenize(
         'words: while let Some((character, word, length)) = words.next() {
             last_index = character + length;
             let mark: Mark = Mark {
-                file: Arc::clone(file),
+                file,
                 line: line_number,
                 block: None,
                 character,

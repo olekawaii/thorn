@@ -36,16 +36,10 @@ use crate::{
     runtime::{Expression},
 };
 
-// import logic
-// all files.th that are in the root directory (the one containing 
-// main.th) and in its subdirectories are included. It then checks 
-// for duplicate file names. Then it finds which files have which
-// functions and makes sure that outside functions are in scope of
-// the manually included files, if not it errors.
-
-
 fn main() -> std::io::Result<()> {
-    match parse_cli_arguments().and_then(|name| parse::get_everything(&name)) {
+    let name = parse_cli_arguments()?;
+    reach_project_root()?;
+    match parse::get_everything(&name) {
         Err(x) => {
             eprintln!("{x}");
             std::process::exit(1)
@@ -57,6 +51,25 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
+//  The root of the project is the directory with
+//  the main.th file. If main.th is not in the 
+//  working directory, we ascend up the parent
+//  directories until we find it or reach root.
+
+pub fn reach_project_root() -> std::io::Result<()> {
+    loop {
+        if std::env::current_dir().unwrap() == std::path::Path::new("/") {
+            println!("\x1b[91merror:\x1b[0m reached root without finding main.th\n       make sure you're in a project");
+            std::process::exit(1);
+        }
+        if std::path::Path::new("main.th").exists() {
+            break
+        }
+        std::env::set_current_dir("..")?
+    }
+    Ok(())
+}
+
 type Origins = HashMap<String, HashSet<String>>;
 
 struct Arguments {
@@ -64,40 +77,23 @@ struct Arguments {
     main_function: String,
 }
 
-fn parse_cli_arguments() -> error::Result<String> {
-    let args: Vec<String> = env::args().collect();
-    let mut arg_str = String::new();
-    args.iter().for_each(|x| {
-        arg_str.push_str(x);
-        arg_str.push(' ')
-    });
-    let arg_file = Arc::new(File {
-        name: String::from("arguments"),
-        lines: vec![arg_str]
-    });
-    let mut tokens: tokens::Tokens = tokens::tokenize(
-        vec![(0, &arg_file.lines[0])], 
-        &arg_file,
-        true
-    )?;
-    let _program_name = tokens.next_word();
+fn parse_cli_arguments() -> std::io::Result<String> {
     let mut name = String::from("main");
-    while let Ok(Marked::<String> {mark, value}) = tokens.next_word() {
-        match value.as_str() {
-            "--eval" => {
-                name = tokens.next_word()?.value;
-            }
+    let mut args = env::args();
+    let _program_name = args.next();
+    while let Some(x) = args.next() {
+        match x.as_str() {
+            "--eval" => name = args.next().expect("--eval expected a function name"),
             "--help" | "-h" => {
-                eprintln!("thorn [options]
+                eprintln!("thorn [options] [directory]
 
---help         show this help message
---eval NAME    evaluate NAME instead of main
+    --help         show this help message
+    --eval NAME    evaluate NAME instead of main
 ");
                 std::process::exit(1);
 
             }
-            x => std::env::set_current_dir(x).expect("not a valid directory"),
-            _ => todo!()
+            x => std::env::set_current_dir(x)?
         }
     }
     Ok(name)

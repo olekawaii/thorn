@@ -24,7 +24,7 @@ use std::sync::Mutex;
 use std::sync::Arc;
 use std::cell::RefCell;
 
-use crate::error::{make_error, Result, Error, ErrorType, File, Mark, Marked};
+use crate::error::{make_error, Result, Error, ErrorType, Mark, Marked, DEBUG_INFO, get_file_name};
 use crate::runtime::{optimize_expression, Expression, Pattern};
 use crate::tokens::*;
 
@@ -35,10 +35,10 @@ pub enum CompilationError {
     EitherMismatch,
     ExpectedMoreArguments,
     Custom(String),
-    NotInScope(String, Option<String>),
+    NotInScope(String, Option<u32>),
     TypeMismatch(Type, Option<Type>),
     BadFile(String),
-    MultipleDeclorations(String),
+    MultipleDeclorations(u32),
 }
 
 impl ErrorType for CompilationError {
@@ -78,10 +78,13 @@ the same variables and of the same type"),
                 "variable \x1b[97m{x}\x1b[90m not in scope{}",
                 match hint {
                     None => String::new(),
-                    Some(name) => format!(
+                    Some(name) => {
+                        let file_name = get_file_name(*name);
+                        format!(
 ",
 however it's defined in {name}
-consider including it with \x1b[97minclude {}\x1b[90m", extract_file_name(name))
+consider including it with \x1b[97minclude {}\x1b[90m", extract_file_name(&file_name))
+                    }
                 }
             ),
             Self::TypeNotInScope(x) => write!(f, "type \x1b[97m{x}\x1b[90m not in scope"),
@@ -136,33 +139,29 @@ type Globals = HashMap<String, GlobalVarData>;
 pub fn get_everything(name: &str) -> Result<(Expression, HashMap<u32, String>)> {
     let mut global_values_data: Vec<Expression> = Vec::new();
     let mut global_values: Globals = HashMap::new();
-    loop {
-        if std::env::current_dir().unwrap() == std::path::Path::new("/") {
-            println!("\x1b[91merror:\x1b[0m reached root without finding main.th\n       make sure you're in a project");
-            std::process::exit(1);
-        }
-        if std::path::Path::new("main.th").exists() {
-            break
-        }
-        std::env::set_current_dir("..").unwrap();
-    }
     let output = std::process::Command::new("sh")
         .arg("-c")
         .arg("find -L . -maxdepth 4 | grep '\\.th$'")
         .output().unwrap();
     let mut numbor_of_vars = 0;
     let files = String::from_utf8_lossy(&output.stdout);
-    let (vars, vars_dummy) = uwu(files.split_whitespace());
+    let files: Vec<String> = files
+        .split_whitespace()
+        .map(|x| x.to_string())
+        .collect();
+    {
+        let mut ptr = DEBUG_INFO.lock().unwrap();
+        ptr.files = files.clone();
+    }
+    let (vars, vars_dummy) = uwu(&files)?;
     let main = build_monolithic_expression(vars, &vars_dummy, name);
     let mut map = HashMap::new();
     for (name, GlobalVarData {id, ..}) in vars_dummy {
-        map.insert(
-            match id {
-                Id::Variable(a) => a as u32,
-                Id::Constructor(a) => a as u32,
-            }, 
-            name
-        );
+        let id_index = match id {
+            Id::Variable(a)    => a,
+            Id::Constructor(a) => a,
+        } as u32;
+        map.insert(id_index, name);
     }
     Ok((main, map))
 }
@@ -171,37 +170,21 @@ pub fn get_everything(name: &str) -> Result<(Expression, HashMap<u32, String>)> 
 // 2. parse all types
 // 3. parse all values
 
-struct Dependencies<'a> {
-    files: HashMap<&'a str, HashSet<&'a str>>      // filename, its file dependencies
+struct Dependencies {
+    files: HashMap<u32, HashSet<u32>>      // filename, its file dependencies
 }
 
-impl Dependencies<'_> {
-    fn is_available(&self, start: &str, end: &str) -> bool {
-        if start == end {return true};
-        let mut visited_files: HashSet<&str> = HashSet::new();
-        visited_files.insert(start);
-        let mut to_visit: Vec<&str> = vec![start];
-        while let Some(x) = to_visit.pop() {
-            if self.files.get(x).unwrap().contains(&end) {
-                return true;
-            }
-            for i in self.files.get(x).unwrap().difference(&visited_files.clone()) {
-                to_visit.push(i);
-                visited_files.insert(i);
-            }
-        }
-        false
-    }
-    fn available_files<'a>(&'a mut self, file: &'a str) -> HashSet<&'a str> {
-        let mut visited_files: HashSet<&str> = HashSet::from([file]);
-        let mut to_visit: Vec<&str> = vec![file];
+impl Dependencies {
+    fn available_files(&mut self, file: u32) -> HashSet<u32> {
+        let mut visited_files: HashSet<u32> = HashSet::from([file]);
+        let mut to_visit: Vec<u32> = vec![file];
         while let Some(x) = to_visit.pop() {
             self.files
-                .get(x)
+                .get(&x)
                 .unwrap()
                 .difference(&visited_files)
                 .map(|x| *x)
-                .collect::<Vec<&str>>()
+                .collect::<Vec<u32>>()
                 .into_iter()
                 .for_each(|i| {
                     to_visit.push(i);
@@ -214,15 +197,15 @@ impl Dependencies<'_> {
 
 fn get_includes<'a>(
     blocks: &mut Vec<Tokens>, 
-    file_names: &HashMap<String, &'a str>
-) -> Result<HashSet<&'a str>> {
+    file_names: &HashMap<String, (&'a str, u32)>
+) -> Result<HashSet<u32>> {
     let elem = &mut blocks[0];
     elem.remove_leading_newlines();
     let mut output = HashSet::new();
     if matches!(elem.peek().unwrap().value, Token::Keyword(Keyword::Include)) {
         let _ = elem.next();
         while let Ok(Marked {value: x, mark}) = elem.next_word() {
-            if let Some(key) = file_names.get(&x) {
+            if let Some((_, key)) = file_names.get(&x) {
                 output.insert(*key);
             } else {
                 return Err(make_error(CompilationError::BadFile(x), mark))
@@ -246,25 +229,6 @@ fn extract_file_name(file_name: &str) -> String {
 }
 
 
-fn non_fatal(errors: &mut Vec<Error>, err: Error) {
-    errors.push(err);
-}
-
-fn flush(errors: &mut Vec<Error>) {
-    if !errors.is_empty() {
-        let len = errors.len();
-        errors.sort();
-        for i in errors {
-            eprintln!("{i}");
-        }
-        eprintln!(
-            "exited with \x1b[91m{len}\x1b[0m {}", 
-            if len == 1 {"error"} else {"errors"}
-        );
-        std::process::exit(1)
-    }
-}
-
 fn kind_from_generics(count: u32) -> Kind {
     if count == 0 {
         Kind::Type
@@ -273,11 +237,12 @@ fn kind_from_generics(count: u32) -> Kind {
     }
 }
 
-pub fn uwu<'a>(files: impl Iterator<Item = &'a str> + Clone) -> (Vec<Expression>, Globals) {
-    let mut errors = Vec::new();
-    let mut file_names: HashMap<String, &str> = HashMap::new();
-    for i in files.clone() {
-        file_names.insert(extract_file_name(i), i);
+pub fn uwu<'a>(files: &Vec<String>) -> Result<(Vec<Expression>, Globals)> {
+    let mut file_names: HashMap<String, (&str, u32)> = HashMap::new();
+    let mut count: u32 = 0;
+    for i in files.iter() {
+        file_names.insert(extract_file_name(i), (i, count));
+        count += 1;
     }
     let mut final_var_table: HashMap<String, GlobalVarData> = HashMap::new();
 
@@ -300,32 +265,24 @@ pub fn uwu<'a>(files: impl Iterator<Item = &'a str> + Clone) -> (Vec<Expression>
     let mut file_tokens: Vec<(&str, Vec<Tokens>)> = Vec::new();
     let mut dependencies: Dependencies = Dependencies { files: HashMap::new() };
 
-    for file_name in files {
+    for (index, file_name) in files.iter().enumerate() {
         let contents = read_to_string(file_name).unwrap();
-        match tokenize_file(contents, file_name).and_then(|mut blocks|
-            get_includes(&mut blocks, &file_names).and_then(|deps| {
-                dependencies.files.insert(file_name, deps);
-                file_tokens.push((file_name, blocks));
-                Ok(())
-            })
-        ) {
-            Err(e) => non_fatal(&mut errors, e),
-            Ok(()) => ()
-        }
+        let mut blocks = tokenize_file(contents, index as u32)?;
+        let deps = get_includes(&mut blocks, &file_names)?;
+        dependencies.files.insert(index as u32, deps);
+        file_tokens.push((file_name, blocks));
     }
-
-    flush(&mut errors);
 
     for (file_name, blocks) in file_tokens.into_iter() {
         for mut block in blocks.into_iter() {
-            match extract_name_and_generics(&mut block) {
-                Ok(NameAndGenerics { name, mark, generics, kind }) => {
+            match extract_name_and_generics(&mut block)? {
+                NameAndGenerics { name, mark, generics, kind } => {
                     block.add_context(&name.clone().into());
                     match kind {
                         BlockKind::Variable => {
                             if let Some(x) = var_table.insert(name, (mark.clone(), var_bodies.len(), generics)) {
-                                errors.push(make_error(
-                                    CompilationError::MultipleDeclorations(x.0.file.name.clone()), 
+                                return Err(make_error(
+                                    CompilationError::MultipleDeclorations(x.0.file), 
                                     mark
                                 ))
                             }
@@ -338,8 +295,8 @@ pub fn uwu<'a>(files: impl Iterator<Item = &'a str> + Clone) -> (Vec<Expression>
                                 kind: kind_from_generics(generics.len() as u32),
                                 generics,
                             })) {
-                                errors.push(make_error(
-                                    CompilationError::MultipleDeclorations(x.mark.file.name.clone()), 
+                                return Err(make_error(
+                                    CompilationError::MultipleDeclorations(x.mark.file), 
                                     mark
                                 ))
                             }
@@ -347,12 +304,9 @@ pub fn uwu<'a>(files: impl Iterator<Item = &'a str> + Clone) -> (Vec<Expression>
                         }
                     }
                 }
-                Err(e) => non_fatal(&mut errors, e)
             }
         }
     }
-
-    flush(&mut errors);
 
     {
         let mut ptr = TYPES.lock().unwrap();
@@ -364,72 +318,58 @@ pub fn uwu<'a>(files: impl Iterator<Item = &'a str> + Clone) -> (Vec<Expression>
     // Step 2: parse the types of constructors and variables
 
     for (name, (mark, index, generics)) in var_table.into_iter() {
-        match parse_type(&mut var_bodies[index], &generics) {
-            Ok(var_type) => {
-                final_var_table.insert(name, GlobalVarData {
-                    var_type,
-                    mark,
-                    id: Id::Variable(index),
-                    generics,
-                });
-            }
-            Err(e) => errors.push(e)
-        }
+        let var_type = parse_type(&mut var_bodies[index], &generics)?;
+        final_var_table.insert(name, GlobalVarData {
+            var_type,
+            mark,
+            id: Id::Variable(index),
+            generics,
+        });
     }
-    flush(&mut errors);
 
     for (name, GlobalTypeData {mark, id: index, generics, kind }) in type_table.into_iter() {
         if index != 0 {
-            match parse_data(std::mem::take(&mut type_bodies[index - 1]), index as u32, &generics) {
-                Ok(branches) => {
-                    for (name, tp, mark) in branches.into_iter() {
-                        if let Some(x) = final_var_table.insert(name, GlobalVarData {
-                            mark: mark.clone(), 
-                            id: Id::Constructor(final_var_table.len()), 
-                            generics: generics.clone(),
-                            var_type: tp,
-                        }) {
-                            errors.push(make_error(
-                                CompilationError::MultipleDeclorations(x.mark.file.name.clone()), 
-                                mark
-                            ))
-                        }
-                    }
-                }
-                Err(e) => errors.push(e)
+            let branches = parse_data(
+                std::mem::take(&mut type_bodies[index - 1]), 
+                index as u32, 
+                &generics
+            )?;
+            for (name, tp, mark) in branches.into_iter() {
+                if let Some(x) = final_var_table.insert(name, GlobalVarData {
+                    mark: mark.clone(), 
+                    id: Id::Constructor(final_var_table.len()), 
+                    generics: generics.clone(),
+                    var_type: tp,
+                }) {
+                    return Err(make_error(
+                        CompilationError::MultipleDeclorations(x.mark.file), 
+                        mark
+                    ))
+                };
             }
         }
     }
-    flush(&mut errors);
 
     std::mem::drop(type_bodies);
     
     // step 3: parse the expressions
     for (name, GlobalVarData {mark, var_type, id, generics}) in final_var_table.iter() {
-        let available_files = dependencies.available_files(mark.file.name.as_str());
+        let available_files = dependencies.available_files(mark.file);
         let Id::Variable(index) = id else { continue };
-        match var_bodies[*index].expect_keyword(Keyword::As).and(
-            parse_expression(
-                &available_files,
-                var_type.clone(), 
-                &mut var_bodies[*index],
-                HashMap::new(),
-                0,
-                &final_var_table,
-                &generics,
-            ).and_then(|expression|
-                var_bodies[*index].expect_end().and({
-                    final_expressions[*index] = expression;
-                    Ok(())
-                })
-            )
-        ) {
-            Err(e) => errors.push(e),
-            Ok(e) => ()
-        }
+        var_bodies[*index].expect_keyword(Keyword::As)?;
+        let expression = parse_expression(
+            &available_files,
+            var_type.clone(), 
+            &mut var_bodies[*index],
+            HashMap::new(),
+            0,
+            &final_var_table,
+            &generics,
+        )?;
+        var_bodies[*index].expect_end()?;
+        final_expressions[*index] = expression;
     }
-    flush(&mut errors);
-    (final_expressions, final_var_table)
+    Ok((final_expressions, final_var_table))
 }
 
 fn build_monolithic_expression(
@@ -445,8 +385,10 @@ fn build_monolithic_expression(
             marks[*index] = val;
         }
     }
-    let expressions: Vec<Arc<RefCell<Expression>>> =
-        vec.into_iter().map(|x| Arc::new(RefCell::new(x))).collect();
+    let expressions: Vec<Arc<RefCell<Expression>>> = vec
+        .into_iter()
+        .map(|x| Arc::new(RefCell::new(x)))
+        .collect();
     for i in expressions.iter() {
         let ptr = &mut (**i).borrow_mut();
         monolithic_helper(&expressions, ptr, &marks)
@@ -670,14 +612,11 @@ fn replace_types(t: &mut Type, to_replace: &Vec<(usize, Type)>) {
     }
 }
 
-pub fn tokenize_file(input: String, file_name: &str) -> Result<Vec<Tokens>> {
-    let file = Arc::new(File {
-        name: file_name.to_string(),
-        lines: input.lines().map(|x| x.trim_end().to_string()).collect(),
-    });
+pub fn tokenize_file(input: String, file_index: u32) -> Result<Vec<Tokens>> {
     let mut output: Vec<Tokens> = Vec::new();
     let mut current_block: Vec<(usize, &str)> = Vec::new();
-    let mut file_lines = file.lines.iter().map(|x| x.as_str()).enumerate();
+    let mut file_lines: Vec<String> = input.lines().map(|x| x.trim_end().to_string()).collect();
+    let mut file_lines = file_lines.iter().map(|x| x.as_str()).enumerate();
     while let Some((line_number, string)) = file_lines.next() {
         if string.is_empty() || string.split_whitespace().next().unwrap() == "--" { // safe unwrap
             continue
@@ -688,7 +627,7 @@ pub fn tokenize_file(input: String, file_name: &str) -> Result<Vec<Tokens>> {
                 None | Some((_, "")) => {
                     output.push(tokenize(
                         current_block,
-                        &file,
+                        file_index,
                         false,
                     )?);
                     current_block = Vec::new();
@@ -706,15 +645,15 @@ pub fn tokenize_file(input: String, file_name: &str) -> Result<Vec<Tokens>> {
 fn lookup_global_vars<'a>(
     name:              &str,
     mark:              &Mark,
-    file_dependencies: &HashSet<&str>,
+    file_dependencies: &HashSet<u32>,
     global_vars: &'a Globals,
 ) -> Result<&'a GlobalVarData> {
     let Some(var) = global_vars.get(name) else {
         return Err(make_error(CompilationError::NotInScope(name.into(), None), mark.clone()));
     };
-    if !file_dependencies.contains(var.mark.file.name.as_str()) {
+    if !file_dependencies.contains(&var.mark.file) {
         return Err(make_error(
-            CompilationError::NotInScope(name.into(), Some(var.mark.file.name.clone())), 
+            CompilationError::NotInScope(name.into(), Some(var.mark.file)),
             mark.clone()
         ));
     }
@@ -839,7 +778,7 @@ fn find_all_generics(t: &Type, out: &mut Vec<usize>) {
 }
 
 pub fn parse_expression(
-    file_dependencies:     &HashSet<&str>,
+    file_dependencies:     &HashSet<u32>,
     expected_type:         Type,
     tokens:                &mut Tokens,
     mut local_vars:        LocalVars,
