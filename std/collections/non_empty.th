@@ -6,11 +6,11 @@ forall a
 type non_empty contains
     prepended a list a
 
---  head   tail
---   \   +-----+
---  [ 1, 2, 3, 4 ]
---    +-----+   \
---     init    last
+--             head    tail
+--                \   +-----+
+--               [ a, b, c, d ]
+--                 +-----+   \
+--                  init     last
 --
 --  Note that init and tail have a return type of
 --  `list a` while head and last return an `a`

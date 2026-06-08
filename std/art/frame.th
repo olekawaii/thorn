@@ -15,8 +15,8 @@ include prelude char video
 --    -----|----- -+
 --
 --
---  This is just a coordinate grid. (0, 0) is at 
---  the bottom left of the top right quadrant.
+--  This is just a coordinate grid. The origin is 
+--  at the bottom left of the top right quadrant.
 --  the bottom half of the video are the 
 --  coordinates with negative Ys, the left halves
 --  of the horizontals are the coords with 
@@ -111,8 +111,9 @@ define shift as the fn direction fn frame frame
         case east    map_columns shift_horizontal right f
         case west    map_columns shift_horizontal left  f
 
---  Essentially multiply all x coordinates by -1. 
---  this also flips some characters horizontally.
+--  Essentially multiply all x coordinates by neg 
+--  one. this also flips some characters 
+--  horizontally.
 --
 --    (flip_over_y . flip_over_y) /= identity
 --
@@ -134,7 +135,7 @@ define dye as the fn color fn frame frame lambda color map_frame
 define empty_horizontal as the horizontal 
     horizontal nil nil
 
-define insert_horizontal as the fn int fn character fn horizontal horizontal 
+define insert_horizontal as the fn int fn character fn horizontal horizontal
     lambda index lambda chr lambda horizontal n p
         match index 
             case neg index     horizontal insert_row index chr n p

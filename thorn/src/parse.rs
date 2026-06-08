@@ -932,6 +932,7 @@ fn parse_expression(
                 match a {
                     Id::Constructor(a) => (
                         Expression::DataConstructor(*a as u32),
+                        // TODO make sure the type constructor is correct
                         get_type_from_constructor(
                             b.clone(), 
                             expected_type.clone(), 

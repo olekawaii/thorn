@@ -64,7 +64,7 @@ define rotate_right as the fn list frame list frame lambda x
 
 --  `continuously f` applies the function `f` to     
 --  every frame `n` times where `n` is the index
---  of the frame (0 based)                                       
+--  of the frame (zero based)                                       
 
 define continuously as the fn fn frame frame fn list frame list frame 
     lambda f lambda v match v
@@ -73,7 +73,8 @@ define continuously as the fn fn frame frame fn list frame list frame
 
 --  apply a function to video n times
 
-define for as the fn nat fn fn list frame list frame fn list frame list frame 
+define for as the 
+    fn nat fn fn list frame list frame fn list frame list frame 
     repeat list frame 
 
 --  Returns the first frame of a video. Panics

@@ -1,6 +1,6 @@
 include nat
 
---  rgb colors found in terminals. note that
+--  RGB colors found in terminals. note that
 --  black is not black but bright black (gray).
 --  the colors don't have bright/dark variants
 --  because many themes don't support them, and
