@@ -382,28 +382,6 @@ impl Tokens {
         }
     }
 
-    pub fn collect_until(&mut self, token: Token) -> Result<Self> {
-        let mut current = std::mem::take(&mut self.tokens);
-        let mut breakoff = None;
-        for (index, candidate_token) in current.iter().enumerate() {
-            if candidate_token.value == token {
-                breakoff = Some(index);
-                break
-            }
-        }
-        match breakoff {
-            Some(index) => {
-                let mut leftover = current.split_off(index);
-                leftover.pop_front();
-                self.tokens = leftover;
-                Ok(Self::new(current))
-            }
-            None => {
-                Err(make_error(ParseError::KeywordNotFound(Keyword::ForAll), self.end.clone()))
-            }
-        }
-    }
-
     pub fn add_context(&mut self, block_name: &Arc<String>) {
         self.tokens.iter_mut().for_each(|x| x.mark.block = Some(Arc::clone(block_name)));
     }

@@ -7,7 +7,7 @@
 
 include video
 
-define main of_type list frame as take nat_to_whole xii dragon
+define main of_type list frame as dragon
 
 define center_head of_type list frame as loop art xii ix
    )  (     ...7..7.....    )  (    ....7..7....     )  (   .....7..7...
@@ -20,7 +20,7 @@ define center_head of_type list frame as loop art xii ix
  '         ).6|||||||||6(          )6||||||||||6(         ` 6|||||||||6.
           ' ..||||||||6.            .||||||||||. `          .6||||||||..
 
-define dragon of_type list frame as layer
+define dragon of_type list frame as take nat_to_whole xii layer
     layer cycle entirely shift_by neg vi pos iii center_head layer
         cycle right_half 
         for vi rotate entirely shift west entirely flip_over_y right_half

@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+const UNDERLINE_CHAR: &'static str = "^";
+
 use std::{
     sync::{Arc, Mutex},
     fs::read_to_string
@@ -102,12 +104,6 @@ impl std::fmt::Display for Error {
     }
 }
 
-#[derive(Debug, Hash)]
-pub struct File {
-    pub name: String,
-    pub lines: Vec<String>,
-}
-
 #[derive(Debug, Clone, Hash)]
 pub struct Mark {
     pub file: u32,
@@ -156,7 +152,7 @@ pub fn show_mark(mark: Mark, message: &'static str) -> String {
 
     let mut underline = String::new();
     underline.push_str(&" ".repeat(mark.character));
-    underline.push_str(&"~".repeat(mark.length));
+    underline.push_str(&UNDERLINE_CHAR.repeat(mark.length));
     underline.push_str("  ");
     underline.push_str(message);
     let empty_space = " ".repeat(indentation);

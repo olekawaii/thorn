@@ -1,25 +1,20 @@
 include frame
 
-define horizontal_line_helper of_type 
-    fn nat fn grid_cell fn character horizontal 
-as lambda x lambda c lambda b 
-        horizontal nil cons full_grid_cell b append full_grid_cell b
-            replicate nat_to_whole x c
+define main of_type list frame as lift_list draw_box x v
 
-define draw_box of_type fn nat fn nat frame as lambda x lambda y
-    match the tuple horizontal horizontal 
-            tuple
-                horizontal_line_helper 
-                    x
-                    full_grid_cell char hyphen_minus white 
-                    char plus_sign white
-                horizontal_line_helper 
-                    x 
-                    empty_grid_cell 
-                    char vertical_line white
+define draw_box of_type fn nat fn nat frame as
+    lambda x lambda y match the tuple horizontal horizontal tuple
+            horizontal_line_helper x
+                full_grid_cell char hyphen_minus white 
+                char plus_sign white
+            horizontal_line_helper x 
+                empty_grid_cell 
+                char vertical_line white
         with 
             tuple border middle  to frame nil cons border append border 
                 replicate nat_to_whole y middle
     
-define main of_type list frame as 
-    lift_list draw_box x v
+define horizontal_line_helper of_type 
+    fn nat fn grid_cell fn character horizontal 
+as lambda x lambda c lambda b  horizontal nil 
+    cons full_grid_cell b append full_grid_cell b replicate nat_to_whole x c

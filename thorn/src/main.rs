@@ -14,52 +14,39 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{
-    collections::{
-        HashMap,
-        HashSet,
-    },
-    env,
-    sync::Arc,
-    cell::RefCell,
-    path::Path,
-};
+use std::env;
 
 mod error;
 mod parse;
 mod runtime;
 mod tokens;
 
-use crate::{
-    error::{File, Marked},
-    parse::{Type},
-    runtime::{Expression},
-};
-
 fn main() -> std::io::Result<()> {
-    let name = parse_cli_arguments()?;
+    let Arguments { starting_dir, main_function } = parse_cli_arguments()?;
+    std::env::set_current_dir(&starting_dir)?;
     reach_project_root()?;
-    match parse::get_everything(&name) {
+    match parse::get_everything(&main_function) {
         Err(x) => {
             eprintln!("{x}");
             std::process::exit(1)
         }
-        Ok((mut expr, mut globals)) => {
+        Ok((expr, mut globals)) => {
             expr.print(&mut globals);
         }
     }
     Ok(())
 }
 
-//  The root of the project is the directory with
-//  the main.th file. If main.th is not in the 
-//  working directory, we ascend up the parent
-//  directories until we find it or reach root.
+// The root of the project is the directory with
+// the main.th file. If main.th is not in the 
+// working directory, we ascend up the parent
+// directories until we find it or reach root.
 
 pub fn reach_project_root() -> std::io::Result<()> {
     loop {
         if std::env::current_dir().unwrap() == std::path::Path::new("/") {
-            println!("\x1b[91merror:\x1b[0m reached root without finding main.th\n       make sure you're in a project");
+            println!("\x1b[91merror:\x1b[0m reached root without finding \
+                main.th\n       make sure you're in a project");
             std::process::exit(1);
         }
         if std::path::Path::new("main.th").exists() {
@@ -70,22 +57,32 @@ pub fn reach_project_root() -> std::io::Result<()> {
     Ok(())
 }
 
-type Origins = HashMap<String, HashSet<String>>;
-
 struct Arguments {
-    //root_file: String,
+    starting_dir: String,
     main_function: String,
 }
 
-fn parse_cli_arguments() -> std::io::Result<String> {
-    let mut name = String::from("main");
+impl Default for Arguments {
+    fn default() -> Arguments {
+        Arguments {
+            starting_dir:  String::from("."),
+            main_function: String::from("main")
+        }
+    }
+}
+
+fn parse_cli_arguments() -> std::io::Result<Arguments> {
+    let mut output = Arguments::default();
     let mut args = env::args();
     let _program_name = args.next();
     while let Some(x) = args.next() {
         match x.as_str() {
-            "--eval" => name = args.next().expect("--eval expected a function name"),
+            "--eval" => output.main_function = args
+                .next()
+                .expect("--eval expected a function name"),
             "--help" | "-h" => {
-                eprintln!("thorn [options] [directory]
+                eprintln!(
+"thorn [options] [directory]
 
     --help         show this help message
     --eval NAME    evaluate NAME instead of main
@@ -93,8 +90,8 @@ fn parse_cli_arguments() -> std::io::Result<String> {
                 std::process::exit(1);
 
             }
-            x => std::env::set_current_dir(x)?
+            _ => output.starting_dir = x,
         }
     }
-    Ok(name)
+    Ok(output)
 }
