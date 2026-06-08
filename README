@@ -27,7 +27,7 @@ What's the point of this language? The point is to have
 A goal I have is to make the thorn source code as pretty as the actual 
 ASCII art. See for yourself (snippet from examples/dragon/main.th)
 
-define center_head of_type list frame as loop art xii ix
+define center_head as the list frame loop art xii ix
    )  (     ...7..7.....    )  (    ....7..7....     )  (   .....7..7...
   ((__))    ..776677....   ((__))   ...776677...    ((__))  ....776677..
   /o..o\    ..636636....   /o..o\   ...636636...    /o..o\  ....636636..
@@ -97,12 +97,53 @@ thorn works like a calculator. It parses and compiles the source code
 into an internal representation, but afterwards also executes it,
 printing the evaluated main function.
 
-  $ thorn examples/dragon/ | thorn-to-sh  | sh        # shell animation
-  $ thorn examples/dragon/ | thorn-to-gif | ffplay -  # gif
+  $ thorn | thorn-to-sh  | sh               # shell animation
+  $ thorn | thorn-to-gif | ffplay -         # gif
 
 Note that thorn expects to find a main.th file in the given directory
 or in any of its parent directories. That directory is the root of your
 project.
+
+------------------------   SYNTAX OVERVIOW   ---------------------------
+
+--  this is a comment
+                            DECLARATIONS
+for_all NAME... DECLARATION    * declare any local type variables
+define NAME as EXPRESSION      * define a global variable
+type NAME contains             * type declaration. NAME is a data 
+    NAME TYPE...                 constructor and TYPE are its arguments
+    ...                              
+                             EXPRESSIONS
+the TYPE EXPRESSION            * type annotation for entire expression
+lambda PATTERN EXPRESSION      * lambda expression
+match EXPRESSION               * pattern matching
+    case PATTERN EXPRESSION  
+    ...                             
+                              PATTERNS
+NAME                           * capture value into variable name
+_                              * drop value
+CONSTRUCTOR PATTERNS           * match on constructor and its arguments
+bind NAME PATTERN              * in addition, capture value in NAME
+either PATTERN PATTERN         * match either pattern
+
+                         FUNCTION APPLICATION
+
+This code defines a function that applies a function to an integer.
+The main body, if with paranthesis, would be (apply (add one) three).
+
+| define apply as the fn fn int int fn int int ...
+|
+| define main as the int apply add one three
+
+What if we wanted to pass a lambda instead of the (add one)? We can't do
+(apply (lambda x add one x) three) because there are no paranthesis.
+Instead, we need to do
+
+| apply
+|     lambda x add one x
+|     three
+
+Indentation acts like paranthesis.
 
 ------------------------   ALGEBRAIC TYPES   ---------------------------
 
@@ -121,10 +162,10 @@ declare any type variables. Here's a demo of the list and option types
 |     none
 |     some a
 |
-| define first_bool of_type fn list bool option bool as
-|     lambda input_list match input_list with
-|         nil              to none
-|         cons head _tail  to some head
+| define first_bool as the fn list bool option bool
+|     lambda input_list match input_list 
+|         case nil                 none
+|         case cons head _tail     some head
 
 The lambda keyword starts a lambda expression, followed by a pattern,
 in which the input value will be placed. The match expression
@@ -134,12 +175,12 @@ In the last line, `cons` is a data constructor and `head/tail` are
 variable names for the `a` and `list a` in the list definition. _tail
 is prepended with an underscore to drop the value.
 
-| define main of_type option bool as
+| define main as the option bool
 |     first_bool cons true cons false nil
 |
 >>  some true        (thorn's output, assuming the above is in main.th)
 
-| define main of_type option bool as first_bool nil
+| define main as the option bool first_bool nil
 |
 >>  none
 
@@ -157,11 +198,11 @@ two points. Ignore the undefined types/functions.
 | type point contains
 |     point int int
 |
-| define distance of_type fn point fn point float as
+| define distance as the fn point fn point float
 |     lambda first_point lambda second_point
-|         match first_point with
-|             point xa ya to match second_point with
-|                 point xb yb to sqrt sum
+|         match first_point
+|             case point xa ya    match second_point
+|                 case point xb yb    sqrt sum
 |                     squared diff xb xa
 |                     squared diff yb ya
 
@@ -170,27 +211,21 @@ get their x and y values. However, because the point type only contains
 one variant, we can actually patternmatch directly in the lambda
 expression like so
 
-| define distance of_type fn point fn point float as
+| define distance as the fn point fn point float
 |     lambda point xa ya lambda point xb yb  sqrt sum
 |         squared diff xb xa
 |         squared diff yb ya
 
 In fact, lambda, match, and (in the future) let expressions all share
-the same syntax and semantics for capturing variables.
-
-More Patterns:
-  VAR                        Capture the value in VAR, matches anything
-  CONSTRUCTOR [PATTERN]      Constructor and PATTERNs must match
-  either PATTERN PATTERN     Either branch must match (same vars)
-  bind VAR Pattern           Additionally bind the pattern to a VAR
-  _                          Like VAR but drops the value
+the same syntax and semantics for capturing variables. More Patterns can
+be found in the syntax overview section.
 
 ---------------------------   RECURSION   ------------------------------
 
 There is no mutation and therefore there are no loops. The only way to 
 loop is to recurse or use a function that recurses.
 
-| define main of_type nat as sum
+| define main as the nat sum
 |     three                          +----------------------+
 |     succ one                       | one              = 1 |
 |                                    | succ one         = 2 |
@@ -198,12 +233,12 @@ loop is to recurse or use a function that recurses.
 |     one                            | and so on            |
 |     succ nat                       +----------------------+
 |
-| define three of_type nat as succ succ one
+| define three as the nat succ succ one
 |
-| define sum of_type fn nat fn nat nat as
-|     lambda x match x with
-|         one     to succ
-|         succ a  to lambda y succ sum a y    -- recursive
+| define sum as the fn nat fn nat nat
+|     lambda x match x 
+|         case one        succ
+|         case succ a     lambda y succ sum a y    -- recursive
 |
 >>  succ succ succ succ one
 
@@ -219,39 +254,39 @@ The whole language is lazily evaluated. Expressions are only evaluated
 when patternmatched on and evaluation starts at the main function. Here 
 are some examples.
 
-| define is_equal of_type fn nat fn nat bool as
-|     lambda x lambda y match tuple x y with
-|         tuple one    one     to true               .----.----.----.
-|         tuple succ a succ b  to is_equal a b       ['   |'   |'   ]
-|         _                    to false            .--.   :    :   .--.
-|                                                  |' |---.----.---|' |
-| type tuple_of_nats contains                      |  |___|____|___|  |
-|     tuple nat nat                                :__|            :__|
-|
-| define infinity of_type nat as succ infinity
+| define is_equal as the fn nat fn nat bool
+|     lambda x lambda y match tuple x y 
+|         case tuple one    one       true           
+|         case tuple succ a succ b    is_equal a b   .----.----.----.  
+|         case _                      false          ['   |'   |'   ]  
+|                                                  .--.   :    :   .--.
+| type tuple_of_nats contains                      |' |---.----.---|' |
+|     tuple nat nat                                |  |___|____|___|  |
+|                                                  :__|            :__|
+| define infinity as the nat succ infinity
 
 Let's see the results of evaluating the following expressions. I won't
-bother writing `define main of_type bool as` for each of them.
+bother writing `define main as` for each of them.
 
-| is_equal                       -- Despite infinity being infinitely
+| the bool is_equal              -- Despite infinity being infinitely
 |     succ succ succ one         -- large, we can still work with it
 |     infinity                   -- because it's evaluated lazily.
 |
 >>  false
 
-| is_equal                       -- Despite working with two "infinite"
+| the bool is_equal              -- Despite working with two "infinite"
 |     infinity                   -- structures, and is_equal being
 |     infinity                   -- recursive, the program does not
 |                                -- eat memory as it hangs.
 >>  *hangs at runtime*
 
-| is_equal                       -- ... is syntax for undefined. It
+| the bool is_equal              -- ... is syntax for undefined. It
 |     succ one                   -- can be used in place of any
 |     succ succ succ ...         -- expression.
 |
 >>  false
 
-| is_equal                       -- If ... is evaluated, the program
+| the bool is_equal              -- If ... is evaluated, the program
 |     succ succ succ one         -- crashes with an error message
 |     succ succ ...              -- pointing to it.
 |
@@ -265,9 +300,9 @@ The animation is 6x4 in size and has 2 frames.
 
 | include video
 |
-| define main of_type list frame as dragon_tail
+| define main as the list frame dragon_tail
 |
-| define dragon_tail of_type list frame as art vi iv
+| define dragon_tail as the list frame art vi iv
 |  \   ).6|||6(   / 6|||6.
 |   ) / ..6|6. \ (  .6|6..
 |  ( /  .6|6..  \ ) ..6|6.
@@ -277,7 +312,7 @@ Every frame is made up of who rectangles, one with the ASCII art and
 the other with the corresponding colors. Colors 0-7 correspond to ANSI
 colors black-white and `|`/`.` distinguish between spaces and
 transparency. The `vi iv` after the art keyword are the width and height
-of each frame in romal numerals.
+of each frame in roman numerals.
 
 Note that the indentation rules are different for art blocks. if the
 indentation of the line with 'art' is zero, so is the art's
@@ -288,7 +323,7 @@ There is special syntax for including local/global variables in the
 art. To use a color variable you just replace the color number with the
 variable name like so
 
-| define dragon_tail of_type fn color list frame as
+| define dragon_tail as the fn color list frame
 |     lambda c art vi iv
 |          \   ).c|||c(   / c|||c.
 |           ) / ..c|c. \ (  .c|c..
