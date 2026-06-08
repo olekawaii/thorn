@@ -50,9 +50,9 @@ define gcd as the fn nat fn nat nat
     lambda x lambda y gcd_helper i ii x y
 
 define gcd_helper as the fn nat fn nat fn nat fn nat nat 
-    lambda output lambda try lambda x lambda y
-    match or greater try x greater try y
-        case false       gcd_helper
+    lambda output lambda try lambda x lambda y match 
+        or greater try x greater try y
+        case false     gcd_helper
             match 
                 and 
                     divisible nat_to_whole x nat_to_whole try 
@@ -62,7 +62,7 @@ define gcd_helper as the fn nat fn nat fn nat fn nat nat
             succ try
             x
             y
-        case true    output
+        case true      output
 
 --  find the least common multiple of two nats
 
@@ -80,7 +80,8 @@ define lcm as the fn nat fn nat nat
 type coordinate contains
     coordinate int int
 
-for_all a define repeat as the fn nat fn fn a a fn a a 
+forall a 
+define repeat as the fn nat fn fn a a fn a a 
     lambda count lambda f lambda x match count
         case one                f x
         case succ new_count     f repeat a new_count f x

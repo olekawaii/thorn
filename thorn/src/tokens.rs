@@ -242,7 +242,7 @@ pub struct Tokens {
 impl std::fmt::Display for Keyword {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Keyword::ForAll     => write!(f, "for_all"),
+            Keyword::ForAll     => write!(f, "forall"),
             Keyword::Include    => write!(f, "include"),
             Keyword::Match      => write!(f, "match"),
             Keyword::With       => write!(f, "with"),
@@ -400,7 +400,7 @@ pub fn tokenize(
 ) -> Result<Tokens> {
     let keywords: HashMap<&str, Keyword> = HashMap::from([
         ( "include",   Keyword::Include   ),
-        ( "for_all",   Keyword::ForAll    ),
+        ( "forall",   Keyword::ForAll     ),
         ( "type",      Keyword::Type      ),
         ( "contains",  Keyword::Contains  ),
         ( "define",    Keyword::Define    ),

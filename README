@@ -108,7 +108,7 @@ project.
 
 --  this is a comment
                             DECLARATIONS
-for_all NAME... DECLARATION    * declare any local type variables
+forall NAME... DECLARATION     * declare any local type variables
 define NAME as EXPRESSION      * define a global variable
 type NAME contains             * type declaration. NAME is a data 
     NAME TYPE...                 constructor and TYPE are its arguments
@@ -135,8 +135,8 @@ The main body, if with paranthesis, would be (apply (add one) three).
 |
 | define main as the int apply add one three
 
-What if we wanted to pass a lambda instead of the (add one)? We can't do
-(apply (lambda x add one x) three) because there are no paranthesis.
+What if we wanted to pass a lambda instead of the (add one)? We can't
+do (apply (lambda x add one x) three) because there are no paranthesis.
 Instead, we need to do
 
 | apply
@@ -147,18 +147,18 @@ Indentation acts like paranthesis.
 
 ------------------------   ALGEBRAIC TYPES   ---------------------------
 
-Thorn has algebraic types and generics. The for_all keyword is used to
+Thorn has algebraic types and generics. The forall keyword is used to
 declare any type variables. Here's a demo of the list and option types
 
 | type bool contains
 |     true                             
 |     false                            
 |                                      
-| for-all a type list contains         
+| forall a type list contains         
 |     nil                              
 |     cons a list a                    
 |
-| for_all a type option contains
+| forall a type option contains
 |     none
 |     some a
 |

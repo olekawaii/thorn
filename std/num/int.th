@@ -14,18 +14,18 @@ define eq_int as the fn int fn int bool
 
 define sum_int as the fn int fn int int 
     lambda x lambda y match the tuple int int tuple x y
+        case tuple pos _ neg _     sum_int decrement x increment y
         case tuple neg a neg b     neg sum_nat a b
         case tuple pos a pos b     pos sum_nat a b
-        case tuple pos _ _         sum_int decrement x increment y
         case tuple zero  _         y
         case _                     sum_int y x
 
 define increment as the fn int int 
     lambda x match x
-        case pos a          pos succ a
-        case neg one        zero 
-        case neg succ a     neg a
-        case zero           pos one
+        case pos a                 pos succ a
+        case neg one               zero 
+        case neg succ a            neg a
+        case zero                  pos one
 
 define negate as the fn int int product_int neg one
 
@@ -39,9 +39,12 @@ define product_int as the fn int fn int int
                 tuple pos a pos b 
                 tuple neg a neg b
             pos product_nat a b
-        case tuple pos a neg b     neg product_nat a b
-        case tuple zero  _         zero
-        case _                     product_int y x
+        case 
+            either 
+                tuple pos a neg b     
+                tuple neg a pos b
+            neg product_nat a b
+        case _      zero
 
 define abselute_value as the fn int whole 
     lambda x match x

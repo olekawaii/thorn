@@ -2,14 +2,16 @@ include combinators list
 
 --  Represents a value that may or may not exist.
 
-for_all a type option contains
+forall a 
+type option contains
     none
     some a
 
 --  Attempt to unwrap an optional value. If it's
 --  none, return the given default value instead.
 
-for_all a define unwrap_or_default as the fn option a fn a a 
+forall a 
+define unwrap_or_default as the fn option a fn a a 
     lambda x lambda default match x
         case some a    a
         case none      default
@@ -18,36 +20,42 @@ for_all a define unwrap_or_default as the fn option a fn a a
 --  be none. Be careful with this one because it
 --  will crash on a none.
 
-for_all a define from_some as the fn option a a lambda x match x
+forall a 
+define from_some as the fn option a a lambda x match x
     case some a    a
     case none      ...     -- you tried to unwrap a none
 
 --  functor
 
-for_all a b define map_option as the fn fn a b fn option a option b 
+forall a b 
+define map_option as the fn fn a b fn option a option b 
     lambda f lambda x match x
         case none      none
         case some x    some f x
 
 --  applicative
 
-for_all a define lift_option as the fn a option a some
+forall a 
+define lift_option as the fn a option a some
 
-for_all a b define apply_option as the fn option fn a b fn option a option b 
+forall a b 
+define apply_option as the fn option fn a b fn option a option b 
     lambda f lambda x bind_option fn a b b 
         f 
         flip fn a b option a option b map_option a b x
 
 --  monad
 
-for_all a b define bind_option as the fn option a fn fn a option b option b 
+forall a b 
+define bind_option as the fn option a fn fn a option b option b 
     lambda x lambda f match x
         case none      none
         case some x    f x
 
 --  Convert an option to a list
 
-for_all a define fold_option as the fn option a list a 
+forall a 
+define fold_option as the fn option a list a 
     lambda x match x
         case none      nil
         case some x    cons x nil

@@ -1,36 +1,36 @@
 include combinators
 
-for_all a b 
+forall a b 
 type tuple contains
     tuple a b
 
-for_all a b 
+forall a b 
 define fst as the fn tuple a b a lambda tuple x _ x
 
-for_all a b 
+forall a b 
 define snd as the fn tuple a b b lambda tuple _ y y
 
 --  turn a curried function into a function that
 --  takes a tuple instead
 
-for_all a b c 
+forall a b c 
 define uncurry as the fn fn a fn b c fn tuple a b c 
     lambda f lambda tuple a b f a b
 
-for_all a b c 
+forall a b c 
 define curry as the fn fn tuple a b c fn a fn b c 
     lambda f lambda a lambda b f tuple a b
 
 --  bifunctor
 
-for_all a b c d 
+forall a b c d 
 define bimap as the fn fn a c fn fn b d fn tuple a b tuple c d 
     lambda f lambda g lambda tuple x y tuple f x g y
 
-for_all a b c 
+forall a b c 
 define map_fst as the fn fn a c fn tuple a b tuple c b 
     lambda f bimap a b c b f identity b
 
-for_all a b c 
+forall a b c 
 define map_snd as the fn fn b c fn tuple a b tuple a c 
     lambda f bimap a b a c identity a f

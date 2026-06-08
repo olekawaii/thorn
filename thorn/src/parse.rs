@@ -1063,7 +1063,7 @@ fn extract_name_and_generics(tokens: &mut Tokens) -> Result<NameAndGenerics> {
             _ => Err(Error {
                 mark: mark1,
                 error_type: Box::new(ParseError::UnexpectedKeyword),
-                note: Some(String::from("\x1b[90mexpected one of \x1b[97mdefine for_all type\x1b[90m")),
+                note: Some(String::from("\x1b[90mexpected one of \x1b[97mdefine forall type\x1b[90m")),
             }),
         }
     }

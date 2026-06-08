@@ -198,10 +198,10 @@ define layer_horizontal as the fn horizontal fn horizontal horizontal
             layer_rows aa ab
             layer_rows ba bb
 
-define layer_rows as the fn list grid_cell fn list grid_cell list grid_cell 
+define layer_rows as the 
+    fn list grid_cell fn list grid_cell list grid_cell
     lambda x lambda b match 
-        the 
-            tuple list grid_cell list grid_cell 
+        the tuple list grid_cell list grid_cell 
             tuple x b
         case tuple cons aa ba cons ab bb    cons
             match aa
