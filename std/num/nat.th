@@ -13,14 +13,14 @@ type nat contains
     succ nat
 
 define sum_nat of_type fn nat fn nat nat as
-    lambda x match x with
-        succ a  to compose nat nat nat succ sum_nat a
-        one     to succ
+    lambda x match x
+        case succ a     compose nat nat nat succ sum_nat a
+        case one        succ
 
 define product_nat of_type fn nat fn nat nat as 
-    lambda x lambda y match x with
-        one     to y
-        succ a  to sum_nat y product_nat a y
+    lambda x lambda y match x
+        case one        y
+        case succ a     sum_nat y product_nat a y
 
 --  decrement a nat. since decrementing one is 
 --  zero, it returns a whole number, which has 
@@ -29,19 +29,19 @@ define product_nat of_type fn nat fn nat nat as
 define decrement_nat of_type fn nat whole as lambda x pred x
 
 define eq_nat of_type fn nat fn nat bool as
-    lambda x lambda y match the tuple nat nat tuple x y with
-        tuple succ a succ b  to eq_nat a b
-        tuple one    one     to true
-        _                    to false
+    lambda x lambda y match the tuple nat nat tuple x y
+        case tuple succ a succ b     eq_nat a b
+        case tuple one    one        true
+        case _                       false
 
 --  check that the first nat is greater than
 --  the second one
 
 define greater of_type fn nat fn nat bool as 
-    lambda a lambda b match the tuple nat nat tuple a b with
-        tuple succ _ one     to true
-        tuple succ a succ b  to greater a b
-        _                    to false
+    lambda a lambda b match the tuple nat nat tuple a b 
+        case tuple succ _ one        true
+        case tuple succ a succ b     greater a b
+        case _                       false
 
 --  find the greatest common denominator of two 
 --  nats
@@ -51,40 +51,39 @@ define gcd of_type fn nat fn nat nat as
 
 define gcd_helper of_type fn nat fn nat fn nat fn nat nat as 
     lambda output lambda try lambda x lambda y
-    match or greater try x greater try y with
-        false to 
-            gcd_helper
-                match and 
-                        divisible nat_to_whole x nat_to_whole try 
-                        divisible nat_to_whole y nat_to_whole try 
-                    with
-                        true  to try
-                        false to output
-                succ try
-                x
-                y
-        true to output
+    match or greater try x greater try y
+        case false       gcd_helper
+            match 
+                and 
+                    divisible nat_to_whole x nat_to_whole try 
+                    divisible nat_to_whole y nat_to_whole try 
+                case true     try
+                case false    output
+            succ try
+            x
+            y
+        case true    output
 
 --  find the least common multiple of two nats
 
 define lcm of_type fn nat fn nat nat as
     lambda x lambda y
-        match divide_exactly 
+        match 
+            divide_exactly 
                 nat_to_whole product_nat x y 
                 nat_to_whole gcd x y 
-            with
-                none    to i
-                some x  to match x with
-                    pred one    to i
-                    pred succ x to x
+            case none       i
+            case some x     match x 
+                case pred one       i
+                case pred succ x    x
 
 type coordinate contains
     coordinate int int
 
 for_all a define repeat of_type fn nat fn fn a a fn a a as 
-    lambda count lambda f lambda x match count with
-        one             to f x
-        succ new_count  to f repeat a new_count f x
+    lambda count lambda f lambda x match count
+        case one                f x
+        case succ new_count     f repeat a new_count f x
 
 define sum_coordinate of_type fn coordinate fn coordinate coordinate as
     lambda coordinate x_i y_i lambda coordinate x_ii y_ii
@@ -92,10 +91,10 @@ define sum_coordinate of_type fn coordinate fn coordinate coordinate as
 
 define increment_whole of_type fn whole nat as lambda pred x x
 
-define decrement_whole of_type fn whole int as lambda x match x with
-    pred succ succ x  to pos x
-    pred succ one     to zero
-    pred one          to neg one
+define decrement_whole of_type fn whole int as lambda x match x 
+    case pred succ succ x     pos x
+    case pred succ one        zero
+    case pred one             neg one
 
 define eq_coordinate of_type fn coordinate fn coordinate bool as
     lambda coordinate a b lambda coordinate c d and eq_int a c eq_int b d
@@ -107,14 +106,14 @@ define whole_zero of_type whole as pred one
 
 define nat_to_whole of_type fn nat whole as compose nat nat whole pred succ
 
-define whole_to_int of_type fn whole int as lambda x match x with
-    pred one     to zero
-    pred succ a  to pos a
+define whole_to_int of_type fn whole int as lambda x match x
+    case pred one        zero
+    case pred succ a     pos a
 
-define int_to_whole of_type fn int option whole as lambda x match x with
-    neg _ to none
-    zero  to some whole_zero
-    pos a to some nat_to_whole a
+define int_to_whole of_type fn int option whole as lambda x match x
+    case neg _    none
+    case pos a    some nat_to_whole a
+    case zero     some whole_zero
 
 define subtract_exactly of_type fn whole fn whole option whole as 
     lambda x lambda y int_to_whole sum_int 
@@ -122,18 +121,18 @@ define subtract_exactly of_type fn whole fn whole option whole as
         product_int neg one whole_to_int y
 
 define divide_exactly of_type fn whole fn whole option whole as
-    lambda x match x with
-        pred one    to const option whole whole some whole_zero
-        _           to lambda y match subtract_exactly x y with
-            none    to none
-            some a  to map_option whole whole
+    lambda x match x 
+        case pred one     const option whole whole some whole_zero
+        case _            lambda y match subtract_exactly x y
+            case none       none
+            case some a     map_option whole whole
                 lambda x nat_to_whole increment_whole x
                 divide_exactly a y
 
 define divisible of_type fn whole fn whole bool as
-    lambda x lambda y match divide_exactly x y with
-        some _  to true
-        none    to false
+    lambda x lambda y match divide_exactly x y
+        case some _     true
+        case none       false
 
 --  these define variables for 1-100 using roman
 --  numerals

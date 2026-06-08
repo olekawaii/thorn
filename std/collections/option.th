@@ -1,34 +1,33 @@
 include combinators list
 
---  represents a value that may or may not exist
+--  Represents a value that may or may not exist.
 
 for_all a type option contains
     none
     some a
 
---  attempt to unwrap an optional value. if it's
---  none, return the given default value instead
+--  Attempt to unwrap an optional value. If it's
+--  none, return the given default value instead.
 
 for_all a define unwrap_or_default of_type fn option a fn a a as
-    lambda x lambda d match x with
-        some a to a
-        none   to d
+    lambda x lambda default match x
+        case some a    a
+        case none      default
 
---  unwraps an optional value assuming it can't 
---  be none. be careful with this one because it
---  will crash your program on a none
+--  Unwraps an optional value assuming it can't 
+--  be none. Be careful with this one because it
+--  will crash on a none.
 
-for_all a define from_some of_type fn option a a as 
-    lambda x match x with
-        some a  to a
-        none    to ...     -- you tried to unwrap a none
+for_all a define from_some of_type fn option a a as lambda x match x
+    case some a    a
+    case none      undefined     -- you tried to unwrap a none
 
 --  functor
 
 for_all a b define map_option of_type fn fn a b fn option a option b as 
-    lambda f lambda x match x with
-        none   to none
-        some x to some f x
+    lambda f lambda x match x
+        case none      none
+        case some x    some f x
 
 --  applicative
 
@@ -42,13 +41,13 @@ for_all a b define apply_option of_type fn option fn a b fn option a option b as
 --  monad
 
 for_all a b define bind_option of_type fn option a fn fn a option b option b as
-    lambda x lambda f match x with
-        none   to none
-        some x to f x
+    lambda x lambda f match x
+        case none      none
+        case some x    f x
 
 --  Convert an option to a list
 
-for_all a define fold_option of_type fn option a list a as
-    lambda x match x with
-        none   to        nil
-        some x to cons x nil
+for_all a define fold_option of_type fn option a list a as 
+    lambda x match x
+        case none      nil
+        case some x    cons x nil

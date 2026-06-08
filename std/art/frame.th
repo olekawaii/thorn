@@ -42,14 +42,14 @@ type grid_cell contains
 
 define insert of_type fn int fn int fn character fn frame frame as
     lambda x lambda y lambda chr
-        lambda frame col_neg col_pos match y with
-            neg index to frame
+        lambda frame col_neg col_pos match y 
+            case neg index    frame
                 insert_column x index chr col_neg
                 col_pos
-            pos index to frame
+            case pos index    frame
                 col_neg
                 insert_column x succ index chr col_pos
-            zero      to frame
+            case zero         frame
                 col_neg
                 insert_column x one chr col_pos
 
@@ -62,28 +62,26 @@ define by of_type fn nat fn fn frame frame fn frame frame as repeat frame
 --  values
 
 define shift_by of_type fn int fn int fn frame frame as 
-    lambda x lambda y lambda f match the fn frame frame match x with
-            pos a  to by a shift east
-            neg a  to by a shift west
-            zero   to identity frame
-        with
-            fa to match the fn frame frame match y with 
-                    pos a to by a shift north
-                    neg a to by a shift south
-                    zero  to identity frame
-                with
-                    fb to fa fb f
+    lambda x lambda y lambda f match 
+        the fn frame frame match x
+            case pos a     by a shift east
+            case neg a     by a shift west
+            case zero      identity frame
+        case fa    match 
+            the fn frame frame match y 
+                case pos a    by a shift north
+                case neg a    by a shift south
+                case zero     identity frame
+            case fb    fa fb f
 
 --  layer_frames a b layers a on top of b
 
 define layer_frames of_type fn frame fn frame frame as
-    lambda frame na pa lambda frame nb pb
-        frame
-            layer_columns na nb
-            layer_columns pa pb
+    lambda frame na pa lambda frame nb pb   frame
+        layer_columns na nb
+        layer_columns pa pb
 
-define new_frame of_type frame as
-    frame nil nil
+define new_frame of_type frame as frame nil nil
 
 type direction contains
     north
@@ -95,23 +93,23 @@ type direction contains
 --  in the direction d
 
 define shift of_type fn direction fn frame frame as
-    lambda dir lambda bind f frame col_neg col_pos match dir with
-        north to match col_neg with
-            cons hor col_succ to frame
+    lambda dir lambda bind f frame col_neg col_pos match dir
+        case north    match col_neg
+            case cons hor col_succ    frame
                 col_succ
                 cons hor col_pos
-            nil to frame
+            case nil    frame
                 nil
                 cons empty_horizontal col_pos
-        south to match col_pos with
-            cons hor col_succ to frame
+        case south    match col_pos
+            case cons hor col_succ    frame
                 cons hor col_neg
                 col_succ
-            nil to frame
+            case nil    frame
                 cons empty_horizontal col_neg
                 nil
-        east to map_columns shift_horizontal right f
-        west to map_columns shift_horizontal left f
+        case east    map_columns shift_horizontal right f
+        case west    map_columns shift_horizontal left  f
 
 --  Essentially multiply all x coordinates by -1. 
 --  this also flips some characters horizontally.
@@ -126,9 +124,9 @@ define flip_over_y of_type fn frame frame as map_columns over_y_hor
 --  color
 
 define dye of_type fn color fn frame frame as lambda color map_frame 
-    lambda c match c with
-        space     to space
-        char ch _ to char ch color
+    lambda c match c 
+        case space        space
+        case char ch _    char ch color
 
 --  The following are helper functions you 
 --  probably don't need 
@@ -138,27 +136,26 @@ define empty_horizontal of_type horizontal as
 
 define insert_horizontal of_type fn int fn character fn horizontal horizontal as
     lambda index lambda chr lambda horizontal n p
-        match index with
-            neg index  to horizontal insert_row index chr n p
-            pos index  to horizontal n insert_row succ index chr p
-            zero       to horizontal n insert_row one chr p
+        match index 
+            case neg index     horizontal insert_row index chr n p
+            case pos index     horizontal n insert_row succ index chr p
+            case zero          horizontal n insert_row one chr p
 
 define insert_row of_type 
     fn nat fn character fn list grid_cell list grid_cell 
-as lambda index lambda chr lambda r match r with
-        cons x xs to match index with
-            one     to cons full_grid_cell chr xs
-            succ i  to cons x insert_row i chr xs
-        nil to insert_row index chr cons empty_grid_cell nil
+as lambda index lambda chr lambda r match r 
+        case cons x xs    match index
+            case one        cons full_grid_cell chr xs
+            case succ i     cons x insert_row i chr xs
+        case nil    insert_row index chr cons empty_grid_cell nil
 
 define insert_column of_type 
     fn int fn nat fn character fn list horizontal list horizontal 
-as lambda x lambda y lambda chr lambda col match col with
-        cons head tail to match y with
-            succ i  to cons head insert_column x i chr tail
-            one     to cons insert_horizontal x chr head tail
-        nil to insert_column x y chr 
-            cons empty_horizontal nil
+as lambda x lambda y lambda chr lambda col match col
+        case cons head tail    match y
+            case succ i     cons head insert_column x i chr tail
+            case one        cons insert_horizontal x chr head tail
+        case nil    insert_column x y chr cons empty_horizontal nil
 
 type horizontal_direction contains
     right
@@ -167,13 +164,13 @@ type horizontal_direction contains
 define shift_horizontal of_type
     fn horizontal_direction fn horizontal horizontal
 as lambda dir lambda horizontal r_l r_r
-        match dir with
-            right to match r_l with
-                cons head tail  to horizontal tail cons head r_r
-                nil             to horizontal nil cons empty_grid_cell r_r
-            left to match r_r with
-                cons head tail  to horizontal cons head r_l tail
-                nil             to horizontal cons empty_grid_cell r_l nil
+        match dir 
+            case right    match r_l 
+                case cons head tail     horizontal tail cons head r_r
+                case nil                horizontal nil cons empty_grid_cell r_r
+            case left     match r_r
+                case cons head tail     horizontal cons head r_l tail
+                case nil                horizontal cons empty_grid_cell r_l nil
 
 define map_columns of_type fn fn horizontal horizontal fn frame frame as
     lambda f lambda frame cn cp
@@ -183,13 +180,18 @@ define map_columns of_type fn fn horizontal horizontal fn frame frame as
 
 define layer_columns of_type 
     fn list horizontal fn list horizontal list horizontal 
-as lambda ca lambda cb 
-        match the tuple list horizontal list horizontal tuple ca cb with
-            tuple cons head_a tail_a cons head_b tail_b to
-                cons
-                    layer_horizontal head_a head_b
-                    layer_columns tail_a tail_b
-            either tuple nil a tuple a nil  to a
+as lambda ca lambda cb match 
+    the tuple list horizontal list horizontal tuple ca cb
+    case 
+        tuple cons head_a tail_a cons head_b tail_b   
+        cons
+            layer_horizontal head_a head_b
+            layer_columns tail_a tail_b
+    case 
+        either 
+            tuple nil a 
+            tuple a nil     
+        a
 
 define layer_horizontal of_type fn horizontal fn horizontal horizontal as
     lambda horizontal aa ba lambda horizontal ab bb
@@ -198,36 +200,41 @@ define layer_horizontal of_type fn horizontal fn horizontal horizontal as
             layer_rows ba bb
 
 define layer_rows of_type fn list grid_cell fn list grid_cell list grid_cell as
-    lambda x lambda b 
-        match the tuple list grid_cell list grid_cell tuple x b with
-            tuple cons aa ba cons ab bb to
-                cons
-                    match aa with
-                        empty_grid_cell     to ab
-                        full_grid_cell _    to aa
-                        filter_grid_cell f  to match ab with
-                            empty_grid_cell     to filter_grid_cell f
-                            full_grid_cell c    to full_grid_cell f c
-                            filter_grid_cell g  to 
-                                filter_grid_cell lambda x f g x
-                    layer_rows ba bb
-            either  tuple nil a  tuple a nil  to a
+    lambda x lambda b match 
+        the 
+            tuple list grid_cell list grid_cell 
+            tuple x b
+        case tuple cons aa ba cons ab bb    cons
+            match aa
+                case empty_grid_cell        ab
+                case full_grid_cell _       aa
+                case filter_grid_cell f     match ab
+                    case empty_grid_cell        filter_grid_cell f
+                    case full_grid_cell c       full_grid_cell f c
+                    case filter_grid_cell g     filter_grid_cell 
+                        lambda x f g x
+            layer_rows ba bb
+        case 
+            either  
+                tuple nil a  
+                tuple a nil  
+            a
 
 define over_y_hor of_type fn horizontal horizontal as
-    lambda horizontal n p match p with
-        cons x xs  to horizontal 
+    lambda horizontal n p match p
+        case cons x xs     horizontal 
             map_row flip_over_y_char xs
             cons map_over_grid_cell flip_over_y_char x
                 map_row flip_over_y_char n
-        nil  to horizontal 
+        case nil     horizontal 
             nil
             cons empty_grid_cell map_row flip_over_y_char n
 
 define map_over_grid_cell of_type
     fn fn character character fn grid_cell grid_cell
-as lambda f lambda x match x with
-        full_grid_cell a    to full_grid_cell f a
-        _                   to x
+as lambda f lambda x match x 
+        case full_grid_cell a       full_grid_cell f a
+        case _                      x
 
 define map_horizontal of_type
     fn fn character character fn horizontal horizontal
@@ -241,8 +248,8 @@ as lambda f lambda x map_columns map_horizontal f x
 
 define map_row of_type 
     fn fn character character fn list grid_cell list grid_cell 
-as lambda f lambda x match x with
-        cons head tail  to cons
+as lambda f lambda x match x
+        case cons head tail     cons
             map_over_grid_cell f head 
             map_row f tail
-        nil to nil
+        case nil    nil

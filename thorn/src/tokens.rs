@@ -221,7 +221,7 @@ pub enum Keyword {
     OfType,
     The,
     As,
-    To,
+    Case,
     Type,
     Contains,
     Undefined,
@@ -236,7 +236,7 @@ pub enum Token {
 
 #[derive(Debug, Default)]
 pub struct Tokens {
-    tokens: LinkedList<Marked<Token>>,
+    pub tokens: LinkedList<Marked<Token>>,
     end: Mark,
 }
 
@@ -254,7 +254,7 @@ impl std::fmt::Display for Keyword {
             Keyword::OfType     => write!(f, "of_type"),
             Keyword::The        => write!(f, "the"),
             Keyword::As         => write!(f, "as"),
-            Keyword::To         => write!(f, "to"),
+            Keyword::Case       => write!(f, "case"),
             Keyword::Type       => write!(f, "type"),
             Keyword::Contains   => write!(f, "contains"),
             Keyword::Undefined  => write!(f, "undefined"),
@@ -414,7 +414,7 @@ pub fn tokenize(
         ( "bind",      Keyword::Bind      ),
         ( "either",    Keyword::Either    ),
         ( "with",      Keyword::With      ),
-        ( "to",        Keyword::To        ),
+        ( "case",      Keyword::Case      ),
         ( "...",       Keyword::Undefined ),
     ]);
     let mut output = LinkedList::new();

@@ -314,6 +314,7 @@ fn uwu<'a>(files: &Vec<String>) -> Result<(Vec<Expression>, Globals)> {
     // Step 2: parse the types of constructors and variables
 
     for (name, (mark, index, generics)) in var_table.into_iter() {
+        var_bodies[index].expect_keyword(Keyword::The);
         let var_type = parse_type(&mut var_bodies[index], &generics)?;
         final_var_table.insert(name, GlobalVarData {
             var_type,
@@ -352,7 +353,6 @@ fn uwu<'a>(files: &Vec<String>) -> Result<(Vec<Expression>, Globals)> {
     for (_name, GlobalVarData {mark, var_type, id, generics}) in final_var_table.iter() {
         let available_files = dependencies.available_files(mark.file);
         let Id::Variable(index) = id else { continue };
-        var_bodies[*index].expect_keyword(Keyword::As)?;
         let expression = parse_expression(
             &available_files,
             var_type.clone(), 
@@ -824,12 +824,22 @@ fn parse_expression(
                 }
             }
             Keyword::Match => {
-                tokens.remove_leading_newlines();
-                let (value, mark) = tokens.peek()?.clone().destructure();
+                let indentation: u8 = tokens
+                    .tokens
+                    .iter()
+                    .find(|x| matches!(x.value, Token::NewLine(n)))
+                    .map(|x| {
+                        let Token::NewLine(n) = x.value else { unreachable!() };
+                        n
+                    })
+                    .unwrap();
+                let mut branch_tokens = std::mem::take(tokens).get_with_indentation(indentation);
+                let mut matched_on_tokens = std::mem::take(&mut branch_tokens[0]);
+                let (value, mark) = matched_on_tokens.peek()?.clone().destructure();
                 let tp = match value {
                     Token::Keyword(Keyword::The) => {
-                        let _ = tokens.next(); // safe
-                        parse_type(tokens, generics)?
+                        let _ = matched_on_tokens.next(); // safe
+                        parse_type(&mut matched_on_tokens, generics)?
                     }
                     Token::Word(first_name) => {
                         let root_type = if let Some((_, b, _)) = local_vars.get(&first_name) { b.clone() } 
@@ -840,7 +850,7 @@ fn parse_expression(
                                 file_dependencies,
                                 global_vars,
                             )?;
-                            parse_generic_call(tokens, inner_generics, generics, b.clone())?
+                            parse_generic_call(&mut matched_on_tokens, inner_generics, generics, b.clone())?
                         };
                         root_type.final_type().clone()
                     }
@@ -849,34 +859,6 @@ fn parse_expression(
                     }
                     Token::NewLine(_) => unreachable!(),
                 };
-                let mut matched_on_tokens = LinkedList::new();
-                let mut unmatched_matches = 0;
-                loop {
-                    let token = match tokens.next() {
-                        Ok(x) => x,
-                        Err(mut e) => {
-                            e.error_type = Box::new(ParseError::KeywordNotFound(Keyword::With));
-                            return Err(e)
-                        }
-                    };
-                    match &token.value {
-                        Token::Keyword(Keyword::With) if unmatched_matches == 0 => break,
-                        Token::Keyword(Keyword::With) => {
-                            unmatched_matches -= 1;
-                            // technically should never happen
-                            if unmatched_matches < 0 {
-                                return Err(make_error(ParseError::UnexpectedKeyword, token.mark))
-                            }
-                            matched_on_tokens.push_back(token);
-                        }
-                        Token::Keyword(Keyword::Match) => {
-                            unmatched_matches += 1;
-                            matched_on_tokens.push_back(token);
-                        }
-                        _ => matched_on_tokens.push_back(token),
-                    }
-                }
-                let mut matched_on_tokens = Tokens::new(matched_on_tokens);
                 let matched_on = parse_expression(
                     file_dependencies,
                     tp.clone(), 
@@ -887,12 +869,11 @@ fn parse_expression(
                     generics,
                 )?;
                 matched_on_tokens.expect_end()?;
-                let (token, _mark) = tokens.next()?.destructure();
-                let Token::NewLine(indentation) = token else { panic!("no newline") };
-                let mut branch_tokens = std::mem::take(tokens).get_with_indentation(indentation);
+                // let (token, _mark) = tokens.next()?.destructure();
                 let mut branches: Vec<(Arc<Marked<Pattern>>, Expression)> = Vec::with_capacity(branch_tokens.len());
                 let mut patterns = Vec::new();
-                for branch in branch_tokens.iter_mut() {
+                for branch in branch_tokens.iter_mut().skip(1) {
+                    branch.expect_keyword(Keyword::Case)?;
                     let (pattern, mark, local_vars_new, local_vars_count) = parse_pattern(
                         local_vars_count, 
                         &tp, 
@@ -901,7 +882,6 @@ fn parse_expression(
                     )?;
                     let mut loc = local_vars.clone();
                     local_vars_new.clone().into_iter().for_each(|(k, v)| { loc.insert(k, v); });
-                    branch.expect_keyword(Keyword::To)?;
                     let body = parse_expression(
                         file_dependencies,
                         expected_type.clone(),
@@ -1070,7 +1050,7 @@ fn extract_name_and_generics(tokens: &mut Tokens) -> Result<NameAndGenerics> {
             }
             Keyword::Define => {
                 let (name, name_mark) = tokens.next_word()?.destructure();
-                tokens.expect_keyword(Keyword::OfType)?;
+                tokens.expect_keyword(Keyword::As)?;
                 Ok((name, name_mark, BlockKind::Variable))
             }
             Keyword::Type => {

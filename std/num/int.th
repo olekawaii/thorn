@@ -6,25 +6,25 @@ type int contains
     zero
 
 define eq_int of_type fn int fn int bool as
-    lambda x lambda y match the tuple int int tuple x y with
-        tuple pos a pos b  to eq_nat a b
-        tuple neg a neg b  to eq_nat a b
-        tuple zero  zero   to true
-        _                          to false
+    lambda x lambda y match the tuple int int tuple x y 
+        case tuple pos a pos b     eq_nat a b
+        case tuple neg a neg b     eq_nat a b
+        case tuple zero  zero      true
+        case _                     false
 
 define sum_int of_type fn int fn int int as 
-    lambda x lambda y match the tuple int int tuple x y with
-        tuple neg a neg b  to neg sum_nat a b
-        tuple pos a pos b  to pos sum_nat a b
-        tuple pos _ _      to sum_int decrement x increment y
-        tuple zero  _      to y
-        _                          to sum_int y x
+    lambda x lambda y match the tuple int int tuple x y
+        case tuple neg a neg b     neg sum_nat a b
+        case tuple pos a pos b     pos sum_nat a b
+        case tuple pos _ _         sum_int decrement x increment y
+        case tuple zero  _         y
+        case _                     sum_int y x
 
-define increment of_type fn int int as lambda x match x with
-    pos a       to pos succ a
-    neg one     to zero 
-    neg succ a  to neg a
-    zero        to pos one
+define increment of_type fn int int as lambda x match x
+    case pos a          pos succ a
+    case neg one        zero 
+    case neg succ a     neg a
+    case zero           pos one
 
 define negate of_type fn int int as product_int neg one
 
@@ -32,13 +32,16 @@ define decrement of_type fn int int as
     compose int int int negate compose int int int increment negate
 
 define product_int of_type fn int fn int int as 
-    lambda x lambda y match the tuple int int tuple x y with
-        either tuple pos a pos b tuple neg a neg b to 
+    lambda x lambda y match the tuple int int tuple x y
+        case 
+            either 
+                tuple pos a pos b 
+                tuple neg a neg b
             pos product_nat a b
-        tuple pos a neg b  to neg product_nat a b
-        tuple zero  _      to zero
-        _                          to product_int y x
+        case tuple pos a neg b     neg product_nat a b
+        case tuple zero  _         zero
+        case _                     product_int y x
 
-define abselute_value of_type fn int whole as lambda x match x with
-    either pos x neg x  to pred succ x
-    zero                to pred one
+define abselute_value of_type fn int whole as lambda x match x
+    case either pos x neg x     pred succ x
+    case zero                   pred one

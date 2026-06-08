@@ -7,9 +7,9 @@ for_all a type list contains
 --  Functor
 
 for_all a b define map_list of_type fn fn a b fn list a list b as 
-    lambda f lambda l match l with
-        nil      to nil
-        cons h t to cons f h map_list a b f t
+    lambda f lambda l match l
+        case nil               nil
+        case cons x xs         cons f x map_list a b f xs
 
 --  Applicative
 
@@ -31,9 +31,9 @@ for_all a b define bind_list of_type fn list a fn fn a list b list b as
 --  value
 
 for_all a b define foldr of_type fn fn a fn b b fn b fn list a b as
-    lambda f lambda d lambda l match l with
-        nil      to d
-        cons h t to f h foldr a b f d t
+    lambda f lambda d lambda l match l
+        case nil              d
+        case cons x xs        f x foldr a b f d xs
 
 --  Concatinate two lists into a single list
 
@@ -54,28 +54,32 @@ for_all a define list_length of_type fn list a whole as
 --  return less than n
 
 for_all a define take of_type fn whole fn list a list a as
-    lambda pred n lambda l match n with
-        one    to nil
-        succ x to match l with
-            nil       to nil
-            cons h t  to cons h take pred x t
+    lambda pred n lambda l match n
+        case one      nil
+        case succ x   match l
+            case nil        nil
+            case cons h t   cons h take pred x t
 
 --  Drops the first n elements of a list
 
 for_all a define drop of_type fn whole fn list a list a as
-    lambda pred n lambda l match n with
-        one    to l
-        succ x to match l with
-            nil       to nil
-            cons _ t  to drop pred x t
+    lambda pred n lambda l match n
+        case one       l
+        case succ x    match l
+            case nil          nil
+            case cons _ t     drop pred x t
 
 --  Zip two lists into a single list of tuples.
 --  The output has the length of the smaller list
 
 for_all a b define zip of_type fn list a fn list b list tuple a b as 
-    lambda x lambda y match the tuple list a list b tuple x y with
-        tuple cons ha ta cons hb tb    to cons tuple ha hb zip ta tb
-        either tuple nil _ tuple _ nil to nil
+    lambda x lambda y match the tuple list a list b tuple x y
+        case 
+            tuple cons ha ta cons hb tb    
+            cons tuple ha hb zip ta tb
+        case 
+            either tuple nil _ tuple _ nil 
+            nil
 
 for_all a b c 
 define zip_with of_type fn fn a fn b c fn list a fn list b list c as
@@ -86,11 +90,11 @@ define zip_with of_type fn fn a fn b c fn list a fn list b list c as
 --  for the given function
 
 for_all a define filter of_type fn fn a bool fn list a list a as 
-    lambda f lambda l match l with
-        nil       to nil
-        cons h t  to match f h with
-            true   to cons h filter f t
-            false  to        filter f t
+    lambda f lambda l match l 
+        case nil          nil
+        case cons h t     match f h 
+            case true      cons h filter f t
+            case false     filter f t
 
 --  Find the first element that returns true for
 --  the given function
@@ -113,9 +117,9 @@ for_all a define replicate of_type fn whole fn a list a as
 --  Reverse a list
 
 for_all a define reverse of_type fn list a list a as 
-    lambda x match x with
-        nil        to nil
-        cons x xs  to append x reverse xs
+    lambda x match x
+        case nil           nil
+        case cons x xs     append x reverse xs
 
 --  Append an element to the end of a list. Note
 --  that this is quite slow compared to cons, 

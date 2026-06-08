@@ -17,9 +17,9 @@ define pad_right_inf of_type fn list frame list frame as
 
 define layer of_type fn list frame fn list frame list frame as 
     lambda a lambda b 
-        match the tuple list frame list frame tuple a b with
-            either tuple nil xs tuple xs nil to xs
-            tuple cons x xs cons y ys        to cons
+        match the tuple list frame list frame tuple a b
+            case either tuple nil xs tuple xs nil    xs
+            case tuple cons x xs cons y ys           cons
                 layer_frames x y
                 layer xs ys
 
@@ -37,38 +37,39 @@ define loop of_type fn list frame list frame as
 
 --  duplicate the last frame 
 
-define extend of_type fn list frame list frame as lambda x match x with
-    cons x nil  to cons x lift_list x
-    cons x xs   to cons x extend xs
+define extend of_type fn list frame list frame as lambda x match x
+    case cons x nil     cons x lift_list x
+    case cons x xs      cons x extend xs
+    case nil            nil
 
 --  slow n multiplies every frame n times
 
 define slow of_type fn nat fn list frame list frame as
-    lambda num lambda vid match vid with
-        cons x xs to cat replicate nat_to_whole num x slow num xs
-        nil to nil
+    lambda num lambda vid match vid
+        case cons x xs    cat replicate nat_to_whole num x slow num xs
+        case nil          nil
 
 --  move the first frame to the back of the video
 
 define rotate of_type fn list frame list frame as
-    lambda vid match vid with
-        cons x xs to cat xs lift_list x
-        nil       to nil
+    lambda vid match vid 
+        case cons x xs    cat xs lift_list x
+        case nil          nil
 --  move the last frame to the front of the video
 
 define rotate_right of_type fn list frame list frame as lambda x 
-    match the option non_empty frame list_to_non_empty x with
-        none    to nil
-        some l  to cons last frame l init l
+    match the option non_empty frame list_to_non_empty x
+        case none       nil
+        case some l     cons last frame l init l
 
 --  `continuously f` applies the function `f` to     
 --  every frame `n` times where `n` is the index
 --  of the frame (0 based)                                       
 
 define continuously of_type fn fn frame frame fn list frame list frame as 
-    lambda f lambda v match v with
-        cons x xs to cons x continuously f entirely f xs
-        nil       to nil
+    lambda f lambda v match v
+        case cons x xs    cons x continuously f entirely f xs
+        case nil          nil
 
 --  apply a function to video n times
 
