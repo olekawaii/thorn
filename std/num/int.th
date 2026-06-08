@@ -5,14 +5,14 @@ type int contains
     pos nat
     zero
 
-define eq_int of_type fn int fn int bool as
+define eq_int as the fn int fn int bool 
     lambda x lambda y match the tuple int int tuple x y 
         case tuple pos a pos b     eq_nat a b
         case tuple neg a neg b     eq_nat a b
         case tuple zero  zero      true
         case _                     false
 
-define sum_int of_type fn int fn int int as 
+define sum_int as the fn int fn int int 
     lambda x lambda y match the tuple int int tuple x y
         case tuple neg a neg b     neg sum_nat a b
         case tuple pos a pos b     pos sum_nat a b
@@ -20,18 +20,19 @@ define sum_int of_type fn int fn int int as
         case tuple zero  _         y
         case _                     sum_int y x
 
-define increment of_type fn int int as lambda x match x
-    case pos a          pos succ a
-    case neg one        zero 
-    case neg succ a     neg a
-    case zero           pos one
+define increment as the fn int int 
+    lambda x match x
+        case pos a          pos succ a
+        case neg one        zero 
+        case neg succ a     neg a
+        case zero           pos one
 
-define negate of_type fn int int as product_int neg one
+define negate as the fn int int product_int neg one
 
-define decrement of_type fn int int as 
+define decrement as the fn int int 
     compose int int int negate compose int int int increment negate
 
-define product_int of_type fn int fn int int as 
+define product_int as the fn int fn int int 
     lambda x lambda y match the tuple int int tuple x y
         case 
             either 
@@ -42,6 +43,7 @@ define product_int of_type fn int fn int int as
         case tuple zero  _         zero
         case _                     product_int y x
 
-define abselute_value of_type fn int whole as lambda x match x
-    case either pos x neg x     pred succ x
-    case zero                   pred one
+define abselute_value as the fn int whole 
+    lambda x match x
+        case either pos x neg x     pred succ x
+        case zero                   pred one

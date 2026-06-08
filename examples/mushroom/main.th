@@ -1,6 +1,6 @@
 include prelude
                                                      
-define main of_type list frame as art xiii viii
+define main as the list frame art xiii viii
   __c__,___  ..117117111..
 (_c__O_/\_3_)1171171111711
        .     .....||7.....
@@ -10,7 +10,7 @@ define main of_type list frame as art xiii viii
      | |     .....7|7.....
      | |  s  .....7|7..#..
 
-define s of_type frame as first_frame art vi iii
+define s as the frame first_frame art vi iii
  .__  .711..
 (__o_)111711
  (  ) .7||7.

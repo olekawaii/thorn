@@ -1,11 +1,16 @@
-for_all a define identity of_type fn a a as lambda x x
+for_all a 
+define identity as the fn a a lambda x x
 
-for_all a b c define flip of_type fn fn a fn b c fn b fn a c as
+for_all a b c 
+define flip as the fn fn a fn b c fn b fn a c 
     lambda f lambda a lambda b f b a
 
-for_all a b c define compose of_type fn fn b c fn fn a b fn a c as
+for_all a b c 
+define compose as the fn fn b c fn fn a b fn a c 
     lambda g lambda f lambda x  g f x
 
-for_all a b define apply of_type fn fn a b fn a b as identity fn a b
+for_all a b 
+define apply as the fn fn a b fn a b identity fn a b
 
-for_all a b define const of_type fn a fn b a as lambda x lambda _ x
+for_all a b 
+define const as the fn a fn b a lambda x lambda _ x

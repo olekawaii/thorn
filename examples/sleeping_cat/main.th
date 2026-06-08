@@ -1,6 +1,8 @@
 include video
 
-define couch of_type frame as first_frame art xx vi
+define main as the list frame scene
+
+define couch as the frame first_frame art xx vi
   .----.----.----.  ..7777777777777777..
   ['   |'   |'   ]  ..77|||77|||77|||7..
 .--.   :    :   .--.7777|||7||||7|||7777
@@ -8,7 +10,7 @@ define couch of_type frame as first_frame art xx vi
 |  |___|____|___|  |7||77777777777777||7
 :__|            :__|7777............7777
 
-define main of_type list frame as take nat_to_whole xvi layer
+define scene as the list frame take nat_to_whole xvi layer
     entirely shift_by pos xxi pos ii layer
         cycle slow ii append new_frame entirely shift_by pos iv pos iv snore
         cycle loop for v extend art xv iv
@@ -26,23 +28,23 @@ define main of_type list frame as take nat_to_whole xvi layer
             shift_by pos v pos vii paintings
             by xxii shift east table
 
-define paintings of_type frame as first_frame art viii iii
+define paintings as the frame first_frame art viii iii
  __     .77.....
 |  |  _ 7||7..7.
 |__| (_)7777.777
 
-define table of_type frame as first_frame art ix iv
+define table as the frame first_frame art ix iv
 _________777777777
 `-------'777777777
    ) (   ...7|7...
   / : \  ..7.7.7..
 
-define lamp of_type frame as first_frame art vii v
+define lamp as the frame first_frame art vii v
   ___  ..777.. 
  /   \ .7|||7.
 '''"```7777777
    |   ...7...
    :   ...7...
 
-define snore of_type list frame as continuously shift_by pos i pos i art i i
+define snore as the list frame continuously shift_by pos i pos i art i i
 '7z7Z7

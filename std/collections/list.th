@@ -6,23 +6,23 @@ for_all a type list contains
 
 --  Functor
 
-for_all a b define map_list of_type fn fn a b fn list a list b as 
+for_all a b define map_list as the fn fn a b fn list a list b 
     lambda f lambda l match l
         case nil               nil
         case cons x xs         cons f x map_list a b f xs
 
 --  Applicative
 
-for_all a define lift_list of_type fn a list a as lambda x cons x nil
+for_all a define lift_list as the fn a list a lambda x cons x nil
 
-for_all a b define apply_list of_type fn list fn a b fn list a list b as
+for_all a b define apply_list as the fn list fn a b fn list a list b 
     lambda f lambda x flatten_list map_list fn a b list b
         lambda a map_list a b a x
         f
 
 --  Monad
 
-for_all a b define bind_list of_type fn list a fn fn a list b list b as 
+for_all a b define bind_list as the fn list a fn fn a list b list b 
     lambda x lambda f flatten_list map_list a list b f x
 
 --  foldr takes a binary function, a default 
@@ -30,30 +30,30 @@ for_all a b define bind_list of_type fn list a fn fn a list b list b as
 --  function, it folds the list into a single
 --  value
 
-for_all a b define foldr of_type fn fn a fn b b fn b fn list a b as
+for_all a b define foldr as the fn fn a fn b b fn b fn list a b 
     lambda f lambda d lambda l match l
         case nil              d
         case cons x xs        f x foldr a b f d xs
 
 --  Concatinate two lists into a single list
 
-for_all a define cat of_type fn list a fn list a list a as 
+for_all a define cat as the fn list a fn list a list a 
     lambda x lambda y foldr a list a cons y x
 
 --  flatten a list of lists into a single list
 
-for_all a define flatten_list of_type fn list list a list a as 
+for_all a define flatten_list as the fn list list a list a 
     foldr list a list a cat nil
 
 --  Find the length of a list
 
-for_all a define list_length of_type fn list a whole as 
+for_all a define list_length as the fn list a whole 
     compose list a nat whole pred foldr a nat const fn nat nat a succ one
 
 --  Takes the first n elements of a list. May
 --  return less than n
 
-for_all a define take of_type fn whole fn list a list a as
+for_all a define take as the fn whole fn list a list a 
     lambda pred n lambda l match n
         case one      nil
         case succ x   match l
@@ -62,7 +62,7 @@ for_all a define take of_type fn whole fn list a list a as
 
 --  Drops the first n elements of a list
 
-for_all a define drop of_type fn whole fn list a list a as
+for_all a define drop as the fn whole fn list a list a 
     lambda pred n lambda l match n
         case one       l
         case succ x    match l
@@ -72,7 +72,7 @@ for_all a define drop of_type fn whole fn list a list a as
 --  Zip two lists into a single list of tuples.
 --  The output has the length of the smaller list
 
-for_all a b define zip of_type fn list a fn list b list tuple a b as 
+for_all a b define zip as the fn list a fn list b list tuple a b 
     lambda x lambda y match the tuple list a list b tuple x y
         case 
             tuple cons ha ta cons hb tb    
@@ -81,15 +81,14 @@ for_all a b define zip of_type fn list a fn list b list tuple a b as
             either tuple nil _ tuple _ nil 
             nil
 
-for_all a b c 
-define zip_with of_type fn fn a fn b c fn list a fn list b list c as
+for_all a b c define zip_with as the fn fn a fn b c fn list a fn list b list c
     lambda f lambda la lambda lb 
         map_list tuple a b c uncurry a b c f zip la lb
         
 --  Keep elements of a list that return true
 --  for the given function
 
-for_all a define filter of_type fn fn a bool fn list a list a as 
+for_all a define filter as the fn fn a bool fn list a list a 
     lambda f lambda l match l 
         case nil          nil
         case cons h t     match f h 
@@ -99,24 +98,24 @@ for_all a define filter of_type fn fn a bool fn list a list a as
 --  Find the first element that returns true for
 --  the given function
 
-for_all a define find of_type fn fn a bool fn list a option a as
+for_all a define find as the fn fn a bool fn list a option a 
     lambda f lambda l map_option non_empty a a head a 
         list_to_non_empty filter f l
 
 --  Concatinate a list with itself to make an 
 --  infinite list
 
-for_all a define cycle of_type fn list a list a as
+for_all a define cycle as the fn list a list a 
     lambda x cat x cycle x
 
 --  Make a list containing n elements of a value
 
-for_all a define replicate of_type fn whole fn a list a as
+for_all a define replicate as the fn whole fn a list a 
     lambda n lambda x take n cycle lift_list x
 
 --  Reverse a list
 
-for_all a define reverse of_type fn list a list a as 
+for_all a define reverse as the fn list a list a 
     lambda x match x
         case nil           nil
         case cons x xs     append x reverse xs
@@ -125,5 +124,5 @@ for_all a define reverse of_type fn list a list a as
 --  that this is quite slow compared to cons, 
 --  taking O(n) time
 
-for_all a define append of_type fn a fn list a list a as
+for_all a define append as the fn a fn list a list a 
     lambda x lambda xs cat xs lift_list x

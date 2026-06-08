@@ -8,14 +8,14 @@ include frame
 --  add infinitely many empty frames to the end 
 --  of a video
 
-define pad_right_inf of_type fn list frame list frame as 
+define pad_right_inf as the fn list frame list frame 
     lambda v cat v cycle lift_list new_frame
 
 --  layers two videos together without preserving
 --  loopingness. the output video will have the
 --  length of the larger video
 
-define layer of_type fn list frame fn list frame list frame as 
+define layer as the fn list frame fn list frame list frame 
     lambda a lambda b 
         match the tuple list frame list frame tuple a b
             case either tuple nil xs tuple xs nil    xs
@@ -25,39 +25,39 @@ define layer of_type fn list frame fn list frame list frame as
 
 --  Apply a function to every frame of a video
 
-define entirely of_type fn fn frame frame fn list frame list frame as 
+define entirely as the fn fn frame frame fn list frame list frame 
     map_list frame frame
 
 --  make the video x loop by adding a cropped
 --  reversed x to the end of it, making the  
 --  transition smooth.                       
 
-define loop of_type fn list frame list frame as
+define loop as the fn list frame list frame 
     lambda v cat v drop nat_to_whole one reverse drop nat_to_whole one v
 
 --  duplicate the last frame 
 
-define extend of_type fn list frame list frame as lambda x match x
+define extend as the fn list frame list frame lambda x match x
     case cons x nil     cons x lift_list x
     case cons x xs      cons x extend xs
     case nil            nil
 
 --  slow n multiplies every frame n times
 
-define slow of_type fn nat fn list frame list frame as
+define slow as the fn nat fn list frame list frame 
     lambda num lambda vid match vid
         case cons x xs    cat replicate nat_to_whole num x slow num xs
         case nil          nil
 
 --  move the first frame to the back of the video
 
-define rotate of_type fn list frame list frame as
+define rotate as the fn list frame list frame 
     lambda vid match vid 
         case cons x xs    cat xs lift_list x
         case nil          nil
 --  move the last frame to the front of the video
 
-define rotate_right of_type fn list frame list frame as lambda x 
+define rotate_right as the fn list frame list frame lambda x 
     match the option non_empty frame list_to_non_empty x
         case none       nil
         case some l     cons last frame l init l
@@ -66,18 +66,18 @@ define rotate_right of_type fn list frame list frame as lambda x
 --  every frame `n` times where `n` is the index
 --  of the frame (0 based)                                       
 
-define continuously of_type fn fn frame frame fn list frame list frame as 
+define continuously as the fn fn frame frame fn list frame list frame 
     lambda f lambda v match v
         case cons x xs    cons x continuously f entirely f xs
         case nil          nil
 
 --  apply a function to video n times
 
-define for of_type fn nat fn fn list frame list frame fn list frame list frame as
+define for as the fn nat fn fn list frame list frame fn list frame list frame 
     repeat list frame 
 
 --  Returns the first frame of a video. Panics
 --  if the video is empty
 
-define first_frame of_type fn list frame frame as
+define first_frame as the fn list frame frame 
     lambda cons x _  x    -- fails on nil

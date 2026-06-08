@@ -4,7 +4,7 @@ for_all a type tree contains
     empty
     node a tree a tree a
 
-for_all a b define map_tree of_type fn fn a b fn tree a tree b as 
+for_all a b define map_tree as the fn fn a b fn tree a tree b 
     lambda f lambda t match t
         case empty                      empty
         case node root left right       node 
@@ -12,7 +12,7 @@ for_all a b define map_tree of_type fn fn a b fn tree a tree b as
             map_tree a b f left 
             map_tree a b f right
 
-for_all a define fold_tree of_type fn tree a list a as 
+for_all a define fold_tree as the fn tree a list a 
     lambda x match x 
         case empty                  nil
         case node root left right   cat

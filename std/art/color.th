@@ -1,3 +1,5 @@
+include nat
+
 --  rgb colors found in terminals. note that
 --  black is not black but bright black (gray).
 --  the colors don't have bright/dark variants
@@ -31,7 +33,7 @@ type color contains
 --  next_color is the next clock-wise color in
 --  this color wheel
 
-define next_color of_type fn color color as lambda x match x
+define next_color as the fn color color lambda x match x
     case red                    magenta
     case magenta                blue
     case blue                   cyan
@@ -44,6 +46,6 @@ define next_color of_type fn color color as lambda x match x
 --  rgb color wheel. black and white are 
 --  uneffected
 
-define complementary of_type fn color color as 
-    lambda x next_color next_color next_color x
+define complementary as the fn color color 
+    repeat color iii next_color
 

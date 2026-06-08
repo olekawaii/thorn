@@ -79,8 +79,10 @@ the same variables and of the same type"),
                         let file_name = get_file_name(*name);
                         format!(
 ",
-however it's defined in {name}
-consider including it with \x1b[97minclude {}\x1b[90m", extract_file_name(&file_name))
+however it's defined in {}
+consider including it with \x1b[97minclude {}\x1b[90m", 
+get_file_name(*name),
+extract_file_name(&file_name))
                     }
                 }
             ),

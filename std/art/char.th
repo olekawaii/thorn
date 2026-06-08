@@ -100,7 +100,7 @@ type visible_character contains
     right_curly_brace
     tilde
 
-define flip_over_y_visible of_type fn visible_character visible_character as 
+define flip_over_y_visible as the fn visible_character visible_character 
     lambda c match c
         case apostrophe              grave_accent
         case grave_accent            apostrophe
@@ -122,16 +122,16 @@ define flip_over_y_visible of_type fn visible_character visible_character as
         case small_q                 small_p
         case _                       c
 
-define flip_over_y_char of_type fn character character as 
+define flip_over_y_char as the fn character character 
     map_over_char flip_over_y_visible
 
-define map_over_char of_type 
+define map_over_char as the 
     fn fn visible_character visible_character fn character character
-as lambda f lambda x match x 
-    case space            space
-    case char c color     char f c color
+    lambda f lambda x match x 
+        case space            space
+        case char c color     char f c color
 
-define recolor_character of_type fn color fn character character as
+define recolor_character as the fn color fn character character 
     lambda color lambda character match character
         case char a _     char a color
         case space        space
