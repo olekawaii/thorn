@@ -1,8 +1,8 @@
----------------------------  INTRODUCTION   ----------------------------
+                             INTRODUCTION
          ,.       ,.
        ,A$$$,   .A$$c
       f"Y$$$$ ,&M$$$$L         thorn is a pure, lazy, strongly-typed
-         $$$$p`  "$$$$         functional programming language for 
+         $$$$p"  "$$$$         functional programming language for 
          $$$$     $$$$         making colorful hand-drown ASCII art 
          $$$$     $$$$         animations.
          $$$$     $$$f         
@@ -71,10 +71,10 @@ The error messages are lovely because
 
 --------------------------   INSTALLATION   ----------------------------
 
-thorn has no dependencies. Assuming you have cargo and ghc, you can
+thorn has few dependencies. Assuming you have cargo and ghc, you can
 build it with
 
-  $ ./build.sh
+    $ ./build.sh
 
 This installs thorn (the interpriter), thorn-to-sh, and thorn-to-gif to
 ~/.local/bin (make sure it's in your $PATH). It also installs the fonts 
@@ -83,11 +83,11 @@ used by thorn-to-gif to ~/.local/share/thorn/fonts
 If you have nix, there's a flake         / \   \  \ / \     
 you can play around with                 \  \   \  '  /     
                                        ---`  `---\   /  ,
-  $ nix develop                       /___________\  \ / \  
+    $ nix develop                     /___________\  \ / \  
                                          /  /      \  /  /
 or install it with                  /''''  /        \/  '''\
                                     \--.  /\        /  ----/
-  $ nix profile add .                 /  /  \      /  /     
+    $ nix profile add .               /  /  \      /  /     
                                       \ / \  \------------
 In the future, I will package          `  /   \ ___   __/   
 thorn for nixpkgs.                       /  ,  \   \  \     
@@ -96,9 +96,9 @@ thorn for nixpkgs.                       /  ,  \   \  \
 thorn works like a calculator. It parses and compiles the source code
 into an internal representation, but afterwards also executes it,
 printing the evaluated main function.
-
-  $ thorn | thorn-to-sh  | sh               # shell animation
-  $ thorn | thorn-to-gif | ffplay -         # gif
+  
+    $ thorn . | thorn-to-sh  | sh               # shell animation
+    $ thorn . | thorn-to-gif | ffplay -         # gif
 
 Note that thorn expects to find a main.th file in the given directory
 or in any of its parent directories. That directory is the root of your
@@ -114,8 +114,9 @@ type NAME contains             * type declaration. NAME is a data
     NAME TYPE...                 constructor and TYPE are its arguments
     ...                              
                              EXPRESSIONS
-the TYPE EXPRESSION            * type annotation for entire expression
+the TYPE EXPRESSION            * type annotation for rest of block
 lambda PATTERN EXPRESSION      * lambda expression
+undefined                      * undefined expression
 match EXPRESSION               * pattern matching
     case PATTERN EXPRESSION  
     ...                             
@@ -123,25 +124,25 @@ match EXPRESSION               * pattern matching
 NAME                           * capture value into variable name
 _                              * drop value
 CONSTRUCTOR PATTERNS           * match on constructor and its arguments
-bind NAME PATTERN              * in addition, capture value in NAME
-either PATTERN PATTERN         * match either pattern
+bind NAME PATTERN              * in addition, capture value in NAME (@)
+either PATTERN PATTERN         * match either pattern (|)
 
                          FUNCTION APPLICATION
 
 This code defines a function that applies a function to an integer.
 The main body, if with paranthesis, would be (apply (add one) three).
 
-| define apply as the fn fn int int fn int int ...
-|
-| define main as the int apply add one three
+  | define apply as the fn fn int int fn int int ...
+  |
+  | define main as the int apply add one three
 
 What if we wanted to pass a lambda instead of the (add one)? We can't
 do (apply (lambda x add one x) three) because there are no paranthesis.
 Instead, we need to do
 
-| apply
-|     lambda x add one x
-|     three
+  | define main is the int apply
+  |     lambda x add one x
+  |     three
 
 Indentation acts like paranthesis.
 
@@ -150,22 +151,22 @@ Indentation acts like paranthesis.
 Thorn has algebraic types and generics. The forall keyword is used to
 declare any type variables. Here's a demo of the list and option types
 
-| type bool contains
-|     true                             
-|     false                            
-|                                      
-| forall a type list contains         
-|     nil                              
-|     cons a list a                    
-|
-| forall a type option contains
-|     none
-|     some a
-|
-| define first_bool as the fn list bool option bool
-|     lambda input_list match input_list 
-|         case nil                 none
-|         case cons head _tail     some head
+  | type bool contains
+  |     true                             
+  |     false                            
+  |                                      
+  | forall a type list contains         
+  |     nil                              
+  |     cons a list a                    
+  |
+  | forall a type option contains
+  |     none
+  |     some a
+  |
+  | define first_bool as the fn list bool option bool
+  |     lambda input_list match input_list 
+  |         case nil                           none
+  |         case cons head _tail               some head
 
 The lambda keyword starts a lambda expression, followed by a pattern,
 in which the input value will be placed. The match expression
@@ -175,14 +176,14 @@ In the last line, `cons` is a data constructor and `head/tail` are
 variable names for the `a` and `list a` in the list definition. _tail
 is prepended with an underscore to drop the value.
 
-| define main as the option bool
-|     first_bool cons true cons false nil
-|
->>  some true        (thorn's output, assuming the above is in main.th)
+  | define main as the option bool
+  |     first_bool cons true cons false nil
 
-| define main as the option bool first_bool nil
-|
->>  none
+output:  some true        (thorn's output, if the above is in main.th)
+
+  | define main as the option bool first_bool nil
+
+output:  none
 
 Functions can also be generic, but I'm still figuring out the syntax
 for calling a generic function whose type can't be inferred. The std/
@@ -195,26 +196,26 @@ not even numbers (defined in std/num/nat.th as roman numerals).
 Consider the following function that finds the distance between
 two points. Ignore the undefined types/functions.
 
-| type point contains
-|     point int int
-|
-| define distance as the fn point fn point float
-|     lambda first_point lambda second_point
-|         match first_point
-|             case point xa ya    match second_point
-|                 case point xb yb    sqrt sum
-|                     squared diff xb xa
-|                     squared diff yb ya
+  | type point contains
+  |     point float float
+  |
+  | define distance as the fn point fn point float
+  |     lambda first_point lambda second_point
+  |         match first_point
+  |             case point xa ya    match second_point
+  |                 case point xb yb    sqrt sum
+  |                     squared diff xb xa
+  |                     squared diff yb ya
 
 This is very verbose because we're patternmatching on all the points to
 get their x and y values. However, because the point type only contains
 one variant, we can actually patternmatch directly in the lambda
 expression like so
 
-| define distance as the fn point fn point float
-|     lambda point xa ya lambda point xb yb  sqrt sum
-|         squared diff xb xa
-|         squared diff yb ya
+  | define distance as the fn point fn point float
+  |     lambda point xa ya lambda point xb yb  sqrt sum
+  |         squared diff xb xa
+  |         squared diff yb ya
 
 In fact, lambda, match, and (in the future) let expressions all share
 the same syntax and semantics for capturing variables. More Patterns can
@@ -225,22 +226,22 @@ be found in the syntax overview section.
 There is no mutation and therefore there are no loops. The only way to 
 loop is to recurse or use a function that recurses.
 
-| define main as the nat sum
-|     three                          +----------------------+
-|     succ one                       | one              = 1 |
-|                                    | succ one         = 2 |
-| type nat contains                  | succ (succ one)  = 3 |
-|     one                            | and so on            |
-|     succ nat                       +----------------------+
-|
-| define three as the nat succ succ one
-|
-| define sum as the fn nat fn nat nat
-|     lambda x match x 
-|         case one        succ
-|         case succ a     lambda y succ sum a y    -- recursive
-|
->>  succ succ succ succ one
+  | define main as the nat sum
+  |     three                          +----------------------+
+  |     succ one                       | one              = 1 |
+  |                                    | succ one         = 2 |
+  | type nat contains                  | succ (succ one)  = 3 |
+  |     one                            | and so on            |
+  |     succ nat                       +----------------------+
+  |
+  | define three as the nat succ succ one
+  |
+  | define sum as the fn nat fn nat nat
+  |     lambda x match x 
+  |         case one             succ
+  |         case succ a          lambda y succ sum a y     -- recursive
+
+output:  succ succ succ succ one
 
 By the way, if you look at the second to last line, the `one` branch
 returns a `succ` while the 'succ a' branch returs a lambda
@@ -248,49 +249,70 @@ expression. This is because the `succ` data constructor is a function.
 (succ one) is of type (nat) but (succ) is of type (fn nat nat).  All 
 data constructors are curried.
 
-------------------------   LAZY EVALUATION   ---------------------------
+--------------------   LAZY EVALUATION AND REPL   ----------------------
 
 The whole language is lazily evaluated. Expressions are only evaluated 
 when patternmatched on and evaluation starts at the main function. Here 
-are some examples.
+are some examples. I'll use the thorn repl to define and test them.
 
-| define is_equal as the fn nat fn nat bool
-|     lambda x lambda y match tuple x y 
-|         case tuple one    one       true           
-|         case tuple succ a succ b    is_equal a b   .----.----.----.  
-|         case _                      false          ['   |'   |'   ]  
-|                                                  .--.   :    :   .--.
-| type tuple_of_nats contains                      |' |---.----.---|' |
-|     tuple nat nat                                |  |___|____|___|  |
-|                                                  :__|            :__|
-| define infinity as the nat succ infinity
+>>> type bool contains                            
+...     true                                      
+...     false                                       .----.----.----.  
+...                                                 ['   |'   |'   ]  
+>>> type nat contains                             .--.   :    :   .--.
+...     one                                       |' |---.----.---|' |
+...     succ nat                                  |  |___|____|___|  |
+...                                               :__|            :__|
+>>> define infinity as the nat succ infinity       
+...
+>>> type tuple_of_nats contains tuple nat nat
+...
+>>> define is_equal as the fn nat fn nat bool
+...     lambda x lambda y match tuple x y 
+...         case tuple one    one              true           
+...         case tuple succ a succ b           is_equal a b
+...         case _                             false       
+...                                                 
+>>> -- Let's see what happens when we evaluate these expressions
+>>>
+>>> the bool is_equal               -- Despite infinity being infinitely
+...     succ succ succ one          -- large, we can still work with it
+...     infinity                    -- because it's evaluated lazily.
+   
+the bool false
 
-Let's see the results of evaluating the following expressions. I won't
-bother writing `define main as` for each of them.
+>>> the bool is_equal               -- Despite is_equal being recursive,
+...     infinity                    -- the program doesn't eat memory as
+...     infinity                    -- it hangs.
 
-| the bool is_equal              -- Despite infinity being infinitely
-|     succ succ succ one         -- large, we can still work with it
-|     infinity                   -- because it's evaluated lazily.
-|
->>  false
+*hangs at runtime*
 
-| the bool is_equal              -- Despite working with two "infinite"
-|     infinity                   -- structures, and is_equal being
-|     infinity                   -- recursive, the program does not
-|                                -- eat memory as it hangs.
->>  *hangs at runtime*
+>>> the bool is_equal               -- undefined is a keyword. It can
+...     succ one                    -- be used in place of any
+...     succ succ succ undefined    -- expression.
 
-| the bool is_equal              -- ... is syntax for undefined. It
-|     succ one                   -- can be used in place of any
-|     succ succ succ ...         -- expression.
-|
->>  false
+the bool false
 
-| the bool is_equal              -- If ... is evaluated, the program
-|     succ succ succ one         -- crashes with an error message
-|     succ succ ...              -- pointing to it.
-|
->>  *runtime error*
+>>> the bool is_equal               -- If undefined is evaluated, the 
+...     succ succ succ one          -- program crashes with an error 
+...     succ succ undefined         -- pointing to it.
+
+ RUNTIME ERROR  in /tmp/thorn-repl.th:3:15
+
+  |     succ succ succ one          -- program crashes with an error 
+3 |     succ succ undefined         -- pointing to it.
+  |               ^^^^^^^^^  entered undefined code
+
+evaluated an undefined expression
+
+>>> :q
+
+You can try all of these interactively in the thorn repl with
+    
+      $ thorn repl
+
+Note that thorn is not a scripting language. The repl just lets you
+use it like one, similar to GHCi for Haskell.
 
 ---------------------------   ART BLOCKS   -----------------------------
 
@@ -298,15 +320,15 @@ The art macro is expanded into regular thorn code during the
 tokenization phase. This code defines an animation of a swinging tail.
 The animation is 6x4 in size and has 2 frames.
 
-| include video
-|
-| define main as the list frame dragon_tail
-|
-| define dragon_tail as the list frame art vi iv
-|  \   ).6|||6(   / 6|||6.
-|   ) / ..6|6. \ (  .6|6..
-|  ( /  .6|6..  \ ) ..6|6.
-|   V   ..6...   V  ...6..
+  | include video       -- finds and imports video.th
+  |
+  | define main as the list frame dragon_tail
+  |
+  | define dragon_tail as art vi iv
+  |  \   ).6|||6(   / 6|||6.
+  |   ) / ..6|6. \ (  .6|6..
+  |  ( /  .6|6..  \ ) ..6|6.
+  |   V   ..6...   V  ...6..
 
 Every frame is made up of who rectangles, one with the ASCII art and
 the other with the corresponding colors. Colors 0-7 correspond to ANSI
@@ -323,42 +345,43 @@ There is special syntax for including local/global variables in the
 art. To use a color variable you just replace the color number with the
 variable name like so
 
-| define dragon_tail as the fn color list frame
-|     lambda c art vi iv
-|          \   ).c|||c(   / c|||c.
-|           ) / ..c|c. \ (  .c|c..
-|          ( /  .c|c..  \ ) ..c|c.
-|           V   ..c...   V  ...c..
+  | define dragon_tail as the 
+  |     fn color list frame              -- taking the color as
+  |     lambda c art vi iv               -- an argument
+  |          \   ).c|||c(   / c|||c.
+  |           ) / ..c|c. \ (  .c|c..
+  |          ( /  .c|c..  \ ) ..c|c.
+  |           V   ..c...   V  ...c..
 
-Now instead of the tail being hardcoded cyan, the calling function
-decides its color. Here's the full table of supported art syntax.
+Now, instead of the tail being hardcoded cyan, the calling function
+decides its color. Here's the table of supported art syntax
 
-  +------+-------+-----------------------------------------+
-  | left | right |                 effect                  |
-  +------+-------+-----------------------------------------+
-  | CHAR | 0     | Grey                                    |
-  | CHAR | 1     | Red                                     |
-  | CHAR | 2     | Green                                   |
-  | CHAR | 3     | Yellow                                  |
-  | CHAR | 4     | Blue                                    |
-  | CHAR | 5     | Magenta                                 |
-  | CHAR | 6     | Cyan                                    |
-  | CHAR | 7     | White                                   |
-  | CHAR | VAR   | Uses VAR as the color                   |
-  |      | |     | Space character                         |
-  |      | .     | Transparent                             |
-  | VAR  | $     | uses VAR as the character               |
-  | VAR  | #     | layers the frame VAR on top             |
-  | VAR  | ^     | applies fn VAR to the character below   |
-  +------+-------+-----------------------------------------+
-where  VAR  is a single-letter variable name
-       CHAR is a visible ASCII character
+       +------+-------+-----------------------------------------+
+       | left | right |                 effect                  |
+       +------+-------+-----------------------------------------+
+       | CHAR | 0     | Grey                                    |
+       | CHAR | 1     | Red                                     |
+       | CHAR | 2     | Green                                   |
+       | CHAR | 3     | Yellow                                  |
+       | CHAR | 4     | Blue                                    |
+       | CHAR | 5     | Magenta                                 |
+       | CHAR | 6     | Cyan                                    |
+       | CHAR | 7     | White                                   |
+       | CHAR | VAR   | Uses VAR as the color                   |
+       |      | |     | Space character                         |
+       |      | .     | Transparent                             |
+       | VAR  | $     | uses VAR as the character               |
+       | VAR  | #     | layers the frame VAR on top             |
+       | VAR  | ^     | applies fn VAR to the character below   |
+       +------+-------+-----------------------------------------+
+       where    VAR  is a single-letter variable name
+                CHAR is a visible ASCII character
 
-You can see how the core types are implemented in the std. Ther are
-many useful functions in video.th, list.th, and frame.th . To find
-the definition of a function, just run
+You can see how the core types are implemented in std/ . There are many 
+useful functions in video.th, list.th, and frame.th . To find the 
+definition of a function, just run
 
-  $ grep -Rn 'define function_name'
+    $ grep -Rn 'define function_name '
 
 -----------------------------   OUTPUT   -------------------------------
 
@@ -373,4 +396,4 @@ thorn tries to adhere to the UNIX philosophy. All programs do one thing
 and their outputs are intended to be inputs for other programs. That's
 how you end up with the lovely pipelines shown at the start
 
-  $ thorn | thorn-to-sh | sh
+    $ thorn | thorn-to-sh | sh
