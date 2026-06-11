@@ -16,7 +16,6 @@ define draw_box as the fn nat fn nat frame
     
 define horizontal_line_helper as the
     fn nat fn grid_cell fn character horizontal 
-    lambda x lambda c lambda b  horizontal nil 
-        cons 
-            full_grid_cell b 
-            append full_grid_cell b replicate nat_to_whole x c
+    lambda x lambda c lambda b  horizontal nil cons 
+        full_grid_cell b 
+        append full_grid_cell b replicate nat_to_whole x c
