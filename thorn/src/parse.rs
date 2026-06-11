@@ -17,7 +17,6 @@
 use std::collections::{
     HashMap, 
     HashSet, 
-    LinkedList
 };
 use std::fs::read_to_string;
 use std::sync::Mutex;
@@ -28,6 +27,9 @@ use crate::error::{make_error, Result, Error, ErrorType, Mark, Marked, DEBUG_INF
 use crate::runtime::{Expression, Pattern};
 use crate::tokens::*;
 
+pub static TYPES: Mutex<Option<GlobalTypes>> = Mutex::new(None);
+
+#[repr(u8)]
 #[derive(Debug, Clone)]
 pub enum CompilationError {
     TypeNotInScope(String),
@@ -36,23 +38,28 @@ pub enum CompilationError {
     ExpectedMoreArguments,
     NotInScope(String, Option<u32>),
     TypeMismatch(Type, Option<Type>),
+    BadTypeInference(Type, Type),
     BadFile(String),
     MultipleDeclorations(u32),
+    TypeAnnotationNeeded,
+    RedundentPattern
 }
 
 impl ErrorType for CompilationError {
     fn gist(&self) -> &'static str {
         match self {
-            Self::NotUsed => "local variable never used",
-            Self::EitherMismatch => "mismatch between branches",
+            Self::TypeAnnotationNeeded    => "type annotation needed",
+            Self::BadTypeInference(_, _)  => "of unexpected type",
+            Self::NotUsed                 => "local variable never used",
+            Self::EitherMismatch          => "mismatch between branches",
             Self::MultipleDeclorations(_) => "multiple declorations",
             //Self::PartialPattern => "not all patterns covered",
-            //Self::RedundantPattern => "redundent pattern",
-            Self::ExpectedMoreArguments => "expected more arguments",
-            Self::NotInScope(_,_) => "not in scope",
-            Self::TypeNotInScope(_) => "type not in scope",
-            Self::TypeMismatch(_, _) => "of unexpected type",
-            Self::BadFile(_) => "couldn't find file"
+            Self::RedundentPattern        => "redundent pattern",
+            Self::ExpectedMoreArguments   => "expected more arguments",
+            Self::NotInScope(_,_)         => "not in scope",
+            Self::TypeNotInScope(_)       => "type not in scope",
+            Self::TypeMismatch(_, _)      => "of unexpected type",
+            Self::BadFile(_)              => "couldn't find file"
         }
     }
 
@@ -64,12 +71,21 @@ impl ErrorType for CompilationError {
 impl std::fmt::Display for CompilationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::BadTypeInference(expected, got) => write!(
+                f, 
+                "expected a value of type \x1b[97m{}\x1b[90m\nbut the given type is \x1b[97m{}\x1b[90m",
+                expected.show(),
+                got.show()
+            ),
+            Self::TypeAnnotationNeeded => write!(f, "consider adding a type annotation with the \x1b[97mthe\x1b[90m keyword"),
             Self::EitherMismatch => write!(f, "the two patterns in the \x1b[97meither\x1b[90m pattern must have 
 the same variables and of the same type"),
-            Self::MultipleDeclorations(s) => write!(f, "name already used in {s}"),
-            Self::NotUsed => write!(f, "consider prepending it with an '_' to drop the value"),
-            //Self::RedundantPattern => write!(f, "this branch will never be reached"),
-            Self::BadFile(s) => write!(f, "unable to find {s} in this directory"),
+            Self::MultipleDeclorations(s) => write!(f, "name already used in \x1b[97m{s}\x1b[90m"),
+            Self::NotUsed => write!(f, "consider prepending it with an \x1b[97m_\x1b[90m to drop the value"),
+            Self::RedundentPattern => write!(f, 
+"this branch will never be reached because the 
+branch above is a wildcard that matches everything"),
+            Self::BadFile(s) => write!(f, "unable to find \x1b[97m{s}\x1b[90m in this project"),
             Self::NotInScope(x, hint) => write!(
                 f, 
                 "variable \x1b[97m{x}\x1b[90m not in scope{}",
@@ -105,40 +121,50 @@ extract_file_name(&file_name))
     }
 }
 
-static TYPES: Mutex<Option<GlobalTypes>> = Mutex::new(None);
+
+// TODO use this
+
+struct LoadedExpressions {
+    expressions: Vec<Expression>,
+    info_table:  HashMap<String, GlobalVarData>,
+    var_names:   Vec<String>
+}
 
 type GlobalTypes = HashMap<String, GlobalTypeData>;
 
 type LocalVars = HashMap<String, (u32, Type, Mark)>;
 pub type Generics = Vec<(String, usize)>;
 
-struct GlobalVarData {
-    mark: Mark,
-    var_type: Type,
-    generics: Generics,
-    id: Id,
+#[derive(Clone)]
+pub struct GlobalVarData {
+    pub mark: Mark,
+    pub var_type: Type,
+    pub generics: Generics,
+    pub id: Id,
 }
 
 #[derive(Hash, Clone)]
-struct GlobalTypeData {
-    mark: Mark,
-    kind: Kind,
-    generics: Generics,
-    id: usize,
+pub struct GlobalTypeData {
+    pub mark: Mark,
+    pub kind: Kind,
+    pub generics: Generics,
+    pub id: usize,
 }
 
-enum Id {
+#[derive(Clone)]
+pub enum Id {
     Variable(usize),
     Constructor(usize),
 }
 
 type Globals = HashMap<String, GlobalVarData>;
 
-pub fn get_everything(name: &str) -> Result<(Expression, HashMap<u32, String>)> {
+pub fn get_everything<'a>() -> Result<(Vec<Expression>, Vec<String>, Globals)> {
     let output = std::process::Command::new("sh")
         .arg("-c")
-        .arg("find -L . -maxdepth 4 | grep '\\.th$'")
-        .output().unwrap();
+        .arg("find -L . -maxdepth 5 | grep '\\.th$'")
+        .output()
+        .unwrap();
     let files = String::from_utf8_lossy(&output.stdout);
     let files: Vec<String> = files
         .split_whitespace()
@@ -149,16 +175,18 @@ pub fn get_everything(name: &str) -> Result<(Expression, HashMap<u32, String>)> 
         ptr.files = files.clone();
     }
     let (vars, vars_dummy) = uwu(&files)?;
-    let main = build_monolithic_expression(vars, &vars_dummy, name);
-    let mut map = HashMap::new();
-    for (name, GlobalVarData {id, ..}) in vars_dummy {
-        let id_index = match id {
-            Id::Variable(a)    => a,
-            Id::Constructor(a) => a,
-        } as u32;
-        map.insert(id_index, name);
+    let mut map = Vec::with_capacity(vars_dummy.len());
+    for i in 0..vars_dummy.len() {
+        map.push(String::new());
     }
-    Ok((main, map))
+    for (name, GlobalVarData {id, ..}) in vars_dummy.iter() {
+        let id_index = match id {
+            Id::Variable(a)    => *a,
+            Id::Constructor(a) => *a,
+        } as usize;
+        map[id_index] = name.clone();
+    }
+    Ok((vars, map, vars_dummy))
 }
 
 // 1. find  all types
@@ -224,7 +252,7 @@ fn extract_file_name(file_name: &str) -> String {
 }
 
 
-fn kind_from_generics(count: u32) -> Kind {
+pub fn kind_from_generics(count: u32) -> Kind {
     if count == 0 {
         Kind::Type
     } else {
@@ -244,7 +272,8 @@ fn uwu<'a>(files: &Vec<String>) -> Result<(Vec<Expression>, Globals)> {
     // Step 1: find all the types
 
     // we need types before we can parse data constructors and 
-    // variable types so we'll do that later
+    // variable types so we'll do those later
+      
     let mut type_bodies: Vec<Tokens> = Vec::new();
     let mut var_bodies: Vec<Tokens> = Vec::new();
 
@@ -284,17 +313,18 @@ fn uwu<'a>(files: &Vec<String>) -> Result<(Vec<Expression>, Globals)> {
                             var_bodies.push(block);
                         }
                         BlockKind::Type => {
-                            if let Some(x) = type_table.insert(name, GlobalTypeData {
-                                mark: mark.clone(), 
-                                id: type_table.len(), 
-                                kind: kind_from_generics(generics.len() as u32),
-                                generics,
-                            }) {
+                            if let Some(x) = type_table.get(&name) {
                                 return Err(make_error(
                                     CompilationError::MultipleDeclorations(x.mark.file), 
                                     mark
                                 ))
                             }
+                            type_table.insert(name, GlobalTypeData {
+                                mark: mark.clone(), 
+                                id: type_table.len(), 
+                                kind: kind_from_generics(generics.len() as u32),
+                                generics,
+                            });
                             type_bodies.push(block);
                         }
                     }
@@ -308,22 +338,23 @@ fn uwu<'a>(files: &Vec<String>) -> Result<(Vec<Expression>, Globals)> {
         *ptr = Some(type_table.clone());
     }
 
-    let mut final_expressions: Vec<Expression> = var_bodies
-        .iter()
-        .map(|_| Expression::default())
-        .collect();
-
     // Step 2: parse the types of constructors and variables
 
     for (name, (mark, index, generics)) in var_table.into_iter() {
-        var_bodies[index].expect_keyword(Keyword::The);
-        let var_type = parse_type(&mut var_bodies[index], &generics)?;
-        final_var_table.insert(name, GlobalVarData {
-            var_type,
-            mark,
-            id: Id::Variable(index),
-            generics,
-        });
+        match var_bodies[index].expect_keyword(Keyword::The) {
+            Ok(_) => {
+                let var_type = parse_type(&mut var_bodies[index], &generics)?;
+                final_var_table.insert(name, GlobalVarData {
+                    var_type,
+                    mark,
+                    id: Id::Variable(index),
+                    generics,
+                });
+            }
+            Err(Error { mark, .. }) => {
+                return Err(make_error(CompilationError::TypeAnnotationNeeded, mark))
+            }
+        }
     }
 
     for (_name, GlobalTypeData {mark: _, id: index, generics, kind: _ }) in type_table.into_iter() {
@@ -350,12 +381,27 @@ fn uwu<'a>(files: &Vec<String>) -> Result<(Vec<Expression>, Globals)> {
     }
 
     std::mem::drop(type_bodies);
+
+    let mut expressions: Vec<Expression> = Vec::with_capacity(final_var_table.len());
+    for i in 0..final_var_table.len() {
+        expressions.push(Expression::default());
+    }
+    for (var_name, GlobalVarData {mark, var_type, id, generics}) in final_var_table.iter() {
+        match id {
+            Id::Constructor(n) => expressions[*n] = Expression::DataConstructor(*n as u32),
+            Id::Variable(n) => expressions[*n] = Expression::Thunk {
+                value: Arc::new(RefCell::new(Expression::default())),
+                mark: Some(Arc::new(mark.clone()))
+            }
+        }
+    }
     
     // step 3: parse the expressions
-    for (_name, GlobalVarData {mark, var_type, id, generics}) in final_var_table.iter() {
+    for (var_name, GlobalVarData {mark, var_type, id, generics}) in final_var_table.iter() {
         let available_files = dependencies.available_files(mark.file);
         let Id::Variable(index) = id else { continue };
         let expression = parse_expression(
+            &mut expressions,
             &available_files,
             var_type.clone(), 
             &mut var_bodies[*index],
@@ -365,64 +411,15 @@ fn uwu<'a>(files: &Vec<String>) -> Result<(Vec<Expression>, Globals)> {
             &generics,
         )?;
         var_bodies[*index].expect_end()?;
-        final_expressions[*index] = expression;
+        {
+            let Expression::Thunk { value: ref x, .. } = expressions[*index] else { unreachable!() };
+            let Ok(mut inner) = (*x).try_borrow_mut() else { unreachable!() };
+            *inner = expression;
+        }
     }
-    Ok((final_expressions, final_var_table))
+    Ok((expressions, final_var_table))
 }
 
-fn build_monolithic_expression(
-    vec: Vec<Expression>,
-    vars_dummy: &Globals,
-    name: &str,
-) -> Expression {
-    let garbage = Arc::new(Mark::default());
-    let mut marks: Vec<Arc<Mark>> = (0..vec.len()).map(|_| Arc::clone(&garbage)).collect();
-    for (_, GlobalVarData {id, mark, ..}) in vars_dummy.iter() {
-        if let Id::Variable(index) = id {
-            let val = Arc::new(mark.clone());
-            marks[*index] = val;
-        }
-    }
-    let expressions: Vec<Arc<RefCell<Expression>>> = vec
-        .into_iter()
-        .map(|x| Arc::new(RefCell::new(x)))
-        .collect();
-    for i in expressions.iter() {
-        let ptr = &mut (**i).borrow_mut();
-        monolithic_helper(&expressions, ptr, &marks)
-    }
-    let GlobalVarData {id: Id::Variable(a) | Id::Constructor(a), ..} = 
-        vars_dummy.get(name).expect("requested function does not exist (usually main)");
-    (*expressions[*a]).borrow().clone()
-}
-
-fn monolithic_helper(vec: &Vec<Arc<RefCell<Expression>>>, expression: &mut Expression, marks: &Vec<Arc<Mark>>) {
-    match expression {
-        Expression::Tree { root, arguments, ..} => {
-            arguments.iter_mut().for_each(|x| monolithic_helper(vec, x, marks));
-            monolithic_helper(vec, root, marks);
-        }
-        Expression::Match { matched_on, branches } => {
-            monolithic_helper(vec, matched_on, marks);
-            for (_, exp) in branches.iter_mut() {
-                monolithic_helper(vec, exp, marks);
-            }
-        }
-        Expression::Lambda { body, .. } => monolithic_helper(vec, &mut *body, marks),
-        Expression::Undefined { .. } => (),
-        Expression::DataConstructor(_) | Expression::LocalVarPlaceholder(_) => (),
-        Expression::Thunk { value: x, .. } => {
-            let ptr = &mut (*x).try_borrow_mut().unwrap();
-            monolithic_helper(vec, ptr, marks);
-        }
-        Expression::Variable(x) => {
-            *expression = Expression::Thunk {
-                value: Arc::clone(vec.get(*x).unwrap()),
-                mark: Some(Arc::clone(marks.get(*x).unwrap()))
-            }
-        }
-    }
-}
 fn parse_pattern(
     mut number_of_local: u32,
     expected_type: &Type,
@@ -467,7 +464,7 @@ fn parse_pattern_helper(
     tokens: &mut Tokens,
     global_vars: &Globals,
 ) -> Result<Pattern> {
-    if let Ok(()) = tokens.expect_keyword(Keyword::Bind) {
+    if let Ok(_) = tokens.expect_keyword(Keyword::Bind) {
         let (name, mark) = tokens.next_word()?.destructure();
         if !name.starts_with('_') {
             *number_of_local += 1;
@@ -482,7 +479,7 @@ fn parse_pattern_helper(
         } else {
             Ok(Pattern::Dropped)
         }
-    } else if let Ok(()) = tokens.expect_keyword(Keyword::Either) {
+    } else if let Ok(_) = tokens.expect_keyword(Keyword::Either) {
         let mut first_num = *number_of_local;
         let mut second_num = *number_of_local;
         let mut first_vars = HashMap::new();
@@ -768,7 +765,8 @@ fn find_all_generics(t: &Type, out: &mut Vec<usize>) {
     }
 }
 
-fn parse_expression(
+pub fn parse_expression(
+    expressions:           &mut Vec<Expression>,
     file_dependencies:     &HashSet<u32>,
     expected_type:         Type,
     tokens:                &mut Tokens,
@@ -781,6 +779,25 @@ fn parse_expression(
     match token {
         Token::NewLine(_) => unreachable!(),
         Token::Keyword(k) => match k {
+            Keyword::The => {
+                let tp: Type = parse_type(tokens, generics)?;
+                if tp != expected_type {
+                    return Err(make_error(
+                        CompilationError::BadTypeInference(expected_type, tp), 
+                        keyword_mark
+                    ))
+                }
+                parse_expression(
+                    expressions,
+                    file_dependencies,
+                    expected_type, 
+                    tokens, 
+                    local_vars, 
+                    local_vars_count, 
+                    global_vars, 
+                    generics,
+                )
+            }
             Keyword::Undefined => Ok(Expression::Undefined(Box::new(keyword_mark))),
             Keyword::Lambda => {
                 match expected_type {
@@ -801,6 +818,7 @@ fn parse_expression(
                             .into_iter()
                             .for_each(|(k, v)| { local_vars.insert(k, v); });
                         let body = parse_expression(
+                            expressions,
                             file_dependencies,
                             *b, 
                             tokens, 
@@ -829,7 +847,7 @@ fn parse_expression(
                 let indentation: u8 = tokens
                     .tokens
                     .iter()
-                    .find(|x| matches!(x.value, Token::NewLine(n)))
+                    .find(|x| matches!(x.value, Token::NewLine(_)))
                     .map(|x| {
                         let Token::NewLine(n) = x.value else { unreachable!() };
                         n
@@ -862,6 +880,7 @@ fn parse_expression(
                     Token::NewLine(_) => unreachable!(),
                 };
                 let matched_on = parse_expression(
+                    expressions,
                     file_dependencies,
                     tp.clone(), 
                     &mut matched_on_tokens, 
@@ -874,17 +893,25 @@ fn parse_expression(
                 // let (token, _mark) = tokens.next()?.destructure();
                 let mut branches: Vec<(Arc<Marked<Pattern>>, Expression)> = Vec::with_capacity(branch_tokens.len());
                 let mut patterns = Vec::new();
+                let mut encountered_wildcard = false;
                 for branch in branch_tokens.iter_mut().skip(1) {
-                    branch.expect_keyword(Keyword::Case)?;
+                    let case_mark = branch.expect_keyword(Keyword::Case)?;
                     let (pattern, mark, local_vars_new, local_vars_count) = parse_pattern(
                         local_vars_count, 
                         &tp, 
                         branch, 
                         global_vars,
                     )?;
+                    if encountered_wildcard {
+                        return Err(make_error(CompilationError::RedundentPattern, case_mark))
+                    }
+                    if matches!(pattern, Pattern::Dropped | Pattern::Captured(_)) {
+                        encountered_wildcard = true;
+                    }
                     let mut loc = local_vars.clone();
                     local_vars_new.clone().into_iter().for_each(|(k, v)| { loc.insert(k, v); });
                     let body = parse_expression(
+                        expressions,
                         file_dependencies,
                         expected_type.clone(),
                         branch, 
@@ -940,7 +967,7 @@ fn parse_expression(
                         )?
                     ),
                     Id::Variable(a) =>  (
-                        Expression::Variable(*a), 
+                        expressions[*a as usize].clone(),
                         match infer_type(&expected_type, b, &keyword_mark)? {
                             Some(x) => x,
                             None => parse_generic_call(tokens, g, generics, b.clone())?
@@ -970,6 +997,7 @@ fn parse_expression(
                             };
                             current_type = leftover;
                             let next_arg = parse_expression(
+                                expressions,
                                 file_dependencies,
                                 next_type,
                                 &mut current_tokens,
@@ -993,6 +1021,7 @@ fn parse_expression(
                         };
                         current_type = leftover;
                         let next_arg = parse_expression(
+                            expressions,
                             file_dependencies,
                             next_type,
                             tokens,
@@ -1021,19 +1050,19 @@ fn parse_expression(
 }
 
 #[derive(Hash, PartialEq, Eq)]
-enum BlockKind {
+pub enum BlockKind {
     Type,
     Variable
 }
 
-struct NameAndGenerics {
-    name: String,
-    mark: Mark,
-    generics: Generics,
-    kind: BlockKind
+pub struct NameAndGenerics {
+    pub name: String,
+    pub mark: Mark,
+    pub generics: Generics,
+    pub kind: BlockKind
 }
 
-fn extract_name_and_generics(tokens: &mut Tokens) -> Result<NameAndGenerics> {
+pub fn extract_name_and_generics(tokens: &mut Tokens) -> Result<NameAndGenerics> {
     let mut generics: Generics = Vec::new();
     let (name, mark, kind) = extract_name_and_genericsl_helper(tokens, &mut generics)?;
     fn extract_name_and_genericsl_helper(
@@ -1216,9 +1245,9 @@ impl Type {
                 }
                 Type::Generic(a) => {
                     let s = a.to_string();
-                    output.push_str("generic<");
+                    output.push_str("g");
                     output.push_str(&s);
-                    output.push_str("> ");
+                    output.push_str(" ");
                 }
             }
         }

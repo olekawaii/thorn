@@ -16,11 +16,14 @@
 
 use crate::error::{ Error, ErrorType, Mark, Marked, make_error };
 use std::{
-    io::{ Write, stdout },
+    io::{ Write, BufWriter },
+    process::{Command, Stdio},
     sync::Arc,
     collections::HashMap,
     cell::RefCell,
 };
+
+use crate::parse::Type;
 
 // pretty bad
 
@@ -45,14 +48,22 @@ pub enum Expression {
     Undefined(Box<Mark>),
     LocalVarPlaceholder(u32),
     DataConstructor(u32),
-    Variable(usize),      // Ignore. Only used during parsing
+    // used for Expression::default(). If encountered, 
+    // it's a compiler bug somewhere
+    CompilerBug
+}
+
+impl Default for Expression {
+    fn default() -> Self {
+        Self::CompilerBug
+    }
 }
 
 #[derive(Debug)]
 enum RuntimeError {
     EvaluatedUndefined,
     EvaluatedBottom,
-    UnmatchedPattern(Expression, HashMap<u32, String>),
+    UnmatchedPattern(Expression, Vec<String>),
 }
 
 impl ErrorType for RuntimeError {
@@ -87,7 +98,7 @@ impl std::fmt::Display for RuntimeError {
     }
 }
 
-fn debug_print(expr: &Expression, names: &HashMap<u32, String>) -> String {
+fn debug_print(expr: &Expression, names: &Vec<String>) -> String {
     match expr {
         Expression::Tree { root, arguments } => {
             let mut s = format!("{}", debug_print(root, names));
@@ -97,7 +108,7 @@ fn debug_print(expr: &Expression, names: &HashMap<u32, String>) -> String {
             });
             s
         }
-        Expression::DataConstructor(x) => format!(" {}", names.get(x).unwrap()),
+        Expression::DataConstructor(x) => format!(" {}", names[*x as usize]),
         _ => " _".to_string(),
     }
 }
@@ -114,7 +125,7 @@ pub enum Pattern {
 fn matches_expression(
     pattern: &Pattern, 
     matched: &mut Expression, 
-    names: &HashMap<u32, String>
+    names: &Vec<String>
 ) -> bool {
     match pattern {
         Pattern::Dropped => true,
@@ -148,7 +159,7 @@ fn matches_expression(
 fn match_on_expression(
     pattern: &Pattern, 
     matched: Expression, 
-    names: &HashMap<u32, String>
+    names: &Vec<String>
 ) -> Vec<(u32, Expression)> {
     let mut output = Vec::new();
     match_on_expression_helper(&mut output, pattern, matched, names);
@@ -159,7 +170,7 @@ fn match_on_expression_helper(
     output:       &mut Vec<(u32, Expression)>,
     pattern:      &Pattern,
     mut matched:  Expression,
-    names:        &HashMap<u32, String>,
+    names:        &Vec<String>
 ) {
     match pattern {
         Pattern::Dropped => (),
@@ -199,13 +210,6 @@ fn match_on_expression_helper(
     }
 }
 
-impl Default for Expression {
-    fn default() -> Self {
-        Self::LocalVarPlaceholder(67)
-    }
-}
-
-
 impl Expression {
     #[inline]
     fn is_simplified(&self) -> bool {
@@ -214,7 +218,7 @@ impl Expression {
         matches!(self, Expression::Lambda { .. } | Expression::DataConstructor(_))
     }
 
-    pub fn simplify(&mut self, names: &HashMap<u32, String>) {
+    pub fn simplify(&mut self, names: &Vec<String>) {
         if self.is_simplified() { return }
         let mut is_simplified = false;
         'uwu: while !is_simplified {
@@ -344,7 +348,7 @@ impl Expression {
                 matched_on.substitute(map);
             }
             Expression::Undefined { .. } | Expression::Thunk { .. } | Expression::DataConstructor(_) => (),
-            Expression::Variable(_) => unreachable!()
+            Expression::CompilerBug => unreachable!()
         }
     }
 
@@ -353,11 +357,16 @@ impl Expression {
     // structures. It's also able to print some infinitely large structures
     // without eating memory at all.
     
-    pub fn print(self, names: &mut HashMap<u32, String>) {
-        const BUFFER_SIZE: usize = 8192;
-        let mut stdout = stdout().lock();
-        let mut buffer = Vec::with_capacity(BUFFER_SIZE);
-        let mut cache = HashMap::new();
+    pub fn print(self, names: &Vec<String>, tp: &Type) {
+        let mut more = Command::new("more")
+            .arg("-n")
+            .arg("3")
+            .stdin(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let stdin = more.stdin.take().unwrap();
+        let mut writer = BufWriter::new(stdin);
+        write!(writer, "the {}", tp.show()).unwrap();
         let mut to_evaluate: Vec<Expression> = vec![self];
         while let Some(mut x) = to_evaluate.pop() {
             x.simplify(names);
@@ -367,28 +376,24 @@ impl Expression {
                     to_evaluate.push(*root);
                 }
                 Expression::DataConstructor(id) => {
-                    let word = match cache.get(&id) {
-                        Some(x) => x,
-                        None => {
-                            let name = names.get(&id).unwrap().clone();
-                            cache.insert(id, name);
-                            cache.get(&id).unwrap() // safe
-                        }
+                    let word = &names[id as usize];
+                    if let Err(_) = write!(writer, "{word} ") { 
+                        return
                     };
-                    let bytes = word.as_bytes();
-                    if buffer.len() + bytes.len() + 1 > BUFFER_SIZE {
-                        stdout.write_all(&buffer).unwrap();
-                        buffer.clear();
-                    }
-                    buffer.extend_from_slice(bytes);
-                    buffer.push(b' ');
                 }
-                Expression::Lambda { .. } => buffer.extend_from_slice(b"<lambda> "),
+                Expression::Lambda { .. } => {
+                    if let Err(_) = write!(writer, "<lambda> ") {
+                        return
+                    };
+                }
                 _ => unreachable!(),
             }
         }
-        stdout.write_all(&buffer).unwrap();
-        stdout.write_all(b"\n").unwrap();
+        if let Err(_) = write!(writer, "\n") {
+            return
+        }
+        drop(writer);
+        more.wait().unwrap();
     }
 }
 

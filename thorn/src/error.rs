@@ -37,6 +37,86 @@ pub fn get_file_name(index: u32) -> String {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[derive(Debug, Clone, Hash)]
+pub struct Mark {
+    pub file: u32,
+    pub block: Option<Arc<String>>,
+    pub line: usize,
+    pub character: usize,
+    pub length: usize,
+}
+
+impl Mark {
+    pub fn one_after_the_highlight(&self) -> Self {
+        Self {
+            length: 1,
+            character: self.character + self.length,
+            ..self.clone()
+        }
+    }
+}
+
+impl Default for Mark {
+    fn default() -> Self {
+        Self {
+            file: 67,
+            block: None,
+            line: 0,
+            character: 0,
+            length: 0,
+        }
+    }
+}
+
+pub fn show_mark(mark: Mark, message: &'static str) -> String {
+    //dbg!(&mark);
+    let mut number = (mark.line + 1).to_string();
+    number.push(' ');
+    let indentation = number.chars().count();
+    let mut file_name = get_file_name(mark.file);
+    let file_contents = read_to_string(&file_name).unwrap();
+    let mut file_name_chars = file_name.chars();
+    match file_name_chars.next().unwrap() {
+        '.' => { 
+            file_name_chars.next(); 
+            file_name = file_name_chars.collect();
+        }
+        _ => ()
+    }
+    let mut lines = file_contents.lines().enumerate();
+    let line_before = if mark.line == 0 { 
+        ""
+    } else {
+        lines.find(|(n, _)| *n == mark.line - 1).unwrap().1
+    };
+    let current_line = lines.next().unwrap().1;
+
+    let mut underline = String::new();
+    underline.push_str(&" ".repeat(mark.character));
+    underline.push_str(&UNDERLINE_CHAR.repeat(mark.length));
+    underline.push_str("  ");
+    underline.push_str(message);
+    let empty_space = " ".repeat(indentation);
+    format!(
+        "\x1b[90min \x1b[0m{}\x1b[90m:\x1b[0m{}\x1b[90m:\x1b[0m{}\x1b[90m{}\n\n\
+\x1b[91m{}| \x1b[90m{}\n\x1b[91m{} | \x1b[0m{}\n\x1b[91m{}| {}\x1b[0m",
+        file_name,
+        mark.line + 1,
+        mark.character + 1,
+        //mark.line + 1,
+        match &mark.block {
+            None => String::from(""),
+            Some(name) => format!(", in the definition of \x1b[0m{}\x1b[90m", (*name).clone()),
+        },
+        &empty_space,
+        line_before,
+        mark.line + 1,
+        current_line,
+        &empty_space,
+        underline,
+    )
+}
+
 #[derive(Debug)]
 pub struct Error {
     pub error_type:  Box<dyn ErrorType>,
@@ -91,7 +171,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "\n\x1b[91m {} ERROR \x1b[0m\x1b[0m {}\n\x1b[90m\n{}{}\x1b[0m\n",
+            "   \n\x1b[91m {} ERROR \x1b[0m\x1b[0m {}\n\x1b[90m\n{}{}\x1b[0m\n",
             self.error_type.phase(),
             show_mark(self.mark.clone(), self.error_type.gist()),
             self.error_type,
@@ -102,78 +182,6 @@ impl std::fmt::Display for Error {
             },
         )
     }
-}
-
-#[derive(Debug, Clone, Hash)]
-pub struct Mark {
-    pub file: u32,
-    pub block: Option<Arc<String>>,
-    pub line: usize,
-    pub character: usize,
-    pub length: usize,
-}
-
-impl Mark {
-    pub fn one_after_the_highlight(&self) -> Self {
-        Self {
-            length: 1,
-            character: self.character + self.length,
-            ..self.clone()
-        }
-    }
-}
-
-impl Default for Mark {
-    fn default() -> Self {
-        Self {
-            file: 67,
-            block: None,
-            line: 0,
-            character: 0,
-            length: 0,
-        }
-    }
-}
-
-pub fn show_mark(mark: Mark, message: &'static str) -> String {
-    //dbg!(&mark);
-    let mut number = (mark.line + 1).to_string();
-    number.push(' ');
-    let indentation = number.chars().count();
-    let file_name = get_file_name(mark.file);
-    let file_contents = read_to_string(&file_name).unwrap();
-    let mut lines = file_contents.lines().enumerate();
-    let line_before = if mark.line == 0 { 
-        ""
-    } else {
-        lines.find(|(n, _)| *n == mark.line - 1).unwrap().1
-    };
-    let current_line = lines.next().unwrap().1;
-
-    let mut underline = String::new();
-    underline.push_str(&" ".repeat(mark.character));
-    underline.push_str(&UNDERLINE_CHAR.repeat(mark.length));
-    underline.push_str("  ");
-    underline.push_str(message);
-    let empty_space = " ".repeat(indentation);
-    format!(
-        "\x1b[90min \x1b[0m{}\x1b[90m:\x1b[0m{}\x1b[90m:\x1b[0m{}\x1b[90m{}\n\n\
-\x1b[91m{}| \x1b[90m{}\n\x1b[91m{} | \x1b[0m{}\n\x1b[91m{}| {}\x1b[0m",
-        file_name,
-        mark.line + 1,
-        mark.character + 1,
-        //mark.line + 1,
-        match &mark.block {
-            None => String::from(""),
-            Some(name) => format!(", in the definition of \x1b[0m{}\x1b[90m", (*name).clone()),
-        },
-        &empty_space,
-        line_before,
-        mark.line + 1,
-        current_line,
-        &empty_space,
-        underline,
-    )
 }
 
 #[derive(Debug, Clone)]

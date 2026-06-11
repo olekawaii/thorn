@@ -21,7 +21,6 @@ pub enum ParseError {
     ArtMissingArgs,
     TranspOnChar,
     ColorOnSpace,
-    KeywordNotFound(Keyword),
 }
 
 impl ErrorType for ParseError {
@@ -29,7 +28,6 @@ impl ErrorType for ParseError {
         match self {
             Self::ConflictingAllignment => "conflicting allignment",
             Self::TrailingCharacters => "trailing characters",
-            Self::KeywordNotFound(_) => "looking for keyword but reached the end",
             Self::BadIndentation => "indentation not divisible by four",
             Self::InvalidColor => "invalid color",
             Self::ColorOnSpace => "can only be used with non-spaces",
@@ -56,10 +54,6 @@ impl std::fmt::Display for ParseError {
         match self {
             Self::UnexpectedKeyword => write!(f, "encountered an unexpected keyword"),
             Self::TrailingCharacters => write!(f, "expected an end to the expression"),
-            Self::KeywordNotFound(k) => write!(
-                f, 
-                "expected to find the \x1b[97m{k}\x1b[90m keyword but reached the end"
-            ),
             Self::ColorOnSpace => write!(f, "colors can not be used on spaces. instead use . or |"),
             Self::TranspOnChar => write!(f, "colors . and | can only be used with spaces to mark transparency"),
             Self::UnexpectedEnd => write!(f, "unexpected end to expression"),
@@ -370,14 +364,14 @@ impl Tokens {
         output
     }
 
-    pub fn expect_keyword(&mut self, keyword: Keyword) -> Result<()> {
+    pub fn expect_keyword(&mut self, keyword: Keyword) -> Result<Mark> {
         self.remove_leading_newlines();
-        if !matches!(self.peek()?.value, Token::Keyword(k) if k == keyword) {
-            Err(make_error(ParseError::ExpectedKeyword(keyword), self.peek().unwrap().mark.clone()))
-        } else {
+        if let Marked::<Token> { value: Token::Keyword(k), mark } = self.peek()?.clone() && k == keyword {
             let _ = self.next();
-            Ok(())
-        }
+            Ok(mark)
+        } else {
+            Err(make_error(ParseError::ExpectedKeyword(keyword), self.peek().unwrap().mark.clone()))
+        } 
     }
 
     pub fn add_context(&mut self, block_name: &Arc<String>) {
@@ -399,20 +393,20 @@ pub fn tokenize(
     ignore_special_chars: bool
 ) -> Result<Tokens> {
     let keywords: HashMap<&str, Keyword> = HashMap::from([
-        ( "include",   Keyword::Include   ),
-        ( "forall",   Keyword::ForAll     ),
-        ( "type",      Keyword::Type      ),
-        ( "contains",  Keyword::Contains  ),
-        ( "define",    Keyword::Define    ),
-        ( "the",       Keyword::The       ),
-        ( "as",        Keyword::As        ),
-        ( "lambda",    Keyword::Lambda    ),
-        ( "match",     Keyword::Match     ),
-        ( "bind",      Keyword::Bind      ),
-        ( "either",    Keyword::Either    ),
-        ( "with",      Keyword::With      ),
-        ( "case",      Keyword::Case      ),
-        ( "...",       Keyword::Undefined ),
+        ( "include",        Keyword::Include   ),
+        ( "forall",         Keyword::ForAll    ),
+        ( "type",           Keyword::Type      ),
+        ( "contains",       Keyword::Contains  ),
+        ( "define",         Keyword::Define    ),
+        ( "the",            Keyword::The       ),
+        ( "as",             Keyword::As        ),
+        ( "lambda",         Keyword::Lambda    ),
+        ( "match",          Keyword::Match     ),
+        ( "bind",           Keyword::Bind      ),
+        ( "either",         Keyword::Either    ),
+        ( "with",           Keyword::With      ),
+        ( "case",           Keyword::Case      ),
+        ( "undefined",      Keyword::Undefined ),
     ]);
     let mut output = LinkedList::new();
     let mut block = input.into_iter().peekable();
@@ -422,19 +416,19 @@ pub fn tokenize(
         if !indentation.is_multiple_of(INDENTATION) {
             return Err(make_error(ParseError::BadIndentation, Mark {
                 file,
-                line: line_number,
-                block: None,
-                character: 0,
-                length: indentation as usize
+                line:       line_number,
+                block:      None,
+                character:  0,
+                length:     indentation as usize
             }))
         }
         output.push_back(Marked::<Token> {
             mark: Mark {
                 file,
-                line: line_number,
-                block: None,
-                character: last_index,
-                length: 1,
+                line:       line_number,
+                block:      None,
+                character:  last_index,
+                length:     1,
             },
             value: Token::NewLine(indentation / 4),
         });
@@ -573,6 +567,12 @@ pub fn build_tokens_from_art(
     let mut x_shift = false;
     let mut y_shift = false;
     let mut video_commands = LinkedList::new();
+    video_commands.push_back(Marked::<Token> {
+        value: Token::Keyword(Keyword::The),
+        mark: mark.clone(),
+    });
+    video_commands.push_back(build_token("list", &mark));
+    video_commands.push_back(build_token("frame", &mark));
     let mut output = LinkedList::new();
     for (index, i) in input.into_iter().enumerate() {
         let mut frame_buffer = LinkedList::new();
