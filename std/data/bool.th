@@ -4,19 +4,30 @@ type bool contains
     true
     false
 
+--  Unlike other languages, if/then/else aren't
+--  built into the language. You either have to
+--  pattern match or use this if function for
+--  one-liners.
+
+forall a 
+define if as the fn bool fn a fn a a
+    lambda condition lambda then lambda else match condition
+        case true       then
+        case false      else
+
 define not as the fn bool bool lambda x match x
-    case true   false
-    case false  true
+    case true           false
+    case false          true
 
 define or as the fn bool fn bool bool 
     lambda x match x 
-        case true   const bool bool true
-        case false  identity bool
+        case true       const bool bool true
+        case false      identity bool
 
 define and as the fn bool fn bool bool 
     lambda x match x
-        case false  const bool bool false
-        case true   identity bool
+        case false      const bool bool false
+        case true       identity bool
 
 define xor as the fn bool fn bool bool lambda a lambda b not xand a b
 

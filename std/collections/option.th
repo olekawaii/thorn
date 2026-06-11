@@ -16,14 +16,13 @@ define unwrap_or_default as the fn option a fn a a
         case some a    a
         case none      default
 
---  Unwraps an optional value assuming it can't 
---  be none. Be careful with this one because it
---  will crash on a none.
+--  Unwraps an optional value under the 
+--  assumption that it can't be none. It's a 
+--  partial function that errors on none. Prefer 
+--  pattern matching or unwrap_or.
 
 forall a 
-define from_some as the fn option a a lambda x match x
-    case some a    a
-    case none      ...     -- you tried to unwrap a none
+define from_some as the fn option a a lambda some x x    -- errors on none
 
 --  functor
 

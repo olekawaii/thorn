@@ -1,6 +1,6 @@
 include ordering binary_tree option
 
---  The dataconstructor is unsafe because the 
+--  The data constructor is unsafe because the 
 --  type has multiple invariants:
 --  
 --  * The ordering function must not change
