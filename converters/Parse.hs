@@ -17,7 +17,11 @@ import Data.List (find, nub, transpose, sortOn, intercalate, singleton)
 import Text.Read (readMaybe) 
 
 getVideo :: IO (Int, Int, [[[Character]]])
-getVideo = getContents >>= pure . changeFormat . map convertNewFrame . (fst . parseNewVideo) . words 
+getVideo = getContents >>= pure . parse . words
+
+parse :: [String] -> (Int, Int, [[[Character]]])
+parse ("the" : "list" : "frame" : xs) = changeFormat . map convertNewFrame . fst . parseNewVideo $ xs
+parse ("the" : "frame" : xs) = changeFormat . pure . convertNewFrame . fst . parseNewFrame $ xs
 
 dimensions :: [Map Coordinate Character] -> (Int, Int, Int, Int)
 dimensions gif = case concatMap (map fst) gif of
