@@ -32,6 +32,7 @@ pub static TYPES: Mutex<Option<GlobalTypes>> = Mutex::new(None);
 #[repr(u8)]
 #[derive(Debug, Clone)]
 pub enum CompilationError {
+    CannotInferType,
     TypeNotInScope(String),
     NotUsed,
     EitherMismatch,
@@ -48,6 +49,7 @@ pub enum CompilationError {
 impl ErrorType for CompilationError {
     fn gist(&self) -> &'static str {
         match self {
+            Self::CannotInferType         => "can't infer type",
             Self::TypeAnnotationNeeded    => "type annotation needed",
             Self::BadTypeInference(_, _)  => "of unexpected type",
             Self::NotUsed                 => "local variable never used",
@@ -688,52 +690,257 @@ fn get_type_from_constructor(data: Type, expected: Type, mark: &Mark) -> Result<
     Ok(ret)
 }
 
-fn infer_type(expected: &Type, got: &Type, mark: &Mark) -> Result<Option<Type>> {
-    let mut ret = got.clone();
-    let Type::Type {
-        type_constructor: tc1, 
-        arguments: args1
-    }: Type = expected.final_type().clone() else {
-        return Ok(None);
-    };
-    let Type::Type {
-        type_constructor: tc2, 
-        arguments: args2
-    }: Type = ret.final_type().clone() else {
-        return Ok(None);
-    };
-    let expected_final = Type::Type {
-        type_constructor: tc1, 
-        arguments: args1.clone()
-    };
-    let got_final = Type::Type {
-        type_constructor: tc2, 
-        arguments: args2.clone()
-    };
-    if tc1 != tc2 {
-        return Err(make_error(
-            CompilationError::TypeMismatch(expected.clone(), Some(got.clone())), 
-            mark.clone()
-        ))
+fn has_generics(t: &Type) -> bool {
+    match t {
+        Type::Type { arguments, .. } => arguments.iter().any(|x| has_generics(x)),
+        Type::Function(t1, t2) => has_generics(*&t1) || has_generics(*&t2),
+        Type::Generic(_) => true,
     }
-    let mut v1: Vec<usize> = Vec::new();
-    let mut v2: Vec<usize> = Vec::new();
-    find_all_generics(&got, &mut v1);
-    find_all_generics(&got_final, &mut v2);
-    if v1.len() != v2.len() {
-        return Ok(None);
-    }
-    let mut to_replace: Vec<(usize, Type)> = Vec::new();
-    merge_types(&got_final, &expected_final, &mut to_replace);
-    if !to_replace.is_empty() {
-        replace_types(&mut ret, &to_replace)
-    }
-    Ok(Some(ret))
 }
 
-fn merge_types(old: &Type, new: &Type, output: &mut Vec<(usize, Type)>) {
-    match (old, new) {
-        (Type::Generic(x), _) => output.push((*x, new.clone())),
+fn build_table_of_unknown_generics(t: &Type) -> HashMap<usize, Option<Type>> {
+    let mut map = HashMap::new();
+    build_table_of_unknown_generics_helper(t, &mut map);
+    map
+}
+
+fn build_table_of_unknown_generics_helper(t: &Type, map: &mut HashMap<usize, Option<Type>>) {
+    match t {
+        Type::Type { arguments, .. } => arguments
+            .iter()
+            .for_each(|x| build_table_of_unknown_generics_helper(x, map)),
+        Type::Function(t1, t2) => {
+            build_table_of_unknown_generics_helper(*&t1, map);
+            build_table_of_unknown_generics_helper(*&t2, map);
+        }
+        Type::Generic(n) => {
+            map.insert(*n, None);
+        }
+    }
+}
+
+fn substitute_back_in(t: &mut Type, map: &HashMap<usize, Option<Type>>) {
+    match t {
+        Type::Type { arguments, .. } => arguments
+            .iter_mut()
+            .for_each(|x| substitute_back_in(x, map)),
+        Type::Function(t1, t2) => {
+            substitute_back_in(&mut (*t1), map);
+            substitute_back_in(&mut (*t2), map);
+        }
+        Type::Generic(n) => {
+            *t = map.get(n).unwrap().as_ref().unwrap().clone()
+        }
+    }
+}
+
+// this function take the name of the variable
+// and the tokens and returns its type, and 
+// possibly the number of arguments
+
+fn figure_out_type (
+    expected_type:        Option<&Type>,
+    tokens:               &Tokens,
+    name:                 &str,
+    mark:                 &Mark, 
+    global_vars:          &Globals,
+    local_vars:           &HashMap<String, (u32, Type, Mark)>,
+    generics:             &Generics
+)                      -> Result<(Type, Option<u32>)> {  
+    let contains_unknown_generics: bool;
+    let mut output: Type;
+    if let Some((_, tp, _)) = local_vars.get(name) {
+        output = tp.clone();
+        contains_unknown_generics = false;
+    }
+    else if let Some(GlobalVarData { var_type, generics, .. }) = global_vars.get(name) { 
+        output = var_type.clone();
+        contains_unknown_generics = has_generics(&var_type);
+    } else {
+        return Err(make_error(
+            CompilationError::NotInScope(name.to_string(), None),
+            mark.clone()
+        ));
+    } ;
+    let mut tokens = tokens.clone();
+    if !contains_unknown_generics {
+        let arg_count = if tokens.expect_end().is_ok() { Some(0) } else { None };
+        // the arg counter is only useful when we don't
+        // know the block's type. If we do, we can skip
+        // the rest and avoid the token clone
+        return Ok((output,  arg_count))
+    }
+    // map containing the unknown generics mapped to found types
+    let mut unknown_generics: HashMap<usize, Option<Type>> = 
+        build_table_of_unknown_generics(&output);
+    if 
+        let Some(Type::Type { type_constructor: c1, arguments: a1 }) = expected_type.map(|x| x.final_type()) &&
+        let Type::Type { type_constructor: c2, arguments: a2 } = output.final_type() 
+    {
+        assert_eq!(c1, c2);
+        for (a, b) in a1.iter().zip(a2.iter()) {
+            merge_types(b, a, &mut unknown_generics);
+        }
+        if unknown_generics.values().all(|x| x.is_some()) {
+            let arg_count = if tokens.expect_end().is_ok() { Some(0) } else { None };
+
+            substitute_back_in(&mut output, &unknown_generics);
+            return Ok((output, arg_count))
+        }
+    }
+    let t_args = output.clone().arg_types();
+    let number_t_args = t_args.len();
+    let mut t_args = t_args.into_iter();
+    let mut tokens: Tokens = tokens.clone();
+    let mut number_args_used = Some(0);
+    let mut counter = {
+        match expected_type {
+            None => -1,
+            Some(x) =>  (output.clone().arg_types().len() - x.clone().arg_types().len()) as i32,
+        }
+    };
+    loop {
+        if  
+            matches!(tokens.peek(), Ok(Marked::<Token> {value: Token::NewLine(_), ..})) || 
+            tokens.expect_end().is_ok() 
+        {
+            counter = -1; // everything else is fair game
+            break
+        }
+        match counter {
+            -1 => (),
+            0 => {
+                number_args_used = None;
+                break;
+            }
+            x => counter -= 1,
+        }
+        let t = match t_args.next() {
+            Some(x) => x,
+            None => {
+                break;
+            }
+        };
+        number_args_used = number_args_used.map(|x| x + 1);
+        let (value, var_mark) = tokens.next().unwrap().destructure();
+        let var_name = match value {
+            Token::Word(word) => word,
+            _ => {
+                return Err(make_error(CompilationError::CannotInferType, var_mark.clone()))
+            }
+        };
+        let has_unknown_generics: bool;
+        let got_t = match local_vars.get(&var_name) {
+            Some((_, t, _)) => {
+                has_unknown_generics = false;
+                t.clone()
+            }
+            None => match global_vars.get(&var_name) {
+                Some(GlobalVarData { var_type, generics: g, ..}) => {
+                    has_unknown_generics = has_generics(var_type);
+                    var_type.clone()
+                }
+                None => {
+                    return Err(make_error(
+                        CompilationError::NotInScope(var_name.clone(), None),
+                        var_mark
+                    ));
+                }
+            }
+        };
+        if has_unknown_generics {
+            // not much i can do here
+            if matches!(got_t, Type::Type { .. }) {
+            } 
+            else if got_t.is_function() && matches!(got_t.final_type(), Type::Type { .. }) {
+                let expected_arg_count = t.clone().arg_types().len();
+                let got_arg_count = got_t.clone().arg_types().len();
+                if expected_arg_count != got_arg_count {
+                    return Err(make_error(CompilationError::CannotInferType, mark.clone()))
+                }
+            } 
+            else {
+                if unknown_generics.values().all(|x| x.is_some()) {
+                    substitute_back_in(&mut output, &unknown_generics);
+                    return Ok((output, None))
+                }
+                number_args_used = None;
+                return Err(make_error(CompilationError::CannotInferType, mark.clone()))
+            }
+            continue
+        } 
+        if got_t.is_function() {
+            // might be slightly wrong
+            let expected_arg_count = t.clone().arg_types().len();
+            let got_arg_count = got_t.clone().arg_types().len();
+            if expected_arg_count != got_arg_count {
+                if unknown_generics.values().all(|x| x.is_some()) {
+                    substitute_back_in(&mut output, &unknown_generics);
+                    return Ok((output, None))
+                }
+                return Err(make_error(CompilationError::CannotInferType, mark.clone()))
+            }
+        }
+        merge_types(&t, &got_t, &mut unknown_generics);
+    }
+    let mut total_number_args = number_args_used;
+    if let Ok(Marked::<Token> { value: Token::NewLine(indent), .. }) = tokens.next() {
+        let branches = tokens.get_with_indentation(indent);
+        total_number_args = number_args_used.map(|x| x + branches.len() as u32);
+        let zipped = t_args.zip(branches.into_iter());
+        for (tp, mut tokens) in zipped {
+            number_args_used = number_args_used.map(|x| x + 1);
+            if !has_generics(&tp) { 
+                continue 
+            }
+            let got_t = match tokens.next().unwrap().value {
+                Token::Keyword(Keyword::The) => parse_type(&mut tokens, generics)?,
+                Token::Word(w) => {
+                    match figure_out_type(
+                        None, 
+                        &mut tokens, 
+                        &w, 
+                        mark, 
+                        global_vars, 
+                        local_vars,
+                        generics
+                    ) {
+                        Ok((mut var_t, Some(arg_count))) => {
+                            cut_off_n(&var_t, arg_count).clone()
+                        }
+                        _ => {
+                            // TODO pattern match on error
+                            continue
+                        }
+                    }
+                }
+                _ => continue, // add error to vec
+            };
+            // check_compatable(tp, got_t)?;
+            merge_types(&tp, &got_t, &mut unknown_generics);
+        }
+    }
+    if 
+        let Some(t) = expected_type    && 
+        let Some(n) = number_args_used && 
+        n == total_number_args.unwrap()
+    {
+        let mut temp_t = output.clone();
+        let temp_t: &Type = cut_off_n(&temp_t, n);
+        merge_types(temp_t, &t, &mut unknown_generics);
+    }
+    if unknown_generics.values().any(|x| x.is_none()) {
+        return Err(make_error(CompilationError::CannotInferType, mark.clone()))
+    }
+    substitute_back_in(&mut output, &unknown_generics);
+    Ok((output, number_args_used))
+}
+
+fn merge_types(unknown: &Type, new: &Type, output: &mut HashMap<usize, Option<Type>>) {
+    match (unknown, new) {
+        (Type::Generic(x), _) => {
+            output.insert(*x, Some(new.clone()));
+        }
         (Type::Function(a1,b1), Type::Function(a2,b2)) => {
             merge_types(a1, a2, output);
             merge_types(b1, b2, output);
@@ -744,7 +951,11 @@ fn merge_types(old: &Type, new: &Type, output: &mut Vec<(usize, Type)>) {
                 .zip(args2.iter())
                 .for_each(|(a, b)| merge_types(a, b, output));
         }
-        _ => todo!()
+        (a, b) => {
+            dbg!(a);
+            dbg!(b);
+            todo!()
+        }
     }
 }
 
@@ -862,6 +1073,8 @@ pub fn parse_expression(
                         parse_type(&mut matched_on_tokens, generics)?
                     }
                     Token::Word(first_name) => {
+                        let mut temp_tokens = matched_on_tokens.clone();
+                        temp_tokens.next();
                         let root_type = if let Some((_, b, _)) = local_vars.get(&first_name) { b.clone() } 
                         else {
                             let GlobalVarData { var_type: b, generics: inner_generics, .. } = lookup_global_vars(
@@ -870,7 +1083,17 @@ pub fn parse_expression(
                                 file_dependencies,
                                 global_vars,
                             )?;
-                            parse_generic_call(&mut matched_on_tokens, inner_generics, generics, b.clone())?
+                            let (t, _) = figure_out_type(
+                                None,
+                                &temp_tokens,
+                                &first_name,
+                                &mark, 
+                                &global_vars,
+                                &local_vars,
+                                generics
+                            )?;
+                            t
+                            // parse_generic_call(&mut matched_on_tokens, inner_generics, generics, b.clone())?
                         };
                         root_type.final_type().clone()
                     }
@@ -966,13 +1189,18 @@ pub fn parse_expression(
                             &keyword_mark
                         )?
                     ),
-                    Id::Variable(a) =>  (
-                        expressions[*a as usize].clone(),
-                        match infer_type(&expected_type, b, &keyword_mark)? {
-                            Some(x) => x,
-                            None => parse_generic_call(tokens, g, generics, b.clone())?
-                        }
-                    )
+                    Id::Variable(a) =>  {
+                        let (t, _) = figure_out_type(
+                            Some(&expected_type),
+                            &tokens,
+                            &name,
+                            &keyword_mark, 
+                            &global_vars,
+                            &local_vars,
+                            generics
+                        )?;
+                        (expressions[*a as usize].clone(), t)
+                    }
                 }
             };
             if !root_type.is_possible(&expected_type) {
@@ -1217,6 +1445,13 @@ impl Type {
         }
     }
 
+    pub fn is_function(&self) -> bool {
+        match self {
+            Self::Function(_, _) => true,
+            _ => false,
+        }
+    }
+
     pub fn arg_types(self) -> Vec<Type> {
         let mut args = Vec::new();
         let mut current_type = self;
@@ -1261,6 +1496,18 @@ impl Type {
         output
     }
 }
+fn cut_off_n(mut tp: &Type, n: u32) -> &Type {  // should be result
+    for _ in 0..n {
+        match tp {
+            Type::Function(_, b) => {
+                tp = b
+            }
+            _ => todo!(),
+        }
+    }
+    tp
+}
+
 
 #[derive(Debug, Hash, Clone)]
 pub enum Kind {

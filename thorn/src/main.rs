@@ -20,8 +20,6 @@ mod runtime;
 mod tokens;
 
 
-const VERSION: &'static str = "beta";
-
 use std::env;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -89,26 +87,27 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn read_line(prompt: &str, indent: u8) -> String {
+fn read_line(prompt: &str, indent: u8, extra_input: &str) -> String {
     let mut indent_string = String::with_capacity(indent as usize * 4);
     (0..indent).for_each(|_| indent_string.push_str("    "));
+    indent_string.push_str(extra_input);
     let mut rl = rustyline::DefaultEditor::new().unwrap();
     let full_prompt: String = format!("\x1b[96m{}\x1b[0m", prompt);
     let readline = rl.readline_with_initial(&full_prompt, (&indent_string, ""));
     match readline {
+        Err(_)   => std::process::exit(0),
         Ok(line) => {
             let s = line.trim_end().replace('\t', "    ").to_string();
-            if s == "" && prompt == "... " {
-                println!("\x1b[1A\r\x1b[96m>>>\r\x1b[0m");
-            }
+            // if s == "" && prompt == "... " {
+            //     println!("\x1b[1A\r\x1b[96m>>>\r\x1b[0m");
+            // }
             s
         }
-        Err(_)   => std::process::exit(0),
     }
 }
 
 fn prompt_to_edit_function(mark: &Mark) -> bool {
-    let input = read_line("open it in your editor? [Y/n] ", 0);
+    let input = read_line("open it in your editor? [Y/n] ", 0, "");
     println!();
     match input.as_str() {
         "y" | "Y" | "yes" | "" => (),
@@ -132,9 +131,9 @@ fn repl() -> std::io::Result<()> {
     let mut dummy: HashMap<String, GlobalVarData> = HashMap::new();
     let mut names: Vec<String> = Vec::new();
     let mut expressions: Vec<Expression> = Vec::new();
-    println!("thorn, version {}, :? for help", VERSION);
+    println!("thorn, :? for help");
     if let Ok(true) = reach_project_root() {
-        println!("inside a project. attemping to load it");
+        println!("including main");
         loop {
             match parse::get_everything() {
                 Err(ref err@Error { ref mark, .. }) => {
@@ -148,13 +147,12 @@ fn repl() -> std::io::Result<()> {
                     expressions = e;
                     dummy = d;
                     names = v;
-                    println!("loaded main");
                     break
                 }
             }
         }
     } else {
-        println!("not inside a project");
+        println!("not in a project");
     }
     let temp_file_index = {
         let mut ptr = DEBUG_INFO.lock().unwrap();
@@ -168,9 +166,7 @@ fn repl() -> std::io::Result<()> {
         let mut line: String;
         let mut words: Vec<&str>;
         let mut first_word: String;
-        indent = 0;
-        text = String::new();
-        line = read_line(">>> ", indent);
+        line = read_line(">>> ", indent, "");
         if line == "" {
             continue
         }
@@ -185,9 +181,17 @@ fn repl() -> std::io::Result<()> {
         ) {
             text.push_str(&line);
             loop {
+                words = line.split_whitespace().collect();
+                let include_case: &str = if 
+                    words.contains(&"match") && 
+                    words[words.len() - 1] != "match"
+                {
+                    "case "
+                } else {
+                    ""
+                };
                 indent = (tokens::indentation_length(&line) / 4) as u8;
                 indent += 1;
-                words = line.split_whitespace().collect();
                 if 
                     words.contains(&"forall") && 
                     !words.contains(&"type") && 
@@ -206,7 +210,7 @@ fn repl() -> std::io::Result<()> {
                 if locked_to_one {
                     indent = 1;
                 }
-                line = read_line("... ", indent);
+                line = read_line("... ", indent, include_case);
                 text.push('\n');
                 text.push_str(&line);
                 if line == "" { 
@@ -309,9 +313,9 @@ fn compile_block(
             block.add_context(&name.clone().into());
             match kind {
                 BlockKind::Variable => {
-                    if dummy.contains_key(&name) {
+                    if let Some(x) = dummy.get(&name) {
                         return Err(make_error(
-                            CompilationError::MultipleDeclorations(mark.file), 
+                            CompilationError::MultipleDeclorations(x.mark.file), 
                             mark
                         ))
                     }

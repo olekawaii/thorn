@@ -227,7 +227,7 @@ pub enum Token {
     Word(String),
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Tokens {
     pub tokens: LinkedList<Marked<Token>>,
     end: Mark,
