@@ -1,4 +1,4 @@
-include prelude
+include nat bool tuple
 
 type int contains
     neg nat
@@ -6,14 +6,14 @@ type int contains
     zero
 
 define eq_int as the fn int fn int bool 
-    lambda x lambda y match the tuple int int tuple x y 
+    lambda x lambda y match tuple x y 
         case tuple pos a pos b     eq_nat a b
         case tuple neg a neg b     eq_nat a b
         case tuple zero  zero      true
         case _                     false
 
 define sum_int as the fn int fn int int 
-    lambda x lambda y match the tuple int int tuple x y
+    lambda x lambda y match tuple x y
         case tuple pos _ neg _     sum_int decrement x increment y
         case tuple neg a neg b     neg sum_nat a b
         case tuple pos a pos b     pos sum_nat a b
@@ -30,10 +30,14 @@ define increment as the fn int int
 define negate as the fn int int product_int neg one
 
 define decrement as the fn int int 
-    compose int int int negate compose int int int increment negate
+    compose 
+        negate 
+        compose 
+            increment 
+            negate
 
 define product_int as the fn int fn int int 
-    lambda x lambda y match the tuple int int tuple x y
+    lambda x lambda y match tuple x y
         case 
             either 
                 tuple pos a pos b 
@@ -44,9 +48,9 @@ define product_int as the fn int fn int int
                 tuple pos a neg b     
                 tuple neg a pos b
             neg product_nat a b
-        case _      zero
+        case _                      zero
 
 define abselute_value as the fn int whole 
     lambda x match x
-        case either pos x neg x     pred succ x
-        case zero                   pred one
+        case either pos x neg x     nat_to_whole x
+        case zero                   whole_zero

@@ -29,8 +29,12 @@ define bimap as the fn fn a c fn fn b d fn tuple a b tuple c d
 
 forall a b c 
 define map_fst as the fn fn a c fn tuple a b tuple c b 
-    lambda f bimap a b c b f identity b
+    lambda f bimap 
+        f 
+        the fn b b identity
 
 forall a b c 
 define map_snd as the fn fn b c fn tuple a b tuple a c 
-    lambda f bimap a b a c identity a f
+    lambda f bimap 
+        identity 
+        f

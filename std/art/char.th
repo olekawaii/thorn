@@ -4,6 +4,9 @@ type character contains
     space
     char visible_character color
 
+--  Visible ASCII characters. Names taken from
+--  the Rust standard library
+
 type visible_character contains
     exclamation_mark
     quotation_mark
@@ -100,7 +103,8 @@ type visible_character contains
     right_curly_brace
     tilde
 
-define flip_over_y_visible as the fn visible_character visible_character 
+define flip_over_y_visible as the 
+    fn visible_character visible_character 
     lambda c match c
         case apostrophe              grave_accent
         case grave_accent            apostrophe
@@ -122,16 +126,20 @@ define flip_over_y_visible as the fn visible_character visible_character
         case small_q                 small_p
         case _                       c
 
-define flip_over_y_char as the fn character character 
+define flip_over_y_char as the 
+    fn character character 
     map_over_char flip_over_y_visible
 
 define map_over_char as the 
-    fn fn visible_character visible_character fn character character
+    fn 
+        fn visible_character visible_character 
+        fn character character
     lambda f lambda x match x 
-        case space            space
-        case char c color     char f c color
+        case space                   space
+        case char c color            char f c color
 
-define recolor_character as the fn color fn character character 
+define recolor_character as the 
+    fn color fn character character 
     lambda color lambda character match character
-        case char a _     char a color
-        case space        space
+        case space                   space
+        case char a _                char a color

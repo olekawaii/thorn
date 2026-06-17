@@ -46,6 +46,7 @@ define next_color as the fn color color lambda x match x
 --  rgb color wheel. black and white are 
 --  uneffected
 
-define complementary as the fn color color 
-    repeat color iii next_color
-
+define complementary as the 
+    fn color color 
+    repeat iii 
+        next_color

@@ -54,9 +54,9 @@ define insert as the fn int fn int fn character fn frame frame
                 insert_column x one chr col_pos
 
 --  Repeatedly apply a function to a frame n 
---  times. same as repeat frame
+--  times. Same as repeat
 
-define by as the fn nat fn fn frame frame fn frame frame repeat frame
+define by as the fn nat fn fn frame frame fn frame frame repeat
 
 --  shift_by x y shifts the frame by the x and y 
 --  values
@@ -66,12 +66,12 @@ define shift_by as the fn int fn int fn frame frame
         the fn frame frame match x
             case pos a     by a shift east
             case neg a     by a shift west
-            case zero      identity frame
+            case zero      identity
         case fa    match 
             the fn frame frame match y 
                 case pos a    by a shift north
                 case neg a    by a shift south
-                case zero     identity frame
+                case zero     identity
             case fb    fa fb f
 
 --  layer_frames a b layers a on top of b
@@ -94,22 +94,22 @@ type direction contains
 
 define shift as the fn direction fn frame frame 
     lambda dir lambda bind f frame col_neg col_pos match dir
-        case north    match col_neg
+        case north                match col_neg
             case cons hor col_succ    frame
                 col_succ
                 cons hor col_pos
-            case nil    frame
+            case nil                  frame
                 nil
                 cons empty_horizontal col_pos
-        case south    match col_pos
+        case south                match col_pos
             case cons hor col_succ    frame
                 cons hor col_neg
                 col_succ
-            case nil    frame
+            case nil                  frame
                 cons empty_horizontal col_neg
                 nil
-        case east    map_columns shift_horizontal right f
-        case west    map_columns shift_horizontal left  f
+        case east                 map_columns shift_horizontal right f
+        case west                 map_columns shift_horizontal left  f
 
 --  Essentially multiply all x coordinates by neg 
 --  one. this also flips some characters 
@@ -126,8 +126,8 @@ define flip_over_y as the fn frame frame map_columns over_y_hor
 
 define dye as the fn color fn frame frame lambda color map_frame 
     lambda c match c 
-        case space        space
-        case char ch _    char ch color
+        case space             space
+        case char ch _         char ch color
 
 --  The following are helper functions you 
 --  probably don't need 
@@ -138,25 +138,25 @@ define empty_horizontal as the horizontal
 define insert_horizontal as the fn int fn character fn horizontal horizontal
     lambda index lambda chr lambda horizontal n p
         match index 
-            case neg index     horizontal insert_row index chr n p
-            case pos index     horizontal n insert_row succ index chr p
-            case zero          horizontal n insert_row one chr p
+            case neg index         horizontal insert_row index chr n p
+            case pos index         horizontal n insert_row succ index chr p
+            case zero              horizontal n insert_row one chr p
 
 define insert_row as the 
     fn nat fn character fn list grid_cell list grid_cell 
     lambda index lambda chr lambda r match r 
-        case cons x xs    match index
-            case one        cons full_grid_cell chr xs
-            case succ i     cons x insert_row i chr xs
-        case nil    insert_row index chr cons empty_grid_cell nil
+        case cons x xs         match index
+            case one               cons full_grid_cell chr xs
+            case succ i            cons x insert_row i chr xs
+        case nil               insert_row index chr cons empty_grid_cell nil
 
 define insert_column as the 
     fn int fn nat fn character fn list horizontal list horizontal 
     lambda x lambda y lambda chr lambda col match col
         case cons head tail    match y
-            case succ i     cons head insert_column x i chr tail
-            case one        cons insert_horizontal x chr head tail
-        case nil    insert_column x y chr cons empty_horizontal nil
+            case succ i            cons head insert_column x i chr tail
+            case one               cons insert_horizontal x chr head tail
+        case nil               insert_column x y chr cons empty_horizontal nil
 
 type horizontal_direction contains
     right
@@ -175,23 +175,18 @@ define shift_horizontal as the
 define map_columns as the fn fn horizontal horizontal fn frame frame 
     lambda f lambda frame cn cp
         frame
-            map_list horizontal horizontal f cn
-            map_list horizontal horizontal f cp
+            map_list f cn
+            map_list f cp
 
 define layer_columns as the 
     fn list horizontal fn list horizontal list horizontal 
-    lambda ca lambda cb match 
-        the tuple list horizontal list horizontal tuple ca cb
+    lambda ca lambda cb match tuple ca cb
         case 
             tuple cons head_a tail_a cons head_b tail_b   
             cons
                 layer_horizontal head_a head_b
                 layer_columns tail_a tail_b
-        case 
-            either 
-                tuple nil a 
-                tuple a   nil     
-            a
+        case either tuple nil a tuple a nil     a
 
 define layer_horizontal as the fn horizontal fn horizontal horizontal 
     lambda horizontal aa ba lambda horizontal ab bb
@@ -201,10 +196,8 @@ define layer_horizontal as the fn horizontal fn horizontal horizontal
 
 define layer_rows as the 
     fn list grid_cell fn list grid_cell list grid_cell
-    lambda x lambda b match 
-        the tuple list grid_cell list grid_cell 
-            tuple x b
-        case tuple cons aa ba cons ab bb    cons
+    lambda x lambda b match tuple x b
+        case tuple cons aa ba cons ab bb        cons
             match aa
                 case empty_grid_cell        ab
                 case full_grid_cell _       aa
@@ -214,20 +207,15 @@ define layer_rows as the
                     case filter_grid_cell g     filter_grid_cell 
                         lambda x f g x
             layer_rows ba bb
-        case 
-            either  
-                tuple nil a  
-                tuple a nil  
-            a
+        case either tuple nil a tuple a nil     a
 
 define over_y_hor as the fn horizontal horizontal 
     lambda horizontal n p match p
-        case cons x xs     horizontal 
+        case cons x xs              horizontal 
             map_row flip_over_y_char xs
             cons map_over_grid_cell flip_over_y_char x
                 map_row flip_over_y_char n
-        case nil     horizontal 
-            nil
+        case nil                    horizontal nil
             cons empty_grid_cell map_row flip_over_y_char n
 
 define map_over_grid_cell as the
@@ -248,7 +236,7 @@ define map_frame as the fn fn character character fn frame frame
 define map_row as the 
     fn fn character character fn list grid_cell list grid_cell 
     lambda f lambda x match x
-        case cons head tail     cons
+        case nil                    nil
+        case cons head tail         cons
             map_over_grid_cell f head 
             map_row f tail
-        case nil    nil

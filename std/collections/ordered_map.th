@@ -3,21 +3,22 @@ include ordering binary_tree option
 --  The data constructor is unsafe because the 
 --  type has multiple invariants:
 --  
---  * The ordering function must not change
---  * The tree should stay in order, sorted
---    least to greatest
+--  * The tree must stay sorted
+--  * the sorting is determined by the ordering
+--    function
 
 forall a b
 type ordered_map contains
     unsafe_ordered_map
         fn a fn a ordering     -- Ordering function
-        tree tuple a b         -- Internals using a binary tree
+        tree tuple a b         -- Internal sorted binary tree
 
 --  Create a new empty map with a given ordering 
 --  function
 
 forall a b
-define new_ordered_map as the fn fn a fn a ordering ordered_map a b
+define new_ordered_map as the 
+    fn fn a fn a ordering ordered_map a b
     lambda f unsafe_ordered_map f empty
 
 --  Get the value associated with the give key. 
@@ -26,24 +27,29 @@ define new_ordered_map as the fn fn a fn a ordering ordered_map a b
 forall a b
 define get_ord as the fn a fn ordered_map a b option b
     lambda key lambda unsafe_ordered_map f tree match tree
-        case empty                            none
-        case node tuple k value left right    match f key k 
+        case empty                                none
+        case node tuple k value left right        match f key k 
             case eq    some value
-            case lt    get_ord a b key unsafe_ordered_map f left
-            case gt    get_ord a b key unsafe_ordered_map f right
+            case lt    get_ord key 
+                unsafe_ordered_map f left
+            case gt    get_ord key 
+                unsafe_ordered_map f right
 
 --  Insert a key/value pair into a map, returning 
 --  the new map
 
 forall a b
-define insert_ord as the fn a fn b fn ordered_map a b ordered_map a b
-    lambda key lambda value lambda unsafe_ordered_map f tree 
-        unsafe_ordered_map f insert_ord_helper key value f tree
+define insert_ord as the 
+    fn a fn b fn ordered_map a b ordered_map a b
+    lambda key lambda value lambda unsafe_ordered_map f t
+        unsafe_ordered_map f insert_ord_helper key value f t
 
 forall a b
 define insert_ord_helper as the 
-    fn a fn b fn fn a fn a ordering fn tree tuple a b tree tuple a b
-    lambda key lambda value lambda f lambda tree match tree
+    fn a fn b fn 
+        fn a fn a ordering 
+        fn tree tuple a b tree tuple a b
+    lambda key lambda value lambda f lambda t match t
         case empty       node tuple key value empty empty
         case 
             node bind root tuple k _ left right    
@@ -67,9 +73,11 @@ define remove_ord as the fn a fn ordered_map a b ordered_map a b
 
 forall a b
 define remove_ord_helper as the 
-    fn a fn fn a fn a ordering fn tree tuple a b tree tuple a b
+    fn a fn 
+        fn a fn a ordering 
+        fn tree tuple a b tree tuple a b
     lambda key lambda f lambda tree match tree
-        case empty       empty
+        case empty     empty
         case 
             node bind root tuple k _ left right    
             match f key k 

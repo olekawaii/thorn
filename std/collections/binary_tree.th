@@ -14,16 +14,16 @@ define map_tree as the fn fn a b fn tree a tree b
         case empty                      empty
         case node root left right       node 
             f root 
-            map_tree a b f left 
-            map_tree a b f right
+            map_tree f left 
+            map_tree f right
 
 --  Fold a tree into a list
 
 forall a 
 define fold_tree as the fn tree a list a 
     lambda x match x 
-        case empty                  nil
-        case node root left right   cat
+        case empty                      nil
+        case node root left right       cat
             fold_tree left
             cons root fold_tree right
 
@@ -33,14 +33,14 @@ define fold_tree as the fn tree a list a
 forall a
 define attach_to_leftmost as the fn tree a fn tree a tree a
     lambda new lambda old match new
-        case empty    old
-        case _        attach_to_leftmost_helper new old 
+        case empty        old
+        case _            attach_to_leftmost_helper new old 
 
 forall a
 define attach_to_leftmost_helper as the fn tree a fn tree a tree a
     lambda new lambda old match old
-        case empty                   new 
-        case node root left right    node
+        case empty                      new 
+        case node root left right       node
             root
             attach_to_leftmost new left
             right

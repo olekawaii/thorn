@@ -10,7 +10,7 @@ define compose as the fn fn b c fn fn a b fn a c
     lambda g lambda f lambda x  g f x
 
 forall a b 
-define apply as the fn fn a b fn a b identity fn a b
+define apply as the fn fn a b fn a b identity
 
 forall a b 
 define const as the fn a fn b a lambda x lambda _ x

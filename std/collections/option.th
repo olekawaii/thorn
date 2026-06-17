@@ -16,13 +16,13 @@ define unwrap_or_default as the fn option a fn a a
         case some a    a
         case none      default
 
---  Unwraps an optional value under the 
---  assumption that it can't be none. It's a 
---  partial function that errors on none. Prefer 
+--  Unwraps an optional value under the
+--  assumption that it can't be none. It's a
+--  partial function that crashes on none. Prefer
 --  pattern matching or unwrap_or.
 
 forall a 
-define from_some as the fn option a a lambda some x x    -- errors on none
+define from_some as the fn option a a lambda some x x    -- crashes on none
 
 --  functor
 
@@ -39,9 +39,10 @@ define lift_option as the fn a option a some
 
 forall a b 
 define apply_option as the fn option fn a b fn option a option b 
-    lambda f lambda x bind_option fn a b b 
-        f 
-        flip fn a b option a option b map_option a b x
+    lambda f lambda x bind_option f 
+        flip 
+            map_option 
+            x
 
 --  monad
 
