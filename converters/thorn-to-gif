@@ -64,4 +64,6 @@ ffmpeg                                 \
     -
 
 rm -r *.ppm palette.png 
+cd ..
+rm -r $temp
 

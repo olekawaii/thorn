@@ -119,12 +119,16 @@ parseNewVideo _ = error "\x1b[91mshould be of type video starting with either si
 
 
 convertNewFrame :: Frame -> Map Coordinate Character
-convertNewFrame (a, b) = let combined = reverse a <> b in 
+convertNewFrame (a, b) =
     filter (\(a, b) -> case b of
         Space -> False
         _ -> True) $ 
-    concatMap (\(y, (left, right)) -> map (\(a, b) -> ((a, y), b)) (zip [0, -1 ..] left <> zip [1..] right)) $ 
-    zip [0..] combined
+    (concatMap 
+      (\(y, (left, right)) -> map (\(a, b) -> ((a, y), b)) (zip [0, -1 ..] left <> zip [1..] right)) $ 
+      zip [-1, -2 ..] a) ++
+    (concatMap 
+      (\(y, (left, right)) -> map (\(a, b) -> ((a, y), b)) (zip [0, -1 ..] left <> zip [1..] right)) $ 
+      zip [0..] b)
 
 
 
