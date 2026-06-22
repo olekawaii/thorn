@@ -271,6 +271,7 @@ fn evaluate_block(
     var_names: &mut Vec<String>,
     expressions: &mut Vec<Expression>,
 ) -> error::Result<()> {
+    let temp_local_vars = HashMap::new();
     let file_name = get_file_name(temp_file_name);
     let text = std::fs::read_to_string(file_name).unwrap();
     let mut block = tokenize_file(text, temp_file_name)?.into_iter().next().unwrap();
@@ -286,7 +287,7 @@ fn evaluate_block(
         &available_files,
         tp.clone(), 
         &mut block, 
-        HashMap::new(), 
+        &temp_local_vars, 
         0, 
         &dummy, 
         &new_vec,
@@ -305,6 +306,7 @@ fn compile_block(
     var_names: &mut Vec<String>,
     expressions: &mut Vec<Expression>,
 ) -> error::Result<()> {
+    let temp_local_vars = HashMap::new();
     let file_name = get_file_name(temp_file_name);
     let text = std::fs::read_to_string(file_name).unwrap();
     let mut block = tokenize_file(text, temp_file_name)?.into_iter().next().unwrap();
@@ -315,7 +317,7 @@ fn compile_block(
                 BlockKind::Variable => {
                     if let Some(x) = dummy.get(&name) {
                         return Err(make_error(
-                            CompilationError::MultipleDeclorations(x.mark.file), 
+                            CompilationError::MultipleDeclarations(x.mark.file), 
                             mark
                         ))
                     }
@@ -352,7 +354,7 @@ fn compile_block(
                             &available_files,
                             var_type.clone(), 
                             &mut block,
-                            HashMap::new(),
+                            &temp_local_vars,
                             0,
                             &dummy,
                             &generics,
@@ -383,7 +385,7 @@ fn compile_block(
                         let mut ptr = ptr.as_mut().unwrap();
                         if ptr.contains_key(&name) {
                             return Err(make_error(
-                                CompilationError::MultipleDeclorations(mark.file), 
+                                CompilationError::MultipleDeclarations(mark.file), 
                                 mark
                             ))
                         }

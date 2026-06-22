@@ -41,7 +41,7 @@ pub enum CompilationError {
     TypeMismatch(Type, Option<Type>),
     BadTypeInference(Type, Type),
     BadFile(String),
-    MultipleDeclorations(u32),
+    MultipleDeclarations(u32),
     TypeAnnotationNeeded,
     RedundentPattern
 }
@@ -54,7 +54,7 @@ impl ErrorType for CompilationError {
             Self::BadTypeInference(_, _)  => "of unexpected type",
             Self::NotUsed                 => "local variable never used",
             Self::EitherMismatch          => "mismatch between branches",
-            Self::MultipleDeclorations(_) => "multiple declorations",
+            Self::MultipleDeclarations(_) => "multiple declarations",
             //Self::PartialPattern => "not all patterns covered",
             Self::RedundentPattern        => "redundent pattern",
             Self::ExpectedMoreArguments   => "expected more arguments",
@@ -82,7 +82,7 @@ impl std::fmt::Display for CompilationError {
             Self::TypeAnnotationNeeded => write!(f, "consider adding a type annotation with the \x1b[97mthe\x1b[90m keyword"),
             Self::EitherMismatch => write!(f, "the two patterns in the \x1b[97meither\x1b[90m pattern must have 
 the same variables and of the same type"),
-            Self::MultipleDeclorations(s) => write!(f, "name already used in \x1b[97m{s}\x1b[90m"),
+            Self::MultipleDeclarations(s) => write!(f, "name already used in \x1b[97m{s}\x1b[90m"),
             Self::NotUsed => write!(f, "consider prepending it with an \x1b[97m_\x1b[90m to drop the value"),
             Self::RedundentPattern => write!(f, 
 "this branch will never be reached because the 
@@ -308,7 +308,7 @@ fn uwu<'a>(files: &Vec<String>) -> Result<(Vec<Expression>, Globals)> {
                         BlockKind::Variable => {
                             if let Some(x) = var_table.insert(name, (mark.clone(), var_bodies.len(), generics)) {
                                 return Err(make_error(
-                                    CompilationError::MultipleDeclorations(x.0.file), 
+                                    CompilationError::MultipleDeclarations(x.0.file), 
                                     mark
                                 ))
                             }
@@ -317,7 +317,7 @@ fn uwu<'a>(files: &Vec<String>) -> Result<(Vec<Expression>, Globals)> {
                         BlockKind::Type => {
                             if let Some(x) = type_table.get(&name) {
                                 return Err(make_error(
-                                    CompilationError::MultipleDeclorations(x.mark.file), 
+                                    CompilationError::MultipleDeclarations(x.mark.file), 
                                     mark
                                 ))
                             }
@@ -374,7 +374,7 @@ fn uwu<'a>(files: &Vec<String>) -> Result<(Vec<Expression>, Globals)> {
                     var_type: tp,
                 }) {
                     return Err(make_error(
-                        CompilationError::MultipleDeclorations(x.mark.file), 
+                        CompilationError::MultipleDeclarations(x.mark.file), 
                         mark
                     ))
                 };
@@ -399,6 +399,7 @@ fn uwu<'a>(files: &Vec<String>) -> Result<(Vec<Expression>, Globals)> {
     }
     
     // step 3: parse the expressions
+    let temp_local_vars = HashMap::new();
     for (var_name, GlobalVarData {mark, var_type, id, generics}) in final_var_table.iter() {
         let available_files = dependencies.available_files(mark.file);
         let Id::Variable(index) = id else { continue };
@@ -407,7 +408,7 @@ fn uwu<'a>(files: &Vec<String>) -> Result<(Vec<Expression>, Globals)> {
             &available_files,
             var_type.clone(), 
             &mut var_bodies[*index],
-            HashMap::new(),
+            &temp_local_vars,
             0,
             &final_var_table,
             &generics,
@@ -981,7 +982,7 @@ pub fn parse_expression(
     file_dependencies:     &HashSet<u32>,
     expected_type:         Type,
     tokens:                &mut Tokens,
-    mut local_vars:        LocalVars,
+    local_vars:            &LocalVars,
     local_vars_count:      u32,
     global_vars:           &Globals,
     generics:              &Generics,
@@ -1024,10 +1025,16 @@ pub fn parse_expression(
                             global_vars,
                         )?;
                         //validate_patterns(vec![(pattern.clone(), mark)], constructors, global_vars, keyword_mark)?;
-                        local_vars_new
-                            .clone()
-                            .into_iter()
-                            .for_each(|(k, v)| { local_vars.insert(k, v); });
+                        let mut new_locals: LocalVars;
+                        let mut local_vars: &LocalVars = local_vars;
+                        if local_vars_new.len() != 0 {
+                            new_locals = local_vars.clone();
+                            local_vars_new
+                                .clone()
+                                .into_iter()
+                                .for_each(|(k, v)| { new_locals.insert(k, v); });
+                            local_vars = &new_locals;
+                        }
                         let body = parse_expression(
                             expressions,
                             file_dependencies,
@@ -1107,7 +1114,7 @@ pub fn parse_expression(
                     file_dependencies,
                     tp.clone(), 
                     &mut matched_on_tokens, 
-                    local_vars.clone(), 
+                    local_vars, 
                     local_vars_count, 
                     global_vars, 
                     generics,
@@ -1131,14 +1138,22 @@ pub fn parse_expression(
                     if matches!(pattern, Pattern::Dropped | Pattern::Captured(_)) {
                         encountered_wildcard = true;
                     }
-                    let mut loc = local_vars.clone();
-                    local_vars_new.clone().into_iter().for_each(|(k, v)| { loc.insert(k, v); });
+                    let mut local_vars = local_vars;
+                    let mut new_locals: LocalVars;
+                    if local_vars_new.len() != 0 {
+                        new_locals = local_vars.clone();
+                        local_vars_new
+                            .clone()
+                            .into_iter()
+                            .for_each(|(k, v)| { new_locals.insert(k, v); });
+                        local_vars = &new_locals;
+                    }
                     let body = parse_expression(
                         expressions,
                         file_dependencies,
                         expected_type.clone(),
                         branch, 
-                        loc,
+                        local_vars,
                         local_vars_count, 
                         global_vars, 
                         generics,
@@ -1229,7 +1244,7 @@ pub fn parse_expression(
                                 file_dependencies,
                                 next_type,
                                 &mut current_tokens,
-                                local_vars.clone(),
+                                local_vars,
                                 local_vars_count,
                                 global_vars,
                                 generics,
@@ -1253,7 +1268,7 @@ pub fn parse_expression(
                             file_dependencies,
                             next_type,
                             tokens,
-                            local_vars.clone(),
+                            local_vars,
                             local_vars_count,
                             global_vars,
                             generics,
