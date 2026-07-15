@@ -14,27 +14,32 @@ define snd as the fn tuple a b b lambda tuple _ y y
 --  takes a tuple instead
 
 forall a b c 
-define uncurry as the fn fn a fn b c fn tuple a b c 
+define uncurry as the 
+    fn fn a fn b c fn tuple a b c 
     lambda f lambda tuple a b f a b
 
 forall a b c 
-define curry as the fn fn tuple a b c fn a fn b c 
+define curry as the 
+    fn fn tuple a b c fn a fn b c 
     lambda f lambda a lambda b f tuple a b
 
 --  bifunctor
 
 forall a b c d 
-define bimap as the fn fn a c fn fn b d fn tuple a b tuple c d 
+define bimap as the 
+    fn fn a c fn fn b d fn tuple a b tuple c d 
     lambda f lambda g lambda tuple x y tuple f x g y
 
 forall a b c 
-define map_fst as the fn fn a c fn tuple a b tuple c b 
+define map_fst as the 
+    fn fn a c fn tuple a b tuple c b 
     lambda f bimap 
         f 
         the fn b b identity
 
 forall a b c 
-define map_snd as the fn fn b c fn tuple a b tuple a c 
+define map_snd as the 
+    fn fn b c fn tuple a b tuple a c 
     lambda f bimap 
         identity 
         f

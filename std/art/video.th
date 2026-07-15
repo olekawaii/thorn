@@ -58,6 +58,7 @@ define rotate as the fn list frame list frame
     lambda vid match vid 
         case cons x xs          append x xs
         case nil                nil
+
 --  move the last frame to the front of the video
 
 define rotate_right as the fn list frame list frame 

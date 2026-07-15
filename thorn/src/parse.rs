@@ -857,6 +857,10 @@ fn figure_out_type (
                 let expected_arg_count = t.clone().arg_types().len();
                 let got_arg_count = got_t.clone().arg_types().len();
                 if expected_arg_count != got_arg_count {
+                    if unknown_generics.values().all(|x| x.is_some()) {
+                        substitute_back_in(&mut output, &unknown_generics);
+                        return Ok((output, None))
+                    }
                     return Err(make_error(CompilationError::CannotInferType, mark.clone()))
                 }
             } 

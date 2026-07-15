@@ -13,8 +13,8 @@ type option contains
 forall a 
 define unwrap_or_default as the fn option a fn a a 
     lambda x lambda default match x
-        case some a    a
-        case none      default
+        case some a        a
+        case none          default
 
 --  Unwraps an optional value under the
 --  assumption that it can't be none. It's a
@@ -22,15 +22,16 @@ define unwrap_or_default as the fn option a fn a a
 --  pattern matching or unwrap_or.
 
 forall a 
-define from_some as the fn option a a lambda some x x    -- crashes on none
+define from_some as the fn option a a lambda some x   x    -- crashes on none
 
 --  functor
 
 forall a b 
-define map_option as the fn fn a b fn option a option b 
+define map_option as the 
+    fn fn a b fn option a option b 
     lambda f lambda x match x
-        case none      none
-        case some x    some f x
+        case none          none
+        case some x        some f x
 
 --  applicative
 
@@ -38,7 +39,8 @@ forall a
 define lift_option as the fn a option a some
 
 forall a b 
-define apply_option as the fn option fn a b fn option a option b 
+define apply_option as the 
+    fn option fn a b fn option a option b 
     lambda f lambda x bind_option f 
         flip 
             map_option 
@@ -47,15 +49,16 @@ define apply_option as the fn option fn a b fn option a option b
 --  monad
 
 forall a b 
-define bind_option as the fn option a fn fn a option b option b 
+define bind_option as the 
+    fn option a fn fn a option b option b 
     lambda x lambda f match x
-        case none      none
-        case some x    f x
+        case none          none
+        case some x        f x
 
 --  Convert an option to a list
 
 forall a 
 define fold_option as the fn option a list a 
     lambda x match x
-        case none      nil
-        case some x    cons x nil
+        case none          nil
+        case some x        cons x nil

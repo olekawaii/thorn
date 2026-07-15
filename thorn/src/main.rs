@@ -53,34 +53,55 @@ use crate::error::{
 };
 use crate::tokens::Keyword;
 
+const MAIN_EXPR: &'static str = "/tmp/thorn-input-expr";
+
 fn main() -> std::io::Result<()> {
+    std::fs::write(MAIN_EXPR, "main");     // by default evaluate main
     {
         let mut ptr = parse::TYPES.lock().unwrap();
         *ptr = Some(HashMap::new());
     }
-    let Arguments { starting_dir, main_function, as_repl } = parse_cli_arguments()?;
+    let Arguments { starting_dir, expression_provided, as_repl } = parse_cli_arguments()?;
+    std::env::set_current_dir(&starting_dir)?;
     if as_repl {
         repl()?
-    } else {
-        std::env::set_current_dir(&starting_dir)?;
-        if !reach_project_root()? {
-            eprintln!("\x1b[91merror:\x1b[0m reached root without finding \
-                main.th\n       make sure you're in a project");
-            std::process::exit(1);
+    }
+    if !reach_project_root()? {
+        eprintln!("\x1b[91merror:\x1b[0m reached root without finding \
+            main.th\n       make sure you're in a project");
+        std::process::exit(1);
+    }
+    match parse::get_everything() {
+        Err(x) => {
+            eprintln!("{x}");
+            std::process::exit(1)
         }
-        match parse::get_everything() {
-            Err(x) => {
-                eprintln!("{x}");
-                std::process::exit(1)
-            }
-            Ok((expressions, mut var_names, dummy)) => {
-                let GlobalVarData {var_type, id, ..} = dummy.get(&main_function).unwrap();
+        Ok((mut expressions, mut var_names, mut dummy)) => {
+            if !expression_provided {
+                let GlobalVarData {var_type, id, ..} = dummy.get("main").unwrap();
                 let id = match id {
                     Id::Variable(n) => n,
                     Id::Constructor(n) => n,
                 };
                 let main_expr = expressions[*id].clone();
                 main_expr.print(&mut var_names, var_type);
+            }
+            else {
+                let x;
+                {
+                    let mut ptr = DEBUG_INFO.lock().unwrap();
+                    ptr.files.push(String::from(MAIN_EXPR));
+                    x = ptr.files.len() - 1;
+                }
+                if let Err(e) = evaluate_block(
+                    x as u32,
+                    &mut dummy,
+                    &mut var_names,
+                    &mut expressions,
+                ) {
+                    eprintln!("{e}");
+                    std::process::exit(1);
+                }
             }
         }
     }
@@ -210,7 +231,7 @@ fn repl() -> std::io::Result<()> {
                 if locked_to_one {
                     indent = 1;
                 }
-                line = read_line("... ", indent, include_case);
+                line = read_line(">>> ", indent, include_case);
                 text.push('\n');
                 text.push_str(&line);
                 if line == "" { 
@@ -276,7 +297,7 @@ fn evaluate_block(
     let text = std::fs::read_to_string(file_name).unwrap();
     let mut block = tokenize_file(text, temp_file_name)?.into_iter().next().unwrap();
     block.remove_leading_newlines();
-    block.next();   // 'the'
+    block.expect_keyword(Keyword::The)?;
     let new_vec = Vec::new();
     let tp: Type = parse_type(&mut block, &new_vec)?;
     let possible: [u32;100] = (0..100).collect::<Vec<u32>>().try_into().unwrap();
@@ -292,10 +313,10 @@ fn evaluate_block(
         &dummy, 
         &new_vec,
     )?;
-    print!("\x1b[1A\x1b[0J\x1b[90m\n");
+    //print!("\x1b[1A\x1b[0J\x1b[90m\n");
     //std::io::stdout().flush();
     expr.print(var_names, &tp);
-    print!("\x1b[0m\n");
+    //print!("\x1b[0m\n");
     Ok(())
 }
 
@@ -450,17 +471,17 @@ pub fn reach_project_root() -> std::io::Result<bool> {
 }
 
 struct Arguments {
-    starting_dir:    String,
-    main_function:   String,
-    as_repl:         bool,
+    starting_dir:          String,
+    expression_provided:   bool,
+    as_repl:               bool,
 }
 
 impl Default for Arguments {
     fn default() -> Arguments {
         Arguments {
-            starting_dir:      String::from("."),
-            main_function:     String::from("main"),
-            as_repl:           false
+            starting_dir:         String::from("."),
+            expression_provided:  false,
+            as_repl:              false
         }
     }
 }
@@ -471,20 +492,31 @@ fn parse_cli_arguments() -> std::io::Result<Arguments> {
     let _program_name = args.next();
     while let Some(x) = args.next() {
         match x.as_str() {
-            "repl"   => output.as_repl = true,
-            "--eval" => output.main_function = args
-                .next()
-                .expect("--eval expected a function name"),
+            "--repl" => output.as_repl = true,
+            "--eval" => {
+                output.expression_provided = true;
+                let arg = args.next().expect("--eval expected a function name");
+                if arg.trim() == "-" {
+                    let mut buffer = String::new();
+                    let stdin = std::io::stdin();
+                    for line in stdin.lines() {
+                        buffer.push_str(&line.unwrap());
+                        buffer.push('\n');
+                    }
+                    std::fs::write(MAIN_EXPR, &buffer);
+                }
+                else {
+                    std::fs::write(MAIN_EXPR, &arg);
+                }
+            }
             "--help" | "-h" => {
                 eprintln!(
-"thorn [command] [options] [directory]
-
-commands:
-    repl           start the interactive repl
+"thorn [options] [directory]
 
 options:
+    --eval EXPR    evaluate EXPR instead of main
     --help         show this help message
-    --eval NAME    evaluate NAME instead of main
+    --repl         start the interactive repl
 ");
                 std::process::exit(1);
 

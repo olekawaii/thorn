@@ -379,7 +379,6 @@ impl Tokens {
     }
 
     pub fn expect_end(&mut self) -> Result<()> {
-        self.remove_leading_newlines();
         match self.peek().map(|x| x.clone().destructure()) {
             Ok((_, mark)) => Err(make_error(ParseError::TrailingCharacters, mark)),
             Err(_) => Ok(())

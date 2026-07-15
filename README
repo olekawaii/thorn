@@ -10,7 +10,7 @@
          $$$$   ,$$'           you encounter any bugs or issues,
          $$$$  ,B'             please let me know. Send me an email to
          $$$R,f"               olekawaii@yahoo.com or make an issue
-         $Rj*'                 at https://codeberg.org/olekawaii/thorn
+         $RY*'                 at https://codeberg.org/olekawaii/thorn
        .$F"
       eF`                      Make sure to check out some examples
      !$       _                in examples/ and std/
@@ -22,6 +22,7 @@
 What's the point of this language? The point is to have
   * Lovely error messages
   * Cool syntax
+  * Easy serialization and deserialization
   * Simplicity and no modules (I encourage circular imports)
 
 A goal I have is to make the thorn source code as pretty as the actual
@@ -229,8 +230,8 @@ loop is to recurse or use a function that recurses.
 
     define sum as the fn nat fn nat nat
         lambda x match x
-            case one             succ
-            case succ a          lambda y succ sum a y     -- recursive
+            case one         succ
+            case succ a      lambda y succ sum a y     -- recursive
 
 output:  succ succ succ succ one
 
@@ -240,67 +241,66 @@ expression. This is because the `succ` data constructor is a function.
 (succ one) is of type (nat) but (succ) is of type (fn nat nat).  All
 data constructors are curried.
 
-------------------   LAZY EVALUATION AND THE REPL   --------------------
+------------------   LAZY EVALUATION  &  THE REPL   --------------------
 
 The whole language is lazily evaluated. Expressions are only evaluated
 when patternmatched on and evaluation starts at the main function. Here
 are some examples. I'll use the thorn repl to define and test them.
 
 >>> type bool contains
-...     true                                        .----.----.----.
-...     false                                       ['   |'   |'   ]
-...                                               .--.   :    :   .--.
+>>>     true                                        .----.----.----.
+>>>     false                                       ['   |'   |'   ]
+>>>                                               .--.   :    :   .--.
 >>> type nat contains                             |' |---.----.---|' |
-...     one                                       |  |___|____|___|  |
-...     succ nat                                  :__|            :__|
-...
+>>>     one                                       |  |___|____|___|  |
+>>>     succ nat                                  :__|            :__|
+>>>
 >>> define infinity as the nat succ infinity
-...
->>> type tuple_of_nats contains tuple nat nat
-...
->>> define is_equal as the fn nat fn nat bool
-...     lambda x lambda y match tuple x y
-...         case tuple one    one              true
-...         case tuple succ a succ b           is_equal a b
-...         case _                             false
-...
+>>>
+>>> forall a b type tuple contains tuple a b
+>>>
+>>> define are_equal as the 
+>>>     fn nat fn nat bool
+>>>     lambda x lambda y match tuple x y
+>>>         case tuple one    one              true
+>>>         case tuple succ a succ b           are_equal a b
+>>>         case _                             false
+>>>
 >>> -- Let's see what happens when we evaluate these expressions
 >>>
->>> the bool is_equal               -- Despite infinity being infinitely
-...     succ succ succ one          -- large, we can still work with it
-...     infinity                    -- because it's evaluated lazily.
+>>> the bool are_equal              -- Despite infinity being infinitely
+>>>     succ succ succ one          -- large, we can still work with it
+>>>     infinity                    -- because it's evaluated lazily.
 
 the bool false
 
->>> the bool is_equal               -- The program doesn't eat memory as
-...     infinity                    -- it hangs.
-...     infinity                    --
+>>> the bool are_equal              -- The program doesn't eat memory as
+>>>     infinity                    -- it hangs.
+>>>     infinity                    --
 
 *hangs at runtime*
 
->>> the bool is_equal               -- undefined is a keyword. It can
-...     succ one                    -- be used in place of any
-...     succ succ succ undefined    -- expression.
+>>> the bool are_equal              -- undefined is a keyword. It can
+>>>     succ one                    -- be used in place of any
+>>>     succ succ succ undefined    -- expression.
 
 the bool false
 
->>> the bool is_equal               -- If undefined is evaluated, the
-...     succ succ succ one          -- program crashes with an error
-...     succ succ undefined         -- pointing to it.
+>>> the bool are_equal              -- If undefined is evaluated, the
+>>>     succ succ succ one          -- program crashes with an error
+>>>     succ succ undefined         -- pointing to it.
 
- RUNTIME ERROR  in /tmp/thorn-repl.th:3:15
-
+RUNTIME ERROR  in /tmp/thorn-repl.th:3:15
   |     succ succ succ one          -- program crashes with an error
 3 |     succ succ undefined         -- pointing to it.
-  |               ^^^^^^^^^  entered undefined code
-
+                  ^^^^^^^^^  entered undefined code
 evaluated an undefined expression
 
->>> :q
+>>> ^D
 
 You can try all of these interactively in the thorn repl with
 
-      $ thorn repl
+    $ thorn --repl
 
 Note that thorn is not a scripting language. The repl just lets you
 use it like one, similar to GHCi for Haskell.
@@ -376,15 +376,25 @@ definition of a function, just run
 
 -----------------------------   OUTPUT   -------------------------------
 
-After running thorn on the above program, the output is the
-fully-evaluated main function, a tree of data constructors, a string
-of words when printed out. In fact, if you copy-paste the output into
-the main function, you will get the same output. To turn this output
-into something you actually want, you have to interpret it with an
-external program.
+When evaluating a program, the output is the fully-evaluated main 
+function, a tree of data constructors, a string of words when printed 
+out. In fact, if you copy-paste the output into the main function, you 
+will get the same output. To turn this output into something you 
+actually want, you have to interpret it with an external program.
 
 thorn tries to adhere to the UNIX philosophy. All programs do one thing
-and their outputs are intended to be inputs for other programs. That's
-how you end up with the lovely pipelines shown at the start
+and their outputs are intended to be inputs for other programs
 
-    $ thorn | thorn-to-sh | sh
+    $ thorn --eval 'the list frame chess_pieces' | thorn-to-sh | sh
+                                  _:_
+          n,_      o    o  o  c  __!__     o      n,_
+__ _ __  /.  \    / \    \v|v/   \_ _/    / \    /.  \  __ _ __
+[ U U ] (_/)  \  (  /)   <...>   <...>   (  /)  (_/)  \ [ U U ]
+ |  -|    /  _/  <...>    )_(     )_(    <...>    /  _/  |  -|
+ |___|   _/ \_   _/ \_   _/ \_   _/ \_   _/ \_   _/ \_   |___|
+(_____) (_____) (_____) (_____) (_____) (_____) (_____) (_____)
+   _       _       _       _       _       _       _       _
+ (  `)   (  `)   (  `)   (  `)   (  `)   (  `)   (  `)   (  `)
+ <...>   <...>   <...>   <...>   <...>   <...>   <...>   <...>
+ _/ \_   _/ \_   _/ \_   _/ \_   _/ \_   _/ \_   _/ \_   _/ \_
+(_____) (_____) (_____) (_____) (_____) (_____) (_____) (_____)
