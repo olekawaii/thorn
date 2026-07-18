@@ -51,7 +51,7 @@ The source code looks nice because
 
 The paranthesis are not needed because
   * If you know the types of everything, function arguments can be
-    groupd with prefix Polix notation. 3 * (1 + 2) -> * 3 + 1 2
+    grouped with prefix Polix notation. 3 * (1 + 2) -> * 3 + 1 2
   * Indentation acts like paranthesis. This allows you to pass lambdas
     and match expressions directly as function arguments. It can also
     help with type inference.
@@ -77,7 +77,7 @@ build it with
 
     $ ./build.sh
 
-This installs thorn (the interpriter), thorn-to-sh, and thorn-to-gif to
+This installs thorn (the interpreter), thorn-to-sh, and thorn-to-gif to
 ~/.local/bin (make sure it's in your $PATH). It also installs the fonts
 used by thorn-to-gif to ~/.local/share/thorn/fonts
                                           _    ___   _
@@ -105,7 +105,7 @@ Note that thorn expects to find a main.th file in the given directory
 or in any of its parent directories. That directory is the root of your
 project.
 
-------------------------   SYNTAX OVERVIOW   ---------------------------
+------------------------   SYNTAX OVERVIEW   ---------------------------
 
 --  this is a comment
                             DECLARATIONS
