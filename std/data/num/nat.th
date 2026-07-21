@@ -30,11 +30,14 @@ define product_nat as the fn nat fn nat nat
 
 define decrement_nat as the fn nat whole lambda x pred x
 
-define eq_nat as the fn nat fn nat bool 
+define compare_nat as the fn nat fn nat ordering
     lambda x lambda y match tuple x y
-        case tuple succ a succ b     eq_nat a b
-        case tuple one    one        true
-        case _                       false
+        case tuple succ a succ b     compare_nat a b
+        case tuple succ _ one        gt
+        case tuple one    succ _     lt
+
+define eq_nat as the fn nat fn nat bool 
+    lambda x lambda y eq_ordering eq compare_nat x y
 
 --  check that the first nat is greater than
 --  the second one

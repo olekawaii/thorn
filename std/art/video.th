@@ -11,6 +11,12 @@ include frame
 define pad_right_inf as the fn list frame list frame 
     lambda v cat v cycle lift_list new_frame
 
+define pad_left as the 
+    fn nat fn list frame list frame
+    lambda n lambda l cat
+        replicate nat_to_whole n new_frame
+        l
+
 --  layers two videos together without preserving
 --  loopingness. the output video will have the
 --  length of the larger video
@@ -87,3 +93,7 @@ define for as the
 
 define first_frame as the fn list frame frame 
     lambda cons x _    x    -- fails on nil
+
+-- helper function for the art macro
+
+define identity_cell as the fn cell cell identity

@@ -8,6 +8,7 @@ type character contains
 --  the Rust standard library
 
 type visible_character contains
+    space_char
     exclamation_mark
     quotation_mark
     number_sign

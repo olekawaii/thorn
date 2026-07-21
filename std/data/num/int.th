@@ -1,18 +1,42 @@
-include nat bool tuple
+include nat bool tuple ordering
 
 type int contains
     neg nat
     pos nat
     zero
 
-define eq_int as the fn int fn int bool 
+define compare_int as the 
+    fn int fn int ordering
     lambda x lambda y match tuple x y 
-        case tuple pos a pos b     eq_nat a b
-        case tuple neg a neg b     eq_nat a b
-        case tuple zero  zero      true
-        case _                     false
+        case tuple pos a pos b     compare_nat a b
+        case tuple neg a neg b     match compare_nat a b
+            case lt                    gt
+            case eq                    eq
+            case gt                    lt
+        case tuple zero  zero      eq
+        case tuple pos _ _         gt
+        case tuple neg _ _         lt
+        case tuple _     pos _     lt
+        case tuple _     neg _     gt
 
-define sum_int as the fn int fn int int 
+define eq_int as the 
+    fn int fn int bool 
+    lambda x lambda y eq_ordering eq compare_int x y
+
+define max_int as the 
+    fn int fn int int
+    lambda x lambda y match compare_int x y
+        case lt                    y
+        case _                     x
+
+define min_int as the 
+    fn int fn int int
+    lambda x lambda y match compare_int x y
+        case gt                    y
+        case _                     x
+
+define sum_int as the 
+    fn int fn int int 
     lambda x lambda y match tuple x y
         case tuple pos _ neg _     sum_int decrement x increment y
         case tuple neg a neg b     neg sum_nat a b
@@ -20,14 +44,11 @@ define sum_int as the fn int fn int int
         case tuple zero  _         y
         case _                     sum_int y x
 
-define increment as the fn int int 
-    lambda x match x
-        case pos a                 pos succ a
-        case neg one               zero 
-        case neg succ a            neg a
-        case zero                  pos one
-
-define negate as the fn int int product_int neg one
+define increment as the fn int int lambda x match x
+    case pos a                 pos succ a
+    case neg one               zero 
+    case neg succ a            neg a
+    case zero                  pos one
 
 define decrement as the fn int int 
     compose 
@@ -36,7 +57,10 @@ define decrement as the fn int int
             increment 
             negate
 
-define product_int as the fn int fn int int 
+define negate as the fn int int product_int neg one
+
+define product_int as the 
+    fn int fn int int 
     lambda x lambda y match tuple x y
         case 
             either 
@@ -50,7 +74,6 @@ define product_int as the fn int fn int int
             neg product_nat a b
         case _                      zero
 
-define abselute_value as the fn int whole 
-    lambda x match x
-        case either pos x neg x     nat_to_whole x
-        case zero                   whole_zero
+define absolute_value as the fn int whole lambda x match x
+    case either pos x neg x        nat_to_whole x
+    case zero                      whole_zero
