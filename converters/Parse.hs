@@ -22,9 +22,50 @@ getVideo = getContents >>= pure . parse . words
 parse :: [String] -> (Int, Int, [[[Character]]])
 parse ("the" : "list" : "frame" : xs) = changeFormat . map convertNewFrame . fst . parseNewVideo $ xs
 parse ("the" : "frame" : xs) = changeFormat . pure . convertNewFrame . fst . parseNewFrame $ xs
+parse ("the" : "final_video" : xs) = parseNewNewFinalVideo $ xs
+
+parseNewNewFinalVideo :: [String] -> (Int, Int, [[[Character]]])
+parseNewNewFinalVideo ("unsafe_final_video" : "graphical_options" : font : theme : xs) = 
+    let out = parseNewNewVideo xs in out
+
+parseNewNewVideo :: [String] -> (Int, Int, [[[Character]]])
+parseNewNewVideo s = let (out, _) = parseListGrid s in 
+    changeFormat $ map numberLines out
+    where
+      numberChars :: [Character] -> [(Int, Character)]
+      numberChars x = zip [1 ..] x
+
+      numberLines :: [[Character]] -> [((Int, Int), Character)]
+      numberLines xs = 
+          concat
+          $ map (\(n, xs) -> map ((\(n2, c) -> ((n2, n), c))) (numberChars xs))
+          $ zip [1 ..] xs
+
+parseListGrid :: [String] -> ([[[Character]]], [String])
+parseListGrid ("nil" : xs) = ([], xs)
+parseListGrid ("cons": xs) = 
+    let (out, leftover) = parseGrid xs in
+        first (out :) (parseListGrid leftover)
+parseListGrid (x: _) = error x
+
+parseGrid :: [String] -> ([[Character]], [String])
+parseGrid ("nil" : xs) = ([], xs)
+parseGrid ("cons": xs) = 
+    let (out, leftover) = parseNewRow xs in
+        first (out :) (parseGrid leftover)
+
+parseNewRow :: [String] -> ([Character], [String])
+parseNewRow ("nil" : xs) = ([], xs)
+parseNewRow ("cons": xs) =
+    let (out, leftover) = parseNewCell xs in
+        first (out :) (parseNewRow leftover)
+
+parseNewCell :: [String] -> (Character, [String])
+parseNewCell ("cell" : char : color: xs) = 
+    let (out, _) = parseChar ["char", char, color] in (out, xs)
 
 dimensions :: [Map Coordinate Character] -> (Int, Int, Int, Int)
-dimensions gif = case concatMap (map fst) gif of
+dimensions gif = case concatMap (map fst) $ map (filter (\(_, x) -> isSpace x)) gif of
   [] -> (0, 0, 0, 0)
   g  -> getDimensions g
     where
@@ -66,6 +107,9 @@ data OutputType = Single | Looping deriving Show
 type Coordinate    = (Int,Int)
 
 data Character = Space | Character Char Color deriving Eq
+
+isSpace Space = False
+isSpace _     = True
 
 data Color = Black | Red | Green | Yellow | Blue | Magenta | Cyan | White 
   deriving (Show, Eq)
@@ -134,9 +178,11 @@ convertNewFrame (a, b) =
 
 parseChar :: [String] -> (Character, [String])
 parseChar ("space": xs) = (Space, xs)
+parseChar ("char": "space_char" : color : xs) = (Space, xs)
 parseChar ("char": char : color : xs) = 
   let 
     c = case char of 
+       "space_char" -> ' '
        "exclamation_mark" -> '!'
        "quotation_mark" -> '"'
        "number_sign" -> '#'

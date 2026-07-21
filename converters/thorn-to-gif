@@ -1,8 +1,8 @@
-#! /bin/sh
+#!/bin/sh
 
 set -e
 FONT_DIR="$HOME/.local/share/thorn/fonts/"
-FONT='ibm_9x14'
+FONT='unifont_8x16'
 FPS=5
 
 print_help() {
@@ -11,7 +11,7 @@ print_help() {
         --font-name NAME     Set the font to NAME
         --fps FPS            Set the fps to FPS
         --help               Show this help message
-    '
+    ' >&2
     exit 1
 }
 
@@ -33,8 +33,8 @@ while [ $# != 0 ]; do
             print_help
             ;;
         *)
-            printf "\33[91merror: \33[0munknown option '%s'\n" "$1"
-            printf 'use --help to see all options\n'
+            printf "\33[91merror: \33[0munknown option '%s'\n" "$1"  >&2
+            printf 'use --help to see all options\n'                 >&2
             exit 1
             ;;
     esac
@@ -47,12 +47,16 @@ printf "    \033[95mfont-dir   \033[0m$FONT_DIR\n" >&2
 printf "    \033[95mfont-name  \033[0m$FONT\n"     >&2
 printf "    \033[95mfps        \033[0m$FPS\n"      >&2
 
-temp=$(mktemp -d ppmdirXXXX)
-
+temp="/tmp/thorn-to-gif"
+rm -r $temp > /dev/null 2>&1 || true
+mkdir $temp
 cd $temp
 thorn-to-ppm --font $FONT_PATH
 
-ffmpeg -loglevel error -i output%05d.ppm -vf palettegen=max_colors=8 palette.png
+ffmpeg                                 \
+    -loglevel error                    \
+    -i output%05d.ppm                  \
+    -vf palettegen=max_colors=8 palette.png
 
 ffmpeg                                 \
     -loglevel error                    \
@@ -63,7 +67,6 @@ ffmpeg                                 \
     -f gif                             \
     -
 
-rm -r *.ppm palette.png 
-cd ..
+cd -
 rm -r $temp
 
