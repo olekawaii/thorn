@@ -12,7 +12,9 @@ define couch as the frame first_frame art xx vi
 
 define scene as the list frame take nat_to_whole xvi layer
     entirely shift_by pos xxi pos ii layer
-        cycle slow ii append new_frame entirely shift_by pos iv pos iv snore
+        cycle slow ii append new_frame entirely 
+            shift_by pos iv pos iv 
+            snore
         cycle loop for v extend art xv iv
              n_n .--.    . .777.7777....7. n_n .--.     ..777.7777.....7
             (-.-, (__`._.' 77777|77777777.(-.-, (__`._.' 77777|77777777.
