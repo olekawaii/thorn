@@ -166,25 +166,25 @@ declare any type variables. Here's a demo of the list and option types
         none
         some a
 
-    let first_bool be the fn list bool option bool
+    forall a let first_elem be the fn list a option a
         lambda input_list match input_list
             case nil                           none
-            case cons head _tail               some head
+            case cons x _xs                    some x
 
 The lambda keyword starts a lambda expression, followed by a pattern,
 in which the input value will be placed. The match expression
 patternmatches on a value, returning the first branch that matched.
 
-In the last line, `cons` is a data constructor and `head/tail` are
-variable names for the `a` and `list a` in the list definition. _tail
+In the last line, `cons` is a data constructor and `x/_xs` are
+variable names for the `a` and `list a` in the list definition. _xs
 is prepended with an underscore to drop the value.
 
     let main be the option bool
-        first_bool cons true cons false nil
+        first_elem cons true cons false nil
 
 output:  some true        (thorn's output, if the above is in main.th)
 
-    let main be the option bool first_bool nil
+    let main be the option bool first_elem nil
 
 output:  none
 
@@ -262,7 +262,8 @@ are some examples. I'll use the thorn repl to define and test them.
 >>>                                                 \ /   \
 >>> let infinity be the nat succ infinity           \ /    \________
 >>>                                                 ( )    /\    /\
->>> forall a b type tuple contains tuple a b
+>>> forall a b type tuple contains 
+>>>     tuple a b
 >>>
 >>> let are_equal be the
 >>>     fn nat fn nat bool
