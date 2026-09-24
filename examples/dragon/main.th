@@ -18,8 +18,7 @@ let center_head be the fn dragon_p list frame lambda dragon_p s e _ art xii ix
  '         ).s|||||||||s(          )s||||||||||s(         ` s|||||||||s.
           ' ..||||||||s.            .||||||||||. `          .s||||||||..
 
-let dragon be the
-    fn dragon_p list frame
+let dragon be the fn dragon_p list frame
     lambda p take nat_to_whole xii layer
         layer
             cycle entirely by xxiv shift east dragon_tail p
@@ -63,8 +62,7 @@ _     3.....__    33....___   333...___,  3333..___)  1333.. __)  .113..
  '_)  .311.. ( `  .3.1.. (_   .13... .__  .113..   __ ...11.     _.....1
     _.....13     ......1      ......      ......      ......      ......
 
-let right_half be the
-    fn dragon_p list frame
+let right_half be the fn dragon_p list frame
     lambda bind p dragon_p s _ _ layer
         layer
             entirely shift_by pos vi pos vii layer
