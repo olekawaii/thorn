@@ -4,9 +4,9 @@ cd thorn
 cargo build --release
 mv target/release/thorn $BINDIR || true
 cd ../converters
-ghc thorn-to-ppm.hs
-ghc thorn-to-sh.hs
-cp thorn-to-sh thorn-to-ppm thorn-to-gif $BINDIR || true
+ghc th2ppm.hs
+ghc th2sh.hs
+cp th2sh th2ppm th2gif $BINDIR || true
 cd ..
 
 mkdir ~/.local/share || true
