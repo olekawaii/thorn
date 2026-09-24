@@ -423,6 +423,9 @@ pub fn words(s: &str) -> Vec<(u16, &str, u8)> {
                     length = 0;
                 }
             }
+            '\t' => {
+                todo!();
+            }
             _ => {
                 if length == 0 {
                     character_index = index;
@@ -627,6 +630,9 @@ fn tokenize_line(
             s => Token::Word(s),
         };
         ret.push((token, token_mark));
+    }
+    if ret.len() == 0 {
+        todo!();
     }
     let end_line_mark = ret[ret.len() - 1].1.clone().one_after_the_highlight();
     Ok((ret, end_line_mark, art_ret))

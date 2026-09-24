@@ -1,4 +1,3 @@
-// thorn - a pure lazy functional programming language
 // Copyright (C) 2025  Oleksiy Buell <olekawaii@proton.me>
 //
 // This program is free software: you can redistribute it and/or modify
@@ -22,9 +21,9 @@ mod tokens;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::env;
+use std::io::Write;
 use std::process::Command;
 use std::rc::Rc;
-use std::io::Write;
 
 use crate::error::{DEBUG_INFO, Error, Mark, get_file_name, make_error};
 use crate::parse::{
@@ -479,19 +478,10 @@ options:
     --help         show this help message
     --repl         start the interactive repl
 
-thorn tries to find the project's root directory containing
-a main.th file. The seRch starts at the given directory
-(working directory if none is provided) and walks up the
-filetree until it finds it.
-
+thorn searches up the given directory to find a main.th file.
+The directory containing it is the root of the project.
 Include statements (include video) recursively look for a
-video.th file in any of the project's sudirectories.
-
-The output is the fully evaluated main function. For ASCII
-art animations, it is typically piped into thorn-to-sh or
-thorn-to-gif. To play a shell script animation:
-
-    $ thorn . | thorn-to-sh | sh
+video.th file in any of the root's subdirectories.
 "
                 );
                 std::process::exit(1);

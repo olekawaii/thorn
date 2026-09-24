@@ -87,7 +87,7 @@ pub fn show_mark(mark: Mark, message: &'static str) -> String {
     underline.push_str(message);
     let empty_space = " ".repeat(indentation);
     format!(
-"\x1b[90min \x1b[0m{}\x1b[90m:\x1b[0m{}\x1b[90m:\x1b[0m{}
+        "\x1b[90min \x1b[0m{}\x1b[90m:\x1b[0m{}\x1b[90m:\x1b[0m{}
 \x1b[91m{}| \x1b[90m{}
 \x1b[91m{} | \x1b[0m{}
 \x1b[91m{}  {}\x1b[0m",

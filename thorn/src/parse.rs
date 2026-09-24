@@ -905,8 +905,7 @@ fn figure_out_type<'a>(
             None
         };
         // the arg counter is only useful when we don't
-        // know the block's type. If we do, we can skip
-        // the rest and avoid the token clone
+        // know the block's type
         return Ok((output, arg_count));
     }
     // map containing the unknown generics mapped to found types
@@ -921,9 +920,11 @@ fn figure_out_type<'a>(
                 arguments: a2,
             } = output.final_type()
         {
-            assert_eq!(c1, c2);
+            if c1 != c2 {
+                return Err(make_error(CompilationError::CannotInferType, mark.clone()));
+            }
             for (a, b) in a1.iter().zip(a2.iter()) {
-                merge_types_borrowed(b, a, &mut unknown_generics);
+                merge_types(b, a.clone(), &mut unknown_generics, mark);
             }
             if !still_has_unknown_generics(&unknown_generics) {
                 let arg_count = if bt.expect_end().is_ok() {
@@ -931,7 +932,6 @@ fn figure_out_type<'a>(
                 } else {
                     None
                 };
-
                 substitute_back_in(&mut output, &unknown_generics);
                 return Ok((output, arg_count));
             }
@@ -1018,7 +1018,7 @@ fn figure_out_type<'a>(
                     break 'success;
                 }
             }
-            merge_types(&t, got_t, &mut unknown_generics);
+            merge_types(&t, got_t, &mut unknown_generics, mark);
         }
         let mut total_number_args = number_args_used;
         if let Ok(NextOutput::IndentedBlocks(branches)) = bt.next()
@@ -1057,7 +1057,7 @@ fn figure_out_type<'a>(
                     _ => continue, // add error to vec
                 };
                 // check_compatable(tp, got_t)?;
-                merge_types(&tp, got_t, &mut unknown_generics);
+                merge_types(&tp, got_t, &mut unknown_generics, mark);
             }
         }
         if let Some(t) = expected_type
@@ -1065,7 +1065,7 @@ fn figure_out_type<'a>(
             && n == total_number_args.unwrap()
         {
             let temp_t: &Type = cut_off_n(&output, n);
-            merge_types_borrowed(temp_t, t, &mut unknown_generics);
+            merge_types(temp_t, t.clone(), &mut unknown_generics, mark);
         }
         if still_has_unknown_generics(&unknown_generics) {
             return Err(make_error(CompilationError::CannotInferType, mark.clone()));
@@ -1080,65 +1080,38 @@ fn figure_out_type<'a>(
     Err(make_error(CompilationError::CannotInferType, mark.clone()))
 }
 
-fn merge_types(unknown: &Type, new: Type, output: &mut Vec<(usize, Option<Type>)>) {
+fn merge_types(
+    unknown: &Type,
+    new: Type,
+    output: &mut Vec<(usize, Option<Type>)>,
+    mark: &Mark,
+) -> Result<()> {
     if let Type::Generic(x) = unknown {
         output.iter_mut().find(|(a, _)| a == x).unwrap().1 = Some(new);
-        return;
+        return Ok(());
     }
     match (unknown, new) {
         (Type::Function(a1, b1), Type::Function(a2, b2)) => {
-            merge_types(a1, *a2, output);
-            merge_types(b1, *b2, output);
+            merge_types(a1, *a2, output, mark)?;
+            merge_types(b1, *b2, output, mark)?;
+            Ok(())
         }
         (
             Type::Type {
-                arguments: args1, ..
+                type_constructor: tca,
+                arguments: args1,
             },
             Type::Type {
-                arguments: args2, ..
+                type_constructor: tcb,
+                arguments: args2,
             },
-        ) => {
-            args1
-                .iter()
-                .zip(args2)
-                .for_each(|(a, b)| merge_types(a, b, output));
+        ) if *tca == tcb => {
+            for (a, b) in args1.iter().zip(args2) {
+                merge_types(a, b, output, mark)?
+            }
+            Ok(())
         }
-        (a, b) => {
-            dbg!(a);
-            dbg!(b);
-            todo!()
-        }
-    }
-}
-
-fn merge_types_borrowed(unknown: &Type, new: &Type, output: &mut Vec<(usize, Option<Type>)>) {
-    if let Type::Generic(x) = unknown {
-        output.iter_mut().find(|(a, _)| a == x).unwrap().1 = Some(new.clone());
-        return;
-    }
-    match (unknown, new) {
-        (Type::Function(a1, b1), Type::Function(a2, b2)) => {
-            merge_types_borrowed(a1, a2, output);
-            merge_types_borrowed(b1, b2, output);
-        }
-        (
-            Type::Type {
-                arguments: args1, ..
-            },
-            Type::Type {
-                arguments: args2, ..
-            },
-        ) => {
-            args1
-                .iter()
-                .zip(args2.iter())
-                .for_each(|(a, b)| merge_types_borrowed(a, b, output));
-        }
-        (a, b) => {
-            dbg!(a);
-            dbg!(b);
-            todo!()
-        }
+        (a, b) => Err(make_error(CompilationError::CannotInferType, mark.clone())),
     }
 }
 
