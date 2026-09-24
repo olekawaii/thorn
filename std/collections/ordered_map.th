@@ -45,7 +45,8 @@ forall a b let insert_ord be the
 
 --  Remove a key from a map
 
-forall a b let remove_ord be the fn a fn ordered_map a b ordered_map a b
+forall a b let remove_ord be the 
+    fn a fn ordered_map a b ordered_map a b
     lambda key lambda map
         unsafe_apply_to_ordered_map_pair 
             key
