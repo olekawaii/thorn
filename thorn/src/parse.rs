@@ -1489,7 +1489,7 @@ pub fn parse_the<'a>(
     let (tp, body) = match bt.next_expecting_count(2)? {
         NextOutput::IndentedBlocks(v) => {
             let (tp, leftover) = parse_type(BlockTraversal::new(&v[0]), generics)?;
-            BlockTraversal::expect_end_option(leftover).unwrap();
+            BlockTraversal::expect_end_option(leftover)?;
             (tp, BlockTraversal::new(&v[1]))
         }
         NextOutput::Token { .. } => {

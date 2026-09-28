@@ -50,8 +50,17 @@ pub enum Keyword {
 #[derive(Clone, Debug)]
 pub struct Block<'a> {
     pub line_tokens: Vec<(Token<'a>, Mark)>,
-    pub line_end_mark: Mark,
     pub indented_blocks_beneath: Vec<Block<'a>>,
+}
+
+impl Block<'_> {
+    pub fn get_line_end_mark(&self) -> Mark {
+        self
+            .line_tokens[self.line_tokens.len() - 1]
+            .1
+            .clone()
+            .one_after_the_highlight()
+    }
 }
 
 #[allow(unused)]
@@ -131,7 +140,7 @@ impl<'a> BlockTraversal<'a> {
         if self.reached_end_of_line() {
             return Err(make_error(
                 ParseError::UnexpectedEndLine,
-                self.block.line_end_mark.clone(),
+                self.block.get_line_end_mark(),
             ));
         }
         let (token, mark) = &self.block.line_tokens[self.word];
@@ -150,7 +159,7 @@ impl<'a> BlockTraversal<'a> {
         if self.reached_end_of_block() {
             return Err(make_error(
                 ParseError::UnexpectedEnd,
-                self.block.line_end_mark.clone(),
+                self.block.get_line_end_mark(),
             ));
         }
         match self.next_token_in_line() {
@@ -166,7 +175,7 @@ impl<'a> BlockTraversal<'a> {
         {
             return Err(make_error(
                 ParseError::ExpectedNumBranches(branch_count as u32),
-                self.block.line_end_mark.clone(),
+                self.block.get_line_end_mark(),
             ));
         }
         Ok(ret)
@@ -528,11 +537,9 @@ pub fn tokenize_block<'a>(
             .map(|Marked::<Token> { mark, value }| (value, mark))
             .collect();
         return Ok(Block {
-            line_end_mark: end_mark.clone(),
             line_tokens: root_line,
             indented_blocks_beneath: vec![Block {
                 line_tokens: tokens,
-                line_end_mark: end_mark,
                 indented_blocks_beneath: Vec::new(),
             }],
         });
@@ -554,7 +561,6 @@ pub fn tokenize_block<'a>(
     Ok(Block {
         line_tokens: root_line,
         indented_blocks_beneath: bodies,
-        line_end_mark: end_mark,
     })
 }
 
