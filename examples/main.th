@@ -1,0 +1,16 @@
+include dragon sleeping_cat squish drawings
+
+--  If you want to quickly test different animations,
+--  I suggest using thorn --eval 'the list frame <name>'
+--  instead of constantly editing this file. 
+-- 
+--  You can also have each animation be its own project
+--  but that's a bit annoying.
+
+--  Some animations to look at:
+--      dragon dragon_p_default
+--      chess_set
+--      squish
+--      sleeping_cat
+  
+let main be the list frame dragon dragon_p_default

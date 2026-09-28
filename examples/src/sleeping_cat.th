@@ -1,16 +1,6 @@
 include video
 
-let main be the list frame scene
-
-let couch be the frame first_frame art xx vi
-  .----.----.----.  ..7777777777777777..
-  ['   |'   |'   ]  ..77|||77|||77|||7..
-.--.   :    :   .--.7777|||7||||7|||7777
-|' |---.----.---|' |77|777777777777777|7
-|  |___|____|___|  |7||77777777777777||7
-:__|            :__|7777............7777
-
-let scene be the list frame take nat_to_whole xvi layer
+let sleeping_cat be the list frame take nat_to_whole xvi layer
     entirely shift_by pos xxi pos ii layer
         cycle slow ii append new_frame entirely 
             shift_by pos iv pos iv 
@@ -29,6 +19,14 @@ let scene be the list frame take nat_to_whole xvi layer
         layer_frames
             shift_by pos v pos vii paintings
             by xxii shift east table
+
+let couch be the frame first_frame art xx vi
+  .----.----.----.  ..7777777777777777..
+  ['   |'   |'   ]  ..77|||77|||77|||7..
+.--.   :    :   .--.7777|||7||||7|||7777
+|' |---.----.---|' |77|777777777777777|7
+|  |___|____|___|  |7||77777777777777||7
+:__|            :__|7777............7777
 
 let paintings be the frame first_frame art viii iii
  __     .77.....

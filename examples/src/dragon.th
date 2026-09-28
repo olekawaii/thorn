@@ -1,11 +1,17 @@
 include video
 
-let main be the list frame dragon default_dragon_p
-
-type dragon_p contains                      -- the dragon's color palette
-    dragon_p color color color              -- skin, eye, wing
-
-let default_dragon_p be the dragon_p dragon_p cyan yellow green
+let dragon be the fn dragon_p list frame
+    lambda p take nat_to_whole xii layer
+        layer
+            cycle entirely by xxiv shift east dragon_tail p
+            cycle entirely shift_by pos xxi pos vii loop center_head p
+        cycle entirely shift_by pos xxvii pos iv layer
+            right_half p
+            for vi rotate entirely
+                compose
+                    shift west
+                    flip_over_y
+                right_half p
 
 let center_head be the fn dragon_p list frame lambda dragon_p s e _ art xii ix
    )  (     ...7..7.....    )  (    ....7..7....     )  (   .....7..7...
@@ -18,20 +24,10 @@ let center_head be the fn dragon_p list frame lambda dragon_p s e _ art xii ix
  '         ).s|||||||||s(          )s||||||||||s(         ` s|||||||||s.
           ' ..||||||||s.            .||||||||||. `          .s||||||||..
 
-let dragon be the fn dragon_p list frame
-    lambda p take nat_to_whole xii layer
-        layer
-            cycle entirely by xxiv shift east dragon_tail p
-            cycle entirely
-                shift_by pos xxi pos vii
-                loop center_head p
-        cycle entirely shift_by pos xxvii pos iv layer
-            right_half p
-            for vi rotate entirely
-                compose
-                    shift west
-                    flip_over_y
-                right_half p
+type dragon_p contains                      -- the dragon's color palette
+    dragon_p color color color              -- skin, eye, wing
+
+let dragon_p_default be the dragon_p dragon_p cyan yellow green
 
 let roar be the fn dragon_p list frame lambda dragon_p s e _ art xiii vii
 .            7.............            7.............            7............

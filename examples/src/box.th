@@ -1,7 +1,5 @@
 include frame
 
-let main be the list frame lift_list draw_box x v
-
 let draw_box be the fn nat fn nat frame
     lambda x lambda y match 
         the tuple horizontal horizontal tuple
