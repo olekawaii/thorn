@@ -1,5 +1,5 @@
-Read this file the way it was intended:
-https://codeberg.org/olekawaii/thorn/raw/branch/main/README
+    Read this file the way it was intended:
+    https://codeberg.org/olekawaii/thorn/raw/branch/main/README
 
 --------------------------   INTRODUCTION   ----------------------------
          ,.       ,.
@@ -29,7 +29,7 @@ What's the point of this language? The point is to have
   * Simplicity and no modules (I encourage circular imports)
 
 A goal I have is to make the thorn source code as pretty as the actual
-ASCII art. See for yourself (snippet from examples/dragon/main.th)
+ASCII art. See for yourself (snippet from examples/src/dragon.th)
 
 let center_head be the list frame loop art xii ix
    )  (     ...7..7.....    )  (    ....7..7....     )  (   .....7..7...
@@ -80,19 +80,19 @@ build it with
 This installs thorn (the interpreter), th2sh, and th2gif to
 ~/.local/bin (make sure it's in your $PATH). It also installs the fonts
 used by th2gif to ~/.local/share/thorn/fonts
-                                          _    ___   _
-If you have nix, there's a flake         / \   \  \ / \
-you can play around with                 \  \   \  '  /
-                                       ---`  `---\   /  ,
-    $ nix develop                     /___________\  \ / \
-                                         /  /      \  /  /
-or install it with                  /''''  /        \/  '''\
-                                    \--.  /\        /  ----/
-    $ nix profile add .               /  /  \      /  /
-                                      \ / \  \------------
-In the future, I will package          `  /   \ ___   __/
-thorn for nixpkgs.                       /  ,  \   \  \
-                                         \_/ \__\   \_/
+                                              _    ___   _
+                                             / \   \  \ / \
+                                             \  \   \  '  /
+     If you have nix, there's a flake      ---`  `---\   /  ,
+     you can play around with             /___________\  \ / \
+                                             /  /      \  /  /
+         $ nix develop                  /''''  /        \/  '''\
+                                        \--.  /\        /  ----/
+     or install it with                   /  /  \      /  /
+                                          \ / \  \------------
+         $ nix profile add .               `  /   \ ___   __/
+                                             /  ,  \   \  \
+                                             \_/ \__\   \_/
 
 thorn works like a calculator. It parses and compiles the source code
 into an internal representation, but afterwards also executes it,
@@ -135,7 +135,7 @@ The main body, if with paranthesis, would be (apply (add one) three).
 
     let apply be the
         fn fn int int fn int int
-        undefined
+        lambda f lambda x f x
 
     let main be the int apply add one three
 
@@ -252,17 +252,17 @@ The whole language is lazily evaluated. Expressions are only evaluated
 when patternmatched on and evaluation starts at the main function. Here
 are some examples. I'll use the thorn repl to define and test them.
 
->>> type bool contains                               _
->>>     true                                   .="= / \ ="=.
->>>     false                                 /\\  //  \  / \
->>>                                          /\\\ ///  \\ // \
->>> type nat contains                        \\\   //|\\   ///
->>>     one                                         . .
->>>     succ nat                                    \ /
->>>                                                 \ /   \
->>> let infinity be the nat succ infinity           \ /    \________
->>>                                                 ( )    /\    /\
->>> forall a b type tuple contains 
+>>> type bool contains
+>>>     true                                           _
+>>>     false                                    .="= / \ ="=.
+>>>                                             /\\  //  \  / \
+>>> type nat contains                          /\\\ ///  \\ // \
+>>>     one                                    \\\   //|\\   ///
+>>>     succ nat                                      . .
+>>>                                                   \ /
+>>> let infinity be the nat succ infinity             \ /   \
+>>>                                                   \ /    \________
+>>> forall a b type tuple contains                    \ /    /\    /\
 >>>     tuple a b
 >>>
 >>> let are_equal be the
