@@ -1,6 +1,7 @@
 include frame
 
-let draw_box be the fn nat fn nat frame
+let draw_box the 
+    fn nat fn nat frame
     lambda x lambda y match 
         the tuple horizontal horizontal tuple
             horizontal_line_helper x
@@ -12,7 +13,7 @@ let draw_box be the fn nat fn nat frame
         case tuple border middle     frame nil 
             cons border append border replicate nat_to_whole y middle
     
-let horizontal_line_helper be the
+let horizontal_line_helper the
     fn nat fn grid_cell fn cell horizontal 
     lambda x lambda c lambda b  horizontal nil cons 
         full_grid_cell b 

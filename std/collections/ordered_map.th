@@ -15,14 +15,14 @@ forall a b type ordered_map contains
 --  Create a new empty map with a given ordering 
 --  function
 
-forall a b let new_ordered_map be the 
+forall a b let new_ordered_map the 
     fn fn a fn a ordering ordered_map a b
     lambda f unsafe_ordered_map f empty
 
 --  Get the value associated with the give key. 
 --  Returns an optional value
 
-forall a b let get_ord be the 
+forall a b let get_ord the 
     fn a fn ordered_map a b option b
     lambda key lambda unsafe_ordered_map f tree match tree
         case empty                  none
@@ -33,10 +33,10 @@ forall a b let get_ord be the
 
 --  Insert a key/value pair into a map
 
-forall a b let insert_ord be the 
+forall a b let insert_ord the 
     fn a fn b fn ordered_map a b ordered_map a b
     lambda key lambda value lambda map
-        unsafe_apply_to_ordered_map_pair 
+        _unsafe_apply_to_ordered_map_pair 
             key
             lambda x match x
                 case empty              node tuple key value empty empty
@@ -45,24 +45,24 @@ forall a b let insert_ord be the
 
 --  Remove a key from a map
 
-forall a b let remove_ord be the 
+forall a b let remove_ord the 
     fn a fn ordered_map a b ordered_map a b
     lambda key lambda map
-        unsafe_apply_to_ordered_map_pair 
+        _unsafe_apply_to_ordered_map_pair 
             key
             lambda x match x
                 case empty              empty
                 case node _ l r         attach_to_leftmost l r
             map
 
-forall a b let unsafe_apply_to_ordered_map_pair be the
+forall a b let _unsafe_apply_to_ordered_map_pair the
     fn a fn
         fn tree tuple a b tree tuple a b
         fn ordered_map a b ordered_map a b
     lambda k lambda f lambda unsafe_ordered_map o t
-        unsafe_ordered_map o unsafe_apply_to_ordered_map_pair_helper k f o t
+        unsafe_ordered_map o _unsafe_apply_to_ordered_map_pair_helper k f o t
 
-forall a b let unsafe_apply_to_ordered_map_pair_helper be the 
+forall a b let _unsafe_apply_to_ordered_map_pair_helper the 
     fn a fn
         fn tree tuple a b tree tuple a b
         fn
@@ -76,9 +76,9 @@ forall a b let unsafe_apply_to_ordered_map_pair_helper be the
                 case eq                 ff tree
                 case lt                 node 
                     root
-                    unsafe_apply_to_ordered_map_pair_helper key ff f left
+                    _unsafe_apply_to_ordered_map_pair_helper key ff f left
                     right
                 case gt                 node 
                     root
                     left
-                    unsafe_apply_to_ordered_map_pair_helper key ff f right
+                    _unsafe_apply_to_ordered_map_pair_helper key ff f right

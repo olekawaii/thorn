@@ -14,20 +14,20 @@ forall a type non_empty contains
 --  Note that init and tail have a return type of
 --  `list a` while head and last return an `a`
 
-forall a let head be the fn non_empty a a lambda prepended x _    x
+forall a let head the fn non_empty a a lambda prepended x _    x
 
-forall a let tail be the 
+forall a let tail the 
     fn non_empty a list a 
     lambda prepended _ xs    xs
 
-forall a let last be the 
+forall a let last the 
     fn non_empty a a 
     lambda prepended head tail match tail
         case nil            head
         case cons x xs      last 
             prepended x xs
 
-forall a let init be the 
+forall a let init the 
     fn non_empty a list a 
     lambda prepended head tail match tail
         case nil            nil
@@ -36,7 +36,7 @@ forall a let init be the
 --  Turn a list into an option non_empty,
 --  returning a none if the list was empty
 
-forall a let list_to_non_empty be the 
+forall a let list_to_non_empty the 
     fn list a option non_empty a 
     lambda l match l 
         case nil            none
@@ -45,20 +45,20 @@ forall a let list_to_non_empty be the
 --  A partial list_to_non_empty function that
 --  panics if the list was empty
 
-forall a let assert_non_empty be the 
+forall a let assert_non_empty the 
     fn list a non_empty a 
     lambda cons x xs    prepended x xs    -- fails on nil
 
 --  Turn a non_empty back into a regular 
 --  list
 
-forall a let non_empty_to_list be the 
+forall a let non_empty_to_list the 
     fn non_empty a list a 
-    lambda prepended h t    cons h t
+    lambda prepended x xs    cons x xs
 
 --  Like foldr but doesn't use a default value.
 
-forall a let foldr_i be the 
+forall a let foldr_i the 
     fn fn a fn a a fn non_empty a a 
     lambda f lambda prepended x xs match list_to_non_empty xs 
         case none        x

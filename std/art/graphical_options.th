@@ -1,17 +1,15 @@
 include char
 
---  final_video is the expected output of the 
---  program. It's created using make_final_video 
---  and the video type.
+--  This allows you to include theme/font along
+--  with the video output
 
-type final_video contains
-    unsafe_final_video
-        graphical_options
-        list list list cell
+type fps contains
+    fps nat
 
-let make_final_video be the 
-    fn graphical_options fn video final_video
-    lambda g lambda unsafe_video _ _ v    unsafe_final_video g v
+let default_fps the fps fps v
+
+forall a type with_graphics contains
+    with_graphics graphical_options a
 
 type offset contains 
     offset int int              -- offset in the x and y
@@ -21,8 +19,6 @@ type frame_size contains
 
 type video contains
     unsafe_video
-        frame_size              -- size of all the frames
-        nat                     -- video length
         list list list cell     -- a list of grids of cells
 
 type grid_location contains
@@ -44,7 +40,7 @@ type shader_input contains
         list list cell          -- current frame    to avoid video traversal
         cell                    -- current cell     to avoid video traversal
 
-let apply_shader be the 
+let apply_shader the 
     fn fn shader_input cell fn video video
     undefined    -- TODO
 
@@ -55,16 +51,19 @@ type graphical_options contains
     graphical_options
         font
         colorscheme
+        fps
 
-let default_graphical_options be the graphical_options 
+let default_graphical_options the 
+    graphical_options 
     graphical_options
         default_font
         default_colorscheme
+        default_fps
 
 type font contains
     unifont                     -- 8x16
     dos_v                       -- 8x16
-    vga                         -- 9x14
+    vga_ix_xiv                  -- 9x14
 
 type colorscheme contains
     catppuccin_mocha
@@ -79,16 +78,16 @@ type colorscheme contains
     solarized_dark
     tokyonight_moon
 
-let default_font be the font unifont
+let default_font the font unifont
 
-let default_colorscheme be the colorscheme gruvbox_material_dark_hard
+let default_colorscheme the colorscheme gruvbox_material_dark_hard
 
-let new_video be the
-    fn frame_size fn nat video
-    lambda bind s frame_size x y lambda l unsafe_video s l
-        replicate nat_to_whole l 
-            replicate nat_to_whole y
-                replicate nat_to_whole x
+let new_video the
+    fn whole video
+    lambda l unsafe_video
+        replicate l 
+            replicate nat_to_whole lxxx
+                replicate nat_to_whole xxiv
                     cell_space
 
 type new_frame contains
@@ -97,15 +96,15 @@ type new_frame contains
         offset                  -- grid's offset
         list list grid_cell     -- 2d grid of cell effects
 
-let new_new_frame be the new_frame unsafe_frame
+let new_new_frame the new_frame unsafe_frame
     frame_size one one
     offset zero zero
     cons cons empty_grid_cell nil nil
 
-let apply_old_frames_to_video be the 
+let apply_old_frames_to_video the 
     fn list frame fn video video
-    lambda o lambda unsafe_video s l n
-        unsafe_video s l zip_with_leftover_right
+    lambda o lambda unsafe_video n
+        unsafe_video zip_with_leftover_right
             lambda frame _ c  zip_with_leftover_right
                 zip_with_leftover_right
                     lambda o lambda n match o

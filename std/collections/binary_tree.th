@@ -7,7 +7,7 @@ forall a type tree contains
         tree a     -- left  subtree
         tree a     -- right subtree
 
-forall a b let map_tree be the 
+forall a b let map_tree the 
     fn fn a b fn tree a tree b 
     lambda f lambda t match t
         case empty                      empty
@@ -18,7 +18,7 @@ forall a b let map_tree be the
 
 --  Fold a tree into a list
 
-forall a let fold_tree be the fn tree a list a 
+forall a let fold_tree the fn tree a list a 
     lambda x match x 
         case empty                      nil
         case node root left right       cat
@@ -28,13 +28,13 @@ forall a let fold_tree be the fn tree a list a
 --  Attach the first tree to the leftmost branch 
 --  of the second tree
 
-forall a let attach_to_leftmost be the 
+forall a let attach_to_leftmost the 
     fn tree a fn tree a tree a
     lambda new lambda old match new
         case empty                      old
-        case _                          attach_to_leftmost_helper new old 
+        case _                          _attach_to_leftmost_helper new old 
 
-forall a let attach_to_leftmost_helper be the 
+forall a let _attach_to_leftmost_helper the 
     fn tree a fn tree a tree a
     lambda new lambda old match old
         case empty                      new 

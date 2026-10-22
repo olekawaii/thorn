@@ -6,7 +6,7 @@ forall a type list contains
 
 --  Functor
 
-forall a b let map_list be the 
+forall a b let map_list the 
     fn fn a b fn list a list b 
     lambda f lambda l match l
         case nil               nil
@@ -14,9 +14,9 @@ forall a b let map_list be the
 
 --  Applicative
 
-forall a let lift_list be the fn a list a lambda x cons x nil
+forall a let lift_list the fn a list a lambda x cons x nil
 
-forall a b let apply_list be the 
+forall a b let apply_list the 
     fn list fn a b fn list a list b 
     lambda f lambda x flatten_list map_list
         flip 
@@ -26,7 +26,7 @@ forall a b let apply_list be the
 
 --  Monad
 
-forall a b let bind_list be the 
+forall a b let bind_list the 
     fn list a fn fn a list b list b 
     lambda x lambda f flatten_list map_list f x
 
@@ -35,7 +35,7 @@ forall a b let bind_list be the
 --  function, it folds the list into a single
 --  value
 
-forall a b let foldr be the 
+forall a b let foldr the 
     fn fn a fn b b fn b fn list a b 
     lambda f lambda d lambda l match l
         case nil              d
@@ -43,19 +43,19 @@ forall a b let foldr be the
 
 --  Concatinate two lists into a single list
 
-forall a let cat be the 
+forall a let cat the 
     fn list a fn list a list a 
     lambda x lambda y foldr cons y x
 
 --  flatten a list of lists into a single list
 
-forall a let flatten_list be the 
+forall a let flatten_list the 
     fn list list a list a 
     foldr cat nil
 
 --  Find the length of a list
 
-forall a let list_length be the 
+forall a let list_length the 
     fn list a whole 
     compose pred 
         foldr 
@@ -66,7 +66,7 @@ forall a let list_length be the
 --  Takes the first n elements of a list. May
 --  return less than n
 
-forall a let take be the 
+forall a let take the 
     fn whole fn list a list a 
     lambda pred n lambda l match n
         case one             nil
@@ -76,7 +76,7 @@ forall a let take be the
 
 --  Drops the first n elements of a list
 
-forall a let drop be the 
+forall a let drop the 
     fn whole fn list a list a 
     lambda n lambda l match tuple n l
         case tuple pred succ x cons _ t     drop pred x t
@@ -85,13 +85,13 @@ forall a let drop be the
 --  Zip two lists into a single list of tuples.
 --  The output has the length of the smaller list
 
-forall a b let zip be the 
+forall a b let zip the 
     fn list a fn list b list tuple a b 
     lambda x lambda y match tuple x y
         case tuple cons ha ta cons hb tb    cons tuple ha hb zip ta tb
         case _                              nil
 
-forall a b c let zip_with be the 
+forall a b c let zip_with the 
     fn fn a fn b c fn list a fn list b list c
     lambda f lambda la lambda lb map_list
         uncurry f 
@@ -100,7 +100,7 @@ forall a b c let zip_with be the
 --  Like zip_with but doesn't cut off the rest 
 --  of the larger video
 
-forall a let zip_with_leftover be the 
+forall a let zip_with_leftover the 
     fn fn a fn a a fn list a fn list a list a
     lambda f lambda la lambda lb match tuple la lb
         case tuple nil       _              lb
@@ -118,7 +118,7 @@ forall a let zip_with_leftover be the
 --      e
 --  ]
 
-forall a b let zip_with_leftover_right be the 
+forall a b let zip_with_leftover_right the 
     fn fn b fn a a fn list b fn list a list a
     lambda f lambda la lambda lb match tuple la lb
         case tuple nil       _              lb
@@ -130,7 +130,7 @@ forall a b let zip_with_leftover_right be the
 --  Keep elements of a list that return true
 --  for the given function
 
-forall a let filter be the 
+forall a let filter the 
     fn fn a bool fn list a list a 
     lambda f lambda l match l 
         case nil          nil
@@ -141,7 +141,7 @@ forall a let filter be the
 --  Find the first element that returns true for
 --  the given function
 
-forall a let find be the 
+forall a let find the 
     fn fn a bool fn list a option a 
     lambda f lambda l map_option 
         the fn non_empty a a head
@@ -150,19 +150,19 @@ forall a let find be the
 --  Concatinate a list with itself to make an 
 --  infinite list
 
-forall a let cycle be the 
+forall a let cycle the 
     fn list a list a 
     lambda x cat x cycle x
 
 --  Make a list containing n elements of a value
 
-forall a let replicate be the 
+forall a let replicate the 
     fn whole fn a list a 
     lambda n lambda x take n cycle lift_list x
 
 --  Reverse a list
 
-forall a let reverse be the 
+forall a let reverse the 
     fn list a list a 
     lambda x match x
         case nil           nil
@@ -172,7 +172,7 @@ forall a let reverse be the
 --  that this is quite slow compared to cons, 
 --  taking O(n) time
 
-forall a let append be the 
+forall a let append the 
     fn a fn list a list a 
     lambda x lambda xs cat xs lift_list x
 
@@ -181,7 +181,7 @@ forall a let append be the
 --  first argument of the tuple are those that 
 --  returned true
 
-forall a let partition be the 
+forall a let partition the 
     fn fn a bool fn list a tuple list a list a
     lambda f lambda l match l
         case nil              tuple nil nil

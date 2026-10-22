@@ -1,28 +1,22 @@
 #!/bin/sh
 
-set -e
+set -eu
 FONT_DIR="$HOME/.local/share/thorn/fonts/"
-FONT='unifont_8x16'
 FPS=5
 
 print_help() {
     printf 'th2gif options:
         --font-dir DIR       Set the font directory to DIR
-        --font-name NAME     Set the font to NAME
         --fps FPS            Set the fps to FPS
         --help               Show this help message
     ' >&2
-    exit 1
+    exit 0
 }
 
 while [ $# != 0 ]; do
     case "$1" in 
         --font-dir)
             FONT_DIR="$2"
-            shift
-            ;;
-        --font-name)
-            FONT="$2"
             shift
             ;;
         --fps)
@@ -41,17 +35,14 @@ while [ $# != 0 ]; do
     shift
 done
 
-FONT_PATH="$FONT_DIR/$FONT"
-
 printf "    \033[95mfont-dir   \033[0m$FONT_DIR\n" >&2
-printf "    \033[95mfont-name  \033[0m$FONT\n"     >&2
 printf "    \033[95mfps        \033[0m$FPS\n"      >&2
 
 temp="/tmp/thorn-to-gif"
 rm -r $temp > /dev/null 2>&1 || true
 mkdir $temp
 cd $temp
-th2ppm --font $FONT_PATH
+th2ppm --font-dir $FONT_DIR
 
 ffmpeg                                 \
     -loglevel error                    \

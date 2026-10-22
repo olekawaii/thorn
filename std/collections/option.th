@@ -9,21 +9,22 @@ forall a type option contains
 --  Attempt to unwrap an optional value. If it's
 --  none, return the given default value instead.
 
-forall a let unwrap_or_default be the fn option a fn a a 
+forall a let unwrap_or_default the 
+    fn option a fn a a 
     lambda x lambda default match x
         case some a        a
         case none          default
 
 --  Unwraps an optional value under the
---  assumption that it can't be none. It's a
+--  assumption that it can't none. It's a
 --  partial function that crashes on none. Prefer
 --  pattern matching or unwrap_or.
 
-forall a let from_some be the fn option a a lambda some x  x
+forall a let from_some the fn option a a lambda some x  x
 
 --  functor
 
-forall a b let map_option be the 
+forall a b let map_option the 
     fn fn a b fn option a option b 
     lambda f lambda x match x
         case none          none
@@ -31,9 +32,9 @@ forall a b let map_option be the
 
 --  applicative
 
-forall a let lift_option be the fn a option a some
+forall a let lift_option the fn a option a some
 
-forall a b let apply_option be the 
+forall a b let apply_option the 
     fn option fn a b fn option a option b 
     lambda f lambda x bind_option f 
         flip 
@@ -42,7 +43,7 @@ forall a b let apply_option be the
 
 --  monad
 
-forall a b let bind_option be the 
+forall a b let bind_option the 
     fn option a fn fn a option b option b 
     lambda x lambda f match x
         case none          none
@@ -50,7 +51,8 @@ forall a b let bind_option be the
 
 --  Convert an option to a list
 
-forall a let fold_option be the fn option a list a 
+forall a let fold_option the 
+    fn option a list a 
     lambda x match x
         case none          nil
         case some x        cons x nil

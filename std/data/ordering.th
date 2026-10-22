@@ -5,7 +5,8 @@ type ordering contains
     gt
     eq
 
-let eq_ordering be the fn ordering fn ordering bool
+let eq_ordering the 
+    fn ordering fn ordering bool
     lambda x lambda y match tuple x y
         case tuple gt gt        true
         case tuple lt lt        true

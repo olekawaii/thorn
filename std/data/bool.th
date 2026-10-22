@@ -9,33 +9,40 @@ type bool contains
 --  pattern match or use this if function for
 --  one-liners.
 
-forall a let if be the fn bool fn a fn a a
+forall a let if the 
+    fn bool fn a fn a a
     lambda condition lambda then lambda else match condition
         case true       then
         case false      else
 
-let not be the fn bool bool lambda x match x
+let not the fn bool bool lambda x match x
     case true           false
     case false          true
 
-let or be the fn bool fn bool bool 
+let or the fn bool fn bool bool 
     lambda x match x 
         case true       const true
         case false      identity
 
-let and be the fn bool fn bool bool 
+let and the fn bool fn bool bool 
     lambda x match x
         case false      const false
         case true       identity
 
-let xor  be the fn bool fn bool bool lambda a lambda b not xand a b
+let xor  the 
+    fn bool fn bool bool 
+    lambda a lambda b not xand a b
 
-let xand be the fn bool fn bool bool eq_bool
+let xand the fn bool fn bool bool eq_bool
 
-let nor  be the fn bool fn bool bool lambda a lambda b not or a b
+let nor  the 
+    fn bool fn bool bool 
+    lambda a lambda b not or a b
     
-let nand be the fn bool fn bool bool lambda a lambda b not and a b
+let nand the 
+    fn bool fn bool bool 
+    lambda a lambda b not and a b
 
-let eq_bool be the fn bool fn bool bool lambda x match x
+let eq_bool the fn bool fn bool bool lambda x match x
     case true           identity
     case false          not

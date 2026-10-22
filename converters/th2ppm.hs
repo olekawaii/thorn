@@ -3,6 +3,7 @@
 import Data.List 
 import Data.Char (ord)
 
+import System.Exit (die)
 import System.Directory (getHomeDirectory)
 import System.FilePath ((</>))
 import System.Environment (getArgs)
@@ -26,35 +27,42 @@ makeFiles header (x:xs) n = writeFile fileName content >> makeFiles header xs (n
         content = header <> x
         fileName = "output" <> showNum n <> ".ppm"
 
--- TODO add custom color theme
-data Config = Config {
-    fontFile :: String
+data Args = Args {
+    fontDir   :: String,
+    themeDir  :: String
 }
 
-defaultConfig = Config {
-    fontFile = "ibm_9x14"
-}
-
-parseArgs :: Config -> [String] -> Config
-parseArgs conf ("--font" : f : tail) = parseArgs conf { fontFile = f } tail
-parseArgs conf [] = conf
-parseArgs _ other = error (show other)
+parseArgs :: [String] -> String -> IO Args
+parseArgs ("--font-dir"  : f : xs) home = 
+    parseArgs xs home >>= \x -> pure $ x { fontDir  = f }
+parseArgs ("--theme-dir" : t : xs) home = 
+    parseArgs xs home >>= \x -> pure $ x { themeDir = t }
+parseArgs [] home = 
+    pure Args { 
+        fontDir  = home </> ".local/share/thorn/fonts", 
+        themeDir = home </> ".local/share/thorn/themes" 
+    }
+parseArgs _ _ = die "bad arguments"
 
 main :: IO ()
 main = 
     getHomeDirectory >>= \home -> 
-    parseArgs defaultConfig <$> getArgs >>= \Config { fontFile } -> 
-    parseFontFile <$> readFile (home </> ".local/share/thorn/fonts" </> fontFile) 
-        >>= \font@Font {width = fwidth, height = fheight} ->
-    getVideo >>= \(width, height, newGif) ->
-    let 
-        padding = fwidth * 2
-        horizontalPixels = width  * fwidth  + padding * 2 
-        verticalPixels   = height * fheight + padding * 2 
-        gifFrames = map (flip (pipelineGif font) horizontalPixels) newGif 
-        header = "P3\n" <> show (horizontalPixels) <> " " <> show (verticalPixels) <> "\n255\n"
-    in
-    makeFiles header gifFrames 0
+    getArgs >>= flip parseArgs home >>= \Args {fontDir, themeDir} ->
+    getVideo >>= \(width, height, newGif, GraphicalOptions font theme fps) ->
+        fmap parseFontFile (readFile (fontDir </> font)) 
+          >>= \font@Font {width = fwidth, height = fheight} ->
+        let 
+            padding = fwidth * 2
+            horizontalPixels = width  * fwidth  + padding * 2 
+            verticalPixels   = height * fheight + padding * 2 
+            gifFrames = map (flip (pipelineGif font) horizontalPixels) newGif 
+            header = "P3\n" 
+                  <> show (horizontalPixels) 
+                  <> " " 
+                  <> show (verticalPixels) 
+                  <> "\n255\n"
+        in
+        makeFiles header gifFrames 0
 
 pipelineGif :: Font -> [[Character]] -> Int -> String
 pipelineGif font@Font { width } x y = unlines . map showColor . surround . uwu font $ x

@@ -29,7 +29,7 @@ What's the point of this language? The point is to have
   * Simplicity and no modules (I encourage circular imports)
 
 A goal I have is to make the thorn source code as pretty as the actual
-ASCII art. See for yourself (snippet from examples/src/dragon.th)
+ASCII art. See for yourself (snippet from examples/dragon.th)
 
 let center_head be the list frame loop art xii ix
    )  (     ...7..7.....    )  (    ....7..7....     )  (   .....7..7...
@@ -111,8 +111,8 @@ project.
                             DECLARATIONS
 forall NAME... DECLARATION     * declare any local type variables
 let NAME be EXPRESSION         * define a global variable
-type NAME contains             * type declaration. NAME is a data
-    NAME TYPE...                 constructor and TYPE are its arguments
+type NAME contains             * type declaration. 2nd NAME is a data
+    NAME [TYPE]...               constructor and TYPE are its arguments
     ...
                              EXPRESSIONS
 the TYPE EXPRESSION            * type annotation for rest of block
@@ -123,10 +123,22 @@ match EXPRESSION               * pattern matching
     ...
                               PATTERNS
 NAME                           * capture value into variable name
-_                              * drop value
-CONSTRUCTOR PATTERNS           * match on constructor and its arguments
+_[NAME]                        * drop value
+CONSTRUCTOR [PATTERN]...       * match on constructor and its arguments
 bind NAME PATTERN              * in addition, capture value in NAME (@)
 either PATTERN PATTERN         * match either pattern (|)
+
+Note that the syntax is designed to be very flexible. Everything is a
+tree and all the branches can be moved down to be standalone blocks.
+Take the match expression for example. If the EXPRESSION matched on is
+too long, you can move it into its own block beneath. Same for the
+PATTERN and EXPRESSION in case.
+
+    match EXPRESSION               ->   match
+        case PATTERN EXPRESSION    ->       EXPRESSION_THAT_IS_LARGE
+                                   ->       case
+                                   ->           PATTERN_THAT_IS_LARGE
+                                   ->           EXPRESSION
 
                          FUNCTION APPLICATION
 
@@ -253,17 +265,17 @@ when patternmatched on and evaluation starts at the main function. Here
 are some examples. I'll use the thorn repl to define and test them.
 
 >>> type bool contains
->>>     true                                           _
->>>     false                                    .="= / \ ="=.
->>>                                             /\\  //  \  / \
->>> type nat contains                          /\\\ ///  \\ // \
->>>     one                                    \\\   //|\\   ///
->>>     succ nat                                      . .
->>>                                                   \ /
->>> let infinity be the nat succ infinity             \ /   \
->>>                                                   \ /    \________
->>> forall a b type tuple contains                    \ /    /\    /\
->>>     tuple a b
+>>>     true
+>>>     false                                          _
+>>>                                              .="= / \ ="=.
+>>> type nat contains                           /\\  //  \  / \
+>>>     one                                    /\\\ ///  \\ // \
+>>>     succ nat                               \\\   //|\\   ///
+>>>                                                   . .
+>>> let infinity be the nat succ infinity             \ /
+>>>                                                   \ /   \
+>>> forall a b type tuple contains                    \ /    \________
+>>>     tuple a b                                     \ /    /\    /\
 >>>
 >>> let are_equal be the
 >>>     fn nat fn nat bool

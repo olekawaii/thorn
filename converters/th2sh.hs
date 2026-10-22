@@ -42,8 +42,8 @@ new :: BadMap a b
 new = BadMap []
 
 main :: IO ()
-main = getVideo >>= \(width, height, newGif) -> 
-    putStrLn . fst . formatShell 0.2 width height Nothing . pipeline $ newGif
+main = getVideo >>= \(width, height, newGif, GraphicalOptions _ _ fps) -> 
+    putStrLn . fst . formatShell (1/fromIntegral(fps)) width height Nothing . pipeline $ newGif
 
 legalNameChars = '_' : ['a'..'z'] <> ['0'..'9'] 
 

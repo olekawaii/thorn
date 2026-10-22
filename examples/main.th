@@ -1,16 +1,44 @@
-include dragon sleeping_cat squish drawings
+include 
+    graphical_options
+    dragon 
+    sleeping_cat 
+    squish 
+    drawings
 
---  If you want to quickly test different animations,
---  I suggest using thorn --eval 'the list frame <name>'
---  instead of constantly editing this file. 
+--  If you want to quickly test different animations, I 
+--  suggest using thorn --eval 'the list frame <name>'
 -- 
---  You can also have each animation be its own project
---  but that's a bit annoying.
-
---  Some animations to look at:
+--  Some animations to try:
+--
 --      dragon dragon_p_default
 --      chess_set
 --      squish
 --      sleeping_cat
-  
-let main be the list frame dragon dragon_p_default
+
+let main the
+    with_graphics list frame                -- type
+    with_graphics 
+        graphical_options
+            unifont                         -- font
+            gruvbox_material_dark_hard      -- theme
+            fps v                           -- fps
+        dragon dragon_p_default             -- video
+
+--  A note about main's return type.
+-- 
+--  main's type can be whatever you want, but if you want 
+--  it to be interpretable by th2sh/th2gif it must be a type
+--  they know. Here's a type representing the known types
+--
+--      type valid_video_type contains
+--          frame
+--          (list frame)
+--          video
+--          with_graphics   valid_video_type
+--
+--  This is possible because main's type is part of
+--  thorn's output. This allows th2sh/th2gif to work on 
+--  multiple types and to gracefully reject bad ones.
+--      
+--      let main the list frame dragon dragon_p_default
+

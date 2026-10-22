@@ -16,17 +16,60 @@ import Data.Tuple (swap)
 import Data.List (find, nub, transpose, sortOn, intercalate, singleton)
 import Text.Read (readMaybe)
 
-getVideo :: IO (Int, Int, [[[Character]]])
-getVideo = getContents >>= pure . parse . words
+getVideo :: IO (Int, Int, [[[Character]]], GraphicalOptions)
+getVideo = getContents >>= \s -> case parse (words s) of
+    Nothing -> die "error: unsupported input type"
+    Just x  -> pure x
 
-parse :: [String] -> (Int, Int, [[[Character]]])
-parse ("the" : "list" : "frame" : xs) = changeFormat . map convertNewFrame . fst . parseNewVideo $ xs
-parse ("the" : "frame" : xs) = changeFormat . pure . convertNewFrame . fst . parseNewFrame $ xs
-parse ("the" : "final_video" : xs) = parseNewNewFinalVideo $ xs
+data GraphicalOptions = GraphicalOptions String String Int
 
-parseNewNewFinalVideo :: [String] -> (Int, Int, [[[Character]]])
-parseNewNewFinalVideo ("unsafe_final_video" : "graphical_options" : font : theme : xs) =
-    let out = parseNewNewVideo xs in out
+defaultGraphicalOptions = GraphicalOptions "unifont" "gruvbox_material_dark_hard" 5
+
+data ValidVideoType = ListFrame 
+                    | Frame 
+                    | Video 
+                    | WithGraphics ValidVideoType
+
+parseType :: [String] -> Maybe (ValidVideoType, [String])
+parseType ("list" : "frame" : xs) = pure (ListFrame, xs)
+parseType ("frame" : xs)          = pure (Frame, xs)
+parseType ("video" : xs)          = pure (Video, xs)
+parseType ("with_graphics" : xs)  = first WithGraphics <$> parseType xs
+parseType _                       = Nothing
+
+parseValue :: ValidVideoType -> [String] -> (Int, Int, [[[Character]]], GraphicalOptions)
+parseValue ListFrame xs = (x, y, chars, defaultGraphicalOptions)
+    where (x, y, chars) = changeFormat 
+                        . map convertNewFrame 
+                        . fst 
+                        . parseNewVideo 
+                        $ xs
+
+parseValue Frame xs = (x, y, chars, defaultGraphicalOptions) 
+    where (x, y, chars) = changeFormat 
+                        . pure 
+                        . convertNewFrame 
+                        . fst 
+                        . parseNewFrame 
+                        $ xs
+parseValue Video xs = (x, y, chars, defaultGraphicalOptions) 
+    where (x, y, chars) = parseNewNewVideo xs
+parseValue (WithGraphics t) xs = (x, y, chars, options)
+    where (options, xs')   = parseGraphicalOptions xs
+          (x, y, chars, _) = parseValue t xs'
+
+parse :: [String] -> Maybe (Int, Int, [[[Character]]], GraphicalOptions)
+parse ("the" : xs) = parseType xs >>= pure . uncurry parseValue
+
+parseNat :: [String] -> (Int, [String])
+parseNat ("one"  : xs) = (1, xs)
+parseNat ("succ" : xs) = (n + 1, xs')
+    where (n, xs') = parseNat xs
+
+
+parseGraphicalOptions :: [String] -> (GraphicalOptions, [String])
+parseGraphicalOptions ("with_graphics" : "graphical_options" : font : theme : "fps" : xs) = 
+    let (n, xs') = parseNat xs in (GraphicalOptions font theme n, xs')
 
 parseNewNewVideo :: [String] -> (Int, Int, [[[Character]]])
 parseNewNewVideo s = let (out, _) = parseListGrid s in

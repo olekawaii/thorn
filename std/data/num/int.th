@@ -5,7 +5,7 @@ type int contains
     pos nat
     zero
 
-let compare_int be the 
+let compare_int the 
     fn int fn int ordering
     lambda x lambda y match tuple x y 
         case tuple pos a pos b     compare_nat a b
@@ -19,23 +19,23 @@ let compare_int be the
         case tuple _     pos _     lt
         case tuple _     neg _     gt
 
-let eq_int be the 
+let eq_int the 
     fn int fn int bool 
     lambda x lambda y eq_ordering eq compare_int x y
 
-let max_int be the 
+let max_int the 
     fn int fn int int
     lambda x lambda y match compare_int x y
         case lt                    y
         case _                     x
 
-let min_int be the 
+let min_int the 
     fn int fn int int
     lambda x lambda y match compare_int x y
         case gt                    y
         case _                     x
 
-let sum_int be the 
+let sum_int the 
     fn int fn int int 
     lambda x lambda y match tuple x y
         case tuple pos _ neg _     sum_int decrement x increment y
@@ -44,22 +44,22 @@ let sum_int be the
         case tuple zero  _         y
         case _                     sum_int y x
 
-let increment be the fn int int lambda x match x
+let increment the fn int int lambda x match x
     case pos a                 pos succ a
     case neg one               zero 
     case neg succ a            neg a
     case zero                  pos one
 
-let decrement be the fn int int 
+let decrement the fn int int 
     compose 
         negate 
         compose 
             increment 
             negate
 
-let negate be the fn int int product_int neg one
+let negate the fn int int product_int neg one
 
-let product_int be the 
+let product_int the 
     fn int fn int int 
     lambda x lambda y match tuple x y
         case 
@@ -74,6 +74,6 @@ let product_int be the
             neg product_nat a b
         case _                      zero
 
-let absolute_value be the fn int whole lambda x match x
+let absolute_value the fn int whole lambda x match x
     case either pos x neg x        nat_to_whole x
     case zero                      whole_zero

@@ -1,13 +1,13 @@
 include frame
 
-let layer_x_apart be the 
+let layer_x_apart the 
     fn nat fn list frame frame 
     lambda x lambda f foldr 
         layer_frames
         new_frame
         continuously by x shift east f
 
-let chess_set be the list frame match chess_pieces
+let chess_set the list frame match chess_pieces
     case
         cons k cons q cons b cons n cons r cons p nil
         lift_list layer_frames
@@ -16,7 +16,7 @@ let chess_set be the list frame match chess_pieces
                 cons r cons n cons b cons q cons k cons b cons n cons r nil
             layer_x_apart viii replicate nat_to_whole viii p 
 
-let chess_pieces be art vii vii
+let chess_pieces art vii vii
   _:_  ..777..       .......       .......       .......       .......
  __!__ .77777.o  o  c7..7..7   o   ...7...  n,_  ..777..       .......
  \_ _/ .77|77. \v|v/ .77777.  / \  ..7|7.. /.  \ .77||7.__ _ __77|7|77
@@ -32,7 +32,7 @@ let chess_pieces be art vii vii
  _/ \_ .77|77.
 (_____)7777777
 
-let muchomor be art xvi viii
+let muchomor art xvi viii
   __c__,___     ..117117111.....
 (_c__O_/\_3_)   1171171111711...
        .        .....||7........
@@ -42,14 +42,14 @@ let muchomor be art xvi viii
      | |  (__o_).....7|7..111711
      | |   (  ) .....7|7...7||7.
 
-let bird be art ix v
+let bird art ix v
     ,,   ....11...
   <')    ..371....
    ( \   ...1|1...
 ---YY----777337777
      |\  .....11..
 
-let bird_song be art xxxv vii
+let bird_song art xxxv vii
                       ,,           ......................11...........
                     <')            ....................371............
     |)   Presto  _   ( \    v      ....44...444444..4...1.1....4......
@@ -58,10 +58,10 @@ let bird_song be art xxxv vii
 '-- J ----- P -----'------ ----'---444.4.44444.4.444444444444.44444444
              `-..___..-'           .............44444444444...........
 
-let rose be art viii i
+let rose art viii i
 @)-'-,--11222222
 
-let palm_tree be art xxiii x
+let palm_tree art xxiii x
         _              ........2..............
   .="= / \ ="=.        ..2222.2|2.2222........
  /\\  //  \  / \       .222..22||2..2|2.......
@@ -73,7 +73,7 @@ let palm_tree be art xxiii x
        \ /    \________.......7|7....777777777
        \ /    /\    /\ .......7|7....77....77.
 
-let spongebob_characters be art xxxv vi
+let spongebob_characters art xxxv vi
                    __       . .    ...................44.......1.1....
   ___       (     (oo)  _   | |   _..333.......5.....4774..1...7.7...1
  | oo|   _ OO\ _  -()-  >)  .-.  (<.3|773...5.775.5..4444..11..111..11
@@ -81,7 +81,7 @@ let spongebob_characters be art xxxv vi
  '---'   ( ___ )  j[]L    ( -o- )  .77777...7|777|7..4774....7|777|7..
   ! !     V   V    JL      `v v    ..3.3.....5...5....44......71.1....
 
-let nixos_logo be art xxxii xvii
+let nixos_logo art xxxii xvii
         __    ____    __        ........44....6666....66........
        /  \   \   \  /  \       .......4||4...6|||6..6||6.......
        \   \   \   \/   /       .......4|||4...6|||66|||6.......
@@ -100,7 +100,7 @@ let nixos_logo be art xxxii xvii
        /   /\   \   \   \       .......4|||44|||4...6|||6.......
        \__/  \___\   \__/       .......4444..44444...6666.......
 
-let thorn_logo be art xvii xvii
+let thorn_logo art xvii xvii
     ,.       ,.  ....77.......77..
   ,A$$$,   .A$$c ..777777...77777.
  f"Y$$$$ ,&M$$$$L.7777777.77777777

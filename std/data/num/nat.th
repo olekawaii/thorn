@@ -12,14 +12,16 @@ type nat contains
     one
     succ nat
 
-let sum_nat be the fn nat fn nat nat 
+let sum_nat the 
+    fn nat fn nat nat 
     lambda x match x
         case one        succ
         case succ a     compose 
             succ 
             sum_nat a
 
-let product_nat be the fn nat fn nat nat 
+let product_nat the 
+    fn nat fn nat nat 
     lambda x lambda y match x
         case one        y
         case succ a     sum_nat y product_nat a y
@@ -28,30 +30,33 @@ let product_nat be the fn nat fn nat nat
 --  zero, it returns a whole number, which has 
 --  a zero variant.
 
-let decrement_nat be the fn nat whole lambda x pred x
+let decrement_nat the fn nat whole lambda x pred x
 
-let compare_nat be the fn nat fn nat ordering
+let compare_nat the 
+    fn nat fn nat ordering
     lambda x lambda y match tuple x y
         case tuple succ a succ b     compare_nat a b
         case tuple succ _ one        gt
         case tuple one    succ _     lt
 
-let eq_nat be the fn nat fn nat bool 
+let eq_nat the fn nat fn nat bool 
     lambda x lambda y eq_ordering eq compare_nat x y
 
 --  check that the first nat is greater than
 --  the second one
 
-let greater be the fn nat fn nat bool 
+let greater the 
+    fn nat fn nat bool 
     lambda a lambda b eq_ordering gt compare_nat a b
 
 --  find the greatest common denominator of two 
 --  nats
 
-let gcd be the fn nat fn nat nat 
+let gcd the fn nat fn nat nat 
     gcd_helper i ii
 
-let gcd_helper be the fn nat fn nat fn nat fn nat nat 
+let gcd_helper the 
+    fn nat fn nat fn nat fn nat nat 
     lambda output lambda try lambda x lambda y match 
         or greater try x greater try y
         case true                    output
@@ -68,7 +73,7 @@ let gcd_helper be the fn nat fn nat fn nat fn nat nat
 
 --  find the least common multiple of two nats
 
-let lcm be the fn nat fn nat nat 
+let lcm the fn nat fn nat nat 
     lambda x lambda y
         match 
             divide_exactly 
@@ -82,218 +87,219 @@ let lcm be the fn nat fn nat nat
 type coordinate contains
     coordinate int int
 
-forall a let repeat be the 
+forall a let repeat the 
     fn nat fn fn a a fn a a 
     lambda count lambda f lambda x match count
         case one                  f x
         case succ new_count       f repeat new_count f x
 
-let sum_coordinate be the fn coordinate fn coordinate coordinate 
+let sum_coordinate the 
+    fn coordinate fn coordinate coordinate 
     lambda coordinate x_i y_i lambda coordinate x_ii y_ii
         coordinate sum_int x_i x_ii sum_int y_i y_ii
 
-let eq_coordinate be the fn coordinate fn coordinate bool 
+let eq_coordinate the 
+    fn coordinate fn coordinate bool 
     lambda coordinate a b lambda coordinate c d  and eq_int a c eq_int b d
 
---  these let variables for the first hundred 
---  nats using roman numerals
+--  The first hundred nats using roman numerals
 
-let i         be the nat one
+let i         the nat one
 
-let ii        be the nat succ i
+let ii        the nat succ i
 
-let iii       be the nat succ ii
+let iii       the nat succ ii
 
-let iv        be the nat succ iii
+let iv        the nat succ iii
 
-let v         be the nat succ iv
+let v         the nat succ iv
 
-let vi        be the nat succ v
+let vi        the nat succ v
 
-let vii       be the nat succ vi
+let vii       the nat succ vi
 
-let viii      be the nat succ vii
+let viii      the nat succ vii
 
-let ix        be the nat succ viii
+let ix        the nat succ viii
 
-let x         be the nat succ ix
+let x         the nat succ ix
 
-let xi        be the nat succ x
+let xi        the nat succ x
 
-let xii       be the nat succ xi
+let xii       the nat succ xi
 
-let xiii      be the nat succ xii
+let xiii      the nat succ xii
 
-let xiv       be the nat succ xiii
+let xiv       the nat succ xiii
 
-let xv        be the nat succ xiv
+let xv        the nat succ xiv
 
-let xvi       be the nat succ xv
+let xvi       the nat succ xv
 
-let xvii      be the nat succ xvi
+let xvii      the nat succ xvi
 
-let xviii     be the nat succ xvii
+let xviii     the nat succ xvii
 
-let xix       be the nat succ xviii
+let xix       the nat succ xviii
 
-let xx        be the nat succ xix
+let xx        the nat succ xix
 
-let xxi       be the nat succ xx
+let xxi       the nat succ xx
 
-let xxii      be the nat succ xxi
+let xxii      the nat succ xxi
 
-let xxiii     be the nat succ xxii
+let xxiii     the nat succ xxii
 
-let xxiv      be the nat succ xxiii
+let xxiv      the nat succ xxiii
 
-let xxv       be the nat succ xxiv
+let xxv       the nat succ xxiv
 
-let xxvi      be the nat succ xxv
+let xxvi      the nat succ xxv
 
-let xxvii     be the nat succ xxvi
+let xxvii     the nat succ xxvi
 
-let xxviii    be the nat succ xxvii
+let xxviii    the nat succ xxvii
 
-let xxix      be the nat succ xxviii
+let xxix      the nat succ xxviii
 
-let xxx       be the nat succ xxix
+let xxx       the nat succ xxix
 
-let xxxi      be the nat succ xxx
+let xxxi      the nat succ xxx
 
-let xxxii     be the nat succ xxxi
+let xxxii     the nat succ xxxi
 
-let xxxiii    be the nat succ xxxii
+let xxxiii    the nat succ xxxii
 
-let xxxiv     be the nat succ xxxiii
+let xxxiv     the nat succ xxxiii
 
-let xxxv      be the nat succ xxxiv
+let xxxv      the nat succ xxxiv
 
-let xxxvi     be the nat succ xxxv
+let xxxvi     the nat succ xxxv
 
-let xxxvii    be the nat succ xxxvi
+let xxxvii    the nat succ xxxvi
 
-let xxxviii   be the nat succ xxxvii
+let xxxviii   the nat succ xxxvii
 
-let xxxix     be the nat succ xxxviii
+let xxxix     the nat succ xxxviii
 
-let xl        be the nat succ xxxix
+let xl        the nat succ xxxix
 
-let xli       be the nat succ xl
+let xli       the nat succ xl
 
-let xlii      be the nat succ xli
+let xlii      the nat succ xli
 
-let xliii     be the nat succ xlii
+let xliii     the nat succ xlii
 
-let xliv      be the nat succ xliii
+let xliv      the nat succ xliii
 
-let xlv       be the nat succ xliv
+let xlv       the nat succ xliv
 
-let xlvi      be the nat succ xlv
+let xlvi      the nat succ xlv
 
-let xlvii     be the nat succ xlvi
+let xlvii     the nat succ xlvi
 
-let xlviii    be the nat succ xlvii
+let xlviii    the nat succ xlvii
 
-let xlix      be the nat succ xlviii
+let xlix      the nat succ xlviii
 
-let l         be the nat succ xlix
+let l         the nat succ xlix
 
-let li        be the nat succ l
+let li        the nat succ l
 
-let lii       be the nat succ li
+let lii       the nat succ li
 
-let liii      be the nat succ lii
+let liii      the nat succ lii
 
-let liv       be the nat succ liii
+let liv       the nat succ liii
 
-let lv        be the nat succ liv
+let lv        the nat succ liv
 
-let lvi       be the nat succ lv
+let lvi       the nat succ lv
 
-let lvii      be the nat succ lvi
+let lvii      the nat succ lvi
 
-let lviii     be the nat succ lvii
+let lviii     the nat succ lvii
 
-let lix       be the nat succ lviii
+let lix       the nat succ lviii
 
-let lx        be the nat succ lix
+let lx        the nat succ lix
 
-let lxi       be the nat succ lx
+let lxi       the nat succ lx
 
-let lxii      be the nat succ lxi
+let lxii      the nat succ lxi
 
-let lxiii     be the nat succ lxii
+let lxiii     the nat succ lxii
 
-let lxiv      be the nat succ lxiii
+let lxiv      the nat succ lxiii
 
-let lxv       be the nat succ lxiv
+let lxv       the nat succ lxiv
 
-let lxvi      be the nat succ lxv
+let lxvi      the nat succ lxv
 
-let lxvii     be the nat succ lxvi
+let lxvii     the nat succ lxvi
 
-let lxviii    be the nat succ lxvii
+let lxviii    the nat succ lxvii
 
-let lxix      be the nat succ lxviii
+let lxix      the nat succ lxviii
 
-let lxx       be the nat succ lxix
+let lxx       the nat succ lxix
 
-let lxxi      be the nat succ lxx
+let lxxi      the nat succ lxx
 
-let lxxii     be the nat succ lxxi
+let lxxii     the nat succ lxxi
 
-let lxxiii    be the nat succ lxxii
+let lxxiii    the nat succ lxxii
 
-let lxxiv     be the nat succ lxxiii
+let lxxiv     the nat succ lxxiii
 
-let lxxv      be the nat succ lxxiv
+let lxxv      the nat succ lxxiv
 
-let lxxvi     be the nat succ lxxv
+let lxxvi     the nat succ lxxv
 
-let lxxvii    be the nat succ lxxvi
+let lxxvii    the nat succ lxxvi
 
-let lxxviii   be the nat succ lxxvii
+let lxxviii   the nat succ lxxvii
 
-let lxxix     be the nat succ lxxviii
+let lxxix     the nat succ lxxviii
 
-let lxxx      be the nat succ lxxix
+let lxxx      the nat succ lxxix
 
-let lxxxi     be the nat succ lxxx
+let lxxxi     the nat succ lxxx
 
-let lxxxii    be the nat succ lxxxi
+let lxxxii    the nat succ lxxxi
 
-let lxxxiii   be the nat succ lxxxii
+let lxxxiii   the nat succ lxxxii
 
-let lxxxiv    be the nat succ lxxxiii
+let lxxxiv    the nat succ lxxxiii
 
-let lxxxv     be the nat succ lxxxiv
+let lxxxv     the nat succ lxxxiv
 
-let lxxxvi    be the nat succ lxxxv
+let lxxxvi    the nat succ lxxxv
 
-let lxxxvii   be the nat succ lxxxvi
+let lxxxvii   the nat succ lxxxvi
 
-let lxxxviii  be the nat succ lxxxvii
+let lxxxviii  the nat succ lxxxvii
 
-let lxxxix    be the nat succ lxxxviii
+let lxxxix    the nat succ lxxxviii
 
-let xc        be the nat succ lxxxix
+let xc        the nat succ lxxxix
 
-let xci       be the nat succ xc
+let xci       the nat succ xc
 
-let xcii      be the nat succ xci
+let xcii      the nat succ xci
 
-let xciii     be the nat succ xcii
+let xciii     the nat succ xcii
 
-let xciv      be the nat succ xciii
+let xciv      the nat succ xciii
 
-let xcv       be the nat succ xciv
+let xcv       the nat succ xciv
 
-let xcvi      be the nat succ xcv
+let xcvi      the nat succ xcv
 
-let xcvii     be the nat succ xcvi
+let xcvii     the nat succ xcvi
 
-let xcviii    be the nat succ xcvii
+let xcviii    the nat succ xcvii
 
-let xcix      be the nat succ xcviii
+let xcix      the nat succ xcviii
 
-let c         be the nat succ xcix
+let c         the nat succ xcix

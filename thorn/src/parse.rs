@@ -231,11 +231,27 @@ fn get_includes(
     let elem = BlockTraversal::new(&blocks[0]);
     let mut output = HashSet::new();
     if let Ok((_include_mark, mut bt)) = elem.expect_keyword(Keyword::Include) {
-        while let Ok((x, mark, bt_)) = bt.expect_word() {
-            bt = bt_;
-            let Some((_, key)) = file_names.get(x) else {
+        let mut filenames: Vec<(&str, &Mark)> = Vec::new();
+        match bt.next()? {                     
+            NextOutput::Token {..} => {
+                while let Ok((file_name, mark, bt_)) = bt.expect_word() {
+                    bt = bt_;
+                    filenames.push((file_name, mark));
+                }
+                bt.expect_end()?;
+            }
+            NextOutput::IndentedBlocks(b) => {
+                for bt in b.iter().map(BlockTraversal::new) {
+                    let (file_name, mark, bt) = bt.expect_word()?;
+                    filenames.push((file_name, mark));
+                    bt.expect_end()?;
+                }
+            }
+        }
+        for (file_name, mark) in filenames {
+            let Some((_, key)) = file_names.get(file_name) else {
                 return Err(make_error(
-                    CompilationError::BadFile(x.to_string()),
+                    CompilationError::BadFile(file_name.to_string()),
                     mark.clone(),
                 ));
             };
@@ -1453,7 +1469,6 @@ pub fn extract_name_and_generics<'a>(
             }
             Token::Keyword(Keyword::Let) => {
                 let (name, name_mark, bt) = bt.expect_word()?;
-                let (_be_mark, bt) = bt.expect_keyword(Keyword::Be)?;
                 Ok((name.to_string(), name_mark.clone(), BlockKind::Variable, bt))
             }
             Token::Keyword(Keyword::Type) => {

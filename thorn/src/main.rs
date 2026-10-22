@@ -65,7 +65,12 @@ fn main() -> std::io::Result<()> {
         }
         Ok(mut loaded) => {
             if !expression_provided {
-                let GlobalVarData { var_type, id, .. } = loaded.info_table.get("main").unwrap();
+                let Some(GlobalVarData { var_type, id, .. }) = 
+                    loaded.info_table.get("main") else {
+                    eprintln!("\x1b[91merror: \x1b[0mno main function
+       consider adding it to main.th or using --eval");
+                    std::process::exit(1);
+                };
                 let id = match id {
                     Id::Variable(n) => n,
                     Id::Constructor(n) => n,
