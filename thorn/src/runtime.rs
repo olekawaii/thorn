@@ -503,15 +503,7 @@ impl Expression {
     // without eating memory at all.
 
     pub fn print(self, names: &Vec<String>, tp: &Type, marks: &Vec<Mark>, patterns: &Vec<Pattern>) {
-        let mut more = Command::new("more")
-            .arg("-n")
-            .arg("3")
-            .stdin(Stdio::piped())
-            .spawn()
-            .unwrap();
-        let stdin = more.stdin.take().unwrap();
-        let mut writer = BufWriter::new(stdin);
-        write!(writer, "the {}", tp.show()).unwrap();
+        print!("the {}", tp.show());
         let mut to_evaluate: Vec<Expression> = vec![self];
         while let Some(mut x) = to_evaluate.pop() {
             x.simplify(names, marks, patterns);
@@ -524,26 +516,15 @@ impl Expression {
                 }
                 Expression::DataConstructor(id) => {
                     let word = &names[id as usize];
-                    if write!(writer, "{word} ").is_err() {
-                        more.wait().unwrap();
-                        return;
-                    };
+                    print!("{word} ");
                 }
                 Expression::Lambda { .. } => {
-                    if write!(writer, "<lambda> ").is_err() {
-                        more.wait().unwrap();
-                        return;
-                    };
+                    print!("<lambda> ");
                 }
                 _ => unreachable!(),
             }
         }
-        if writeln!(writer).is_err() {
-            more.wait().unwrap();
-            return;
-        }
-        drop(writer);
-        more.wait().unwrap();
+        println!();
     }
 }
 
