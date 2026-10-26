@@ -2,7 +2,7 @@
 
 module Parse where
 
-import System.Exit (die)
+import System.Exit (die, exitFailure)
 import System.Process (callCommand)
 import System.Environment (getArgs)
 import Control.Applicative (liftA2)
@@ -17,7 +17,9 @@ import Data.List (find, nub, transpose, sortOn, intercalate, singleton)
 import Text.Read (readMaybe)
 
 getVideo :: IO (Int, Int, [[[Character]]], GraphicalOptions)
-getVideo = getContents >>= \s -> case parse (words s) of
+getVideo = getContents >>= \s -> if s == "" 
+                                 then exitFailure
+                                 else case parse (words s) of
     Nothing -> die "error: unsupported input type"
     Just x  -> pure x
 
