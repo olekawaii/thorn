@@ -31,7 +31,7 @@ What's the point of this language? The point is to have
 A goal I have is to make the thorn source code as pretty as the actual
 ASCII art. See for yourself (snippet from examples/dragon.th)
 
-let center_head be the list frame loop art xii ix
+let center_head the list frame loop art xii ix
    )  (     ...7..7.....    )  (    ....7..7....     )  (   .....7..7...
   ((__))    ..776677....   ((__))   ...776677...    ((__))  ....776677..
   /o..o\    ..636636....   /o..o\   ...636636...    /o..o\  ....636636..
@@ -75,7 +75,7 @@ The error messages are lovely because
 thorn has few dependencies. Assuming you have cargo and ghc, you can
 build it with
 
-    $ ./build.sh
+    $ ./scripts/build.sh
 
 This installs thorn (the interpreter), th2sh, and th2gif to
 ~/.local/bin (make sure it's in your $PATH). It also installs the fonts
@@ -98,8 +98,8 @@ thorn works like a calculator. It parses and compiles the source code
 into an internal representation, but afterwards also executes it,
 printing the evaluated main function.
 
-    $ thorn . | th2sh  | sh                   # posix shell animation
-    $ thorn . | th2gif | ffplay -             # gif
+    $ thorn ./examples | th2sh  | sh             # posix shell animation
+    $ thorn ./examples | th2gif | ffplay -       # gif
 
 Note that thorn expects to find a main.th file in the given directory
 or in any of its parent directories. That directory is the root of your
@@ -110,7 +110,7 @@ project.
 --  this is a comment
                             DECLARATIONS
 forall NAME... DECLARATION     * declare any local type variables
-let NAME be EXPRESSION         * define a global variable
+let NAME EXPRESSION            * define a global variable
 type NAME contains             * type declaration. 2nd NAME is a data
     NAME [TYPE]...               constructor and TYPE are its arguments
     ...
@@ -145,17 +145,17 @@ PATTERN and EXPRESSION in case.
 This code defines a function that applies a function to an integer.
 The main body, if with paranthesis, would be (apply (add one) three).
 
-    let apply be the
+    let apply the
         fn fn int int fn int int
         lambda f lambda x f x
 
-    let main be the int apply add one three
+    let main the int apply add one three
 
 What if we wanted to pass a lambda instead of the (add one)? We can't
 do (apply (lambda x add one x) three) because there are no paranthesis.
 Instead, we need to do
                                                         __       . .
-    let main be the int apply          ___       (     (oo)  _   | |   _
+    let main the int apply             ___       (     (oo)  _   | |   _
         lambda x add one x            | oo|   _ OO\ _  -()-  >)  .-.  (<
         three                        \|___|/  \/___ /   __     \/___\/
                                       '---'   ( ___ )  j[]L    ( -o- )
@@ -178,7 +178,7 @@ declare any type variables. Here's a demo of the list and option types
         none
         some a
 
-    forall a let first_elem be the fn list a option a
+    forall a let first_elem the fn list a option a
         lambda input_list match input_list
             case nil                           none
             case cons x _xs                    some x
@@ -191,12 +191,12 @@ In the last line, `cons` is a data constructor and `x/_xs` are
 variable names for the `a` and `list a` in the list definition. _xs
 is prepended with an underscore to drop the value.
 
-    let main be the option bool
+    let main the option bool
         first_elem cons true cons false nil
 
 output:  some true        (thorn's output, if the above is in main.th)
 
-    let main be the option bool first_elem nil
+    let main the option bool first_elem nil
 
 output:  none
 
@@ -208,7 +208,7 @@ points. Ignore the undefined types/functions.
     type point contains
         point float float
 
-    let distance be the fn point fn point float
+    let distance the fn point fn point float
         lambda pa lambda pb match tuple pa pb
             case
                 tuple point xa ya point xb yb     -- destructuring pa,pb
@@ -221,7 +221,7 @@ get their x and y values. However, because the point type only contains
 one variant, we can actually patternmatch directly in the lambda
 expression like so
 
-    let distance be the fn point fn point float
+    let distance the fn point fn point float
         lambda point xa ya lambda point xb yb  sqrt sum
             squared diff xb xa
             squared diff yb ya
@@ -235,7 +235,7 @@ be found in the syntax overview section.
 There is no mutation and therefore there are no loops. The only way to
 loop is to recurse or use a function that recurses.         ,,
                                                           <')
-    let main be the nat sum                                ( \
+    let main the nat sum                                   ( \
         three                               +--------------YY------+
         succ one                            | 1 = one        |\    |
                                             | 2 = succ one         |
@@ -243,9 +243,9 @@ loop is to recurse or use a function that recurses.         ,,
         one                                 | ...                  |
         succ nat                            +----------------------+
 
-    let three be the nat succ succ one
+    let three the nat succ succ one
 
-    let sum be the fn nat fn nat nat
+    let sum the fn nat fn nat nat
         lambda x match x
             case one         succ
             case succ a      lambda y succ sum a y     -- recursive
@@ -272,12 +272,12 @@ are some examples. I'll use the thorn repl to define and test them.
 >>>     one                                    /\\\ ///  \\ // \
 >>>     succ nat                               \\\   //|\\   ///
 >>>                                                   . .
->>> let infinity be the nat succ infinity             \ /
+>>> let infinity the nat succ infinity                \ /
 >>>                                                   \ /   \
 >>> forall a b type tuple contains                    \ /    \________
 >>>     tuple a b                                     \ /    /\    /\
 >>>
->>> let are_equal be the
+>>> let are_equal the
 >>>     fn nat fn nat bool
 >>>     lambda x lambda y match tuple x y
 >>>         case tuple one    one              true
@@ -331,9 +331,9 @@ The animation is 6x4 in size and has 2 frames.
 
     include video       -- finds and imports video.th
 
-    let main be the list frame dragon_tail
+    let main the list frame dragon_tail
 
-    let dragon_tail be art vi iv
+    let dragon_tail art vi iv
      \   ).6|||6(   / 6|||6.
       ) / ..6|6. \ (  .6|6..
      ( /  .6|6..  \ ) ..6|6.
@@ -354,7 +354,7 @@ There is special syntax for using local/global variables in the art. To
 use a color variable, you just replace the color number with the
 variable name like so (colors defined in std/art/color.th)
 
-    let dragon_tail be the
+    let dragon_tail the
         fn color list frame           -- expecting the color as
         lambda c art vi iv            -- a function argument
              \   ).c|||c(   / c|||c.
@@ -393,7 +393,7 @@ custom palette type.
 
     include video
 
-    let main be the list frame dragon_roar default_dragon_p
+    let main the list frame dragon_roar default_dragon_p
 
     type dragon_p contains
         dragon_p
@@ -402,10 +402,10 @@ custom palette type.
             color    -- eye
             color    -- wing
 
-    let default_dragon_p be the dragon_p
+    let default_dragon_p the dragon_p
         dragon_p cyan white yellow green
 
-    let dragon_roar be the
+    let dragon_roar the
         fn dragon_p list frame
         lambda dragon_p s b e _  entirely shift south art xiii vii
             .            b.............            b............
