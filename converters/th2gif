@@ -35,9 +35,6 @@ while [ $# != 0 ]; do
     shift
 done
 
-printf "    \033[95mfont-dir   \033[0m$FONT_DIR\n" >&2
-printf "    \033[95mfps        \033[0m$FPS\n"      >&2
-
 temp="/tmp/thorn-to-gif"
 rm -r $temp > /dev/null 2>&1 || true
 mkdir $temp

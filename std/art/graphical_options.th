@@ -62,6 +62,7 @@ let default_graphical_options the
 
 type font contains
     unifont                     -- 8x16
+    toshiba                     -- 8x16
     dos_v                       -- 8x16
     vga_ix_xiv                  -- 9x14
 
