@@ -22,7 +22,7 @@ let main the
             unifont                         -- font
             gruvbox_material_dark_hard      -- theme
             fps v                           -- fps
-        dragon dragon_p_default             -- video
+        dragon palette_default              -- video
 
 --  A note about main's return type.
 -- 

@@ -7,12 +7,12 @@
 
 include video
 
-type dragon_p contains                      -- the dragon's color palette
-    dragon_p color color color              -- skin, eye, wing
+type palette contains                      -- the dragon's color palette
+    palette color color color              -- skin, eye, wing
 
-let dragon_p_default the dragon_p dragon_p cyan yellow green
+let palette_default the palette palette cyan yellow green
 
-let dragon the fn dragon_p list frame lambda p take nat_to_whole xii layer
+let dragon the fn palette list frame lambda p take nat_to_whole xii layer
     layer
         cycle entirely by xxiv shift east dragon_tail p
         cycle entirely shift_by pos xxi pos vii loop center_head p
@@ -20,7 +20,7 @@ let dragon the fn dragon_p list frame lambda p take nat_to_whole xii layer
         right_half p
         for vi rotate entirely shift west entirely flip_over_y right_half p
 
-let center_head the fn dragon_p list frame lambda dragon_p s e _ art xii ix
+let center_head the fn palette list frame lambda palette s e _ art xii ix
    )  (     ...7..7.....    )  (    ....7..7....     )  (   .....7..7...
   ((__))    ..77ss77....   ((__))   ...77ss77...    ((__))  ....77ss77..
   /o..o\    ..sesses....   /o..o\   ...sesses...    /o..o\  ....sesses..
@@ -31,7 +31,7 @@ let center_head the fn dragon_p list frame lambda dragon_p s e _ art xii ix
  '         ).s|||||||||s(          )s||||||||||s(         ` s|||||||||s.
           ' ..||||||||s.            .||||||||||. `          .s||||||||..
 
-let roar the fn dragon_p list frame lambda dragon_p s e _ art xiii vii
+let roar the fn palette list frame lambda palette s e _ art xiii vii
 .            7.............            7.............            7............
  ),__        .77ss........ ),__        .77ss........ ),__        .77ss........
   ( o`---~~^;..s|essssssss  ( o`---~~^;..s|essssssss  ( o`---~~^;..s|essssssss
@@ -40,7 +40,7 @@ let roar the fn dragon_p list frame lambda dragon_p s e _ art xiii vii
   /          ||s..........  / `----.-' ||s.ssssssss.   \  \,A,A  |||s||s7777..
              .............             .............    `----.-' ....ssssssss.
 
-let blow the fn dragon_p list frame lambda dragon_p s e _ art xiv v
+let blow the fn palette list frame lambda palette s e _ art xiv v
 .             7..............             7.............
  ),__         .77ss......... ),__         .77ss.........
   ( o`---~~^; ..s|essssssss.  ( o`-.-~~^; ..s|essssssss.
@@ -49,8 +49,8 @@ let blow the fn dragon_p list frame lambda dragon_p s e _ art xiv v
 .             7..............             7.............
  ),__         .77ss......... ),__         .77ss.........
   ( o`._,~~^; ..s|essssssss.  ( -`.___,~^;..s|esssssssss
- /       -^V  .s|||||||s77.. /    ) _   < .s||||s|s|||s.
-/  `--~~-.-'  s||sssssssss../  `-"   `.-' s||sss...ssss.
+ /       -^V  .s|||||||s77.. /    ) __  < .s||||s|ss||s.
+/  `---~~.-'  s||sssssssss../  `-"    :-' s||sss....sss.
 
 let fire art vi iii
       ......      ......      ......      ......      ......  _   ..3...
@@ -60,7 +60,7 @@ _     3.....__    33....___   333...___,  3333..___)  1333.. __)  .113..
  '_)  .311.. ( `  .3.1.. (_   .13... .__  .113..   __ ...11.     _.....1
     _.....13     ......1      ......      ......      ......      ......
 
-let right_half the fn dragon_p list frame lambda bind p dragon_p s _ _ layer
+let right_half the fn palette list frame lambda bind p palette s _ _ layer
     layer
         entirely shift_by pos vi pos vii layer
             cycle cat
@@ -81,14 +81,14 @@ let right_half the fn dragon_p list frame lambda bind p dragon_p s _ _ layer
                    /  |||||||s..       /  |||||||s..
             _.-'      ssss......_.-'      ssss......
 
-let dragon_wing the fn dragon_p list frame lambda dragon_p _ _ w art viii v
+let dragon_wing the fn palette list frame lambda palette _ _ w art viii v
  /\     .ww.....  _     ..w.....        ........        ........        ........
 /.|\    wwww.... /|\    .www....  /T\   ..www... /T\    .www....        ........
   ' \   ||w.w.../.|_\   wwwww..._/ | \  ww|w|w../ | \   w|w|w...        ........
      `  .....w..  '  \  ..w..w..  ^|- \ ||www|w. ^|- \  |www|w.._       w.......
         ........        ........       `.......w      ` ......w.__ _    ww.w....
 
-let dragon_tail the fn dragon_p list frame lambda dragon_p s _ _ art vi iv
+let dragon_tail the fn palette list frame lambda palette s _ _ art vi iv
  \   ).s|||s(   / s|||s.
   ) / ..s|s. \ (  .s|s..
  ( /  .s|s..  \ ) ..s|s.
