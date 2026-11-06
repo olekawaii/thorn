@@ -440,7 +440,7 @@ actually want, you have to interpret it with an external program.
 thorn tries to adhere to the UNIX philosophy. All programs do one thing
 and their outputs are intended to be inputs for other programs
 
-    $ thorn --eval 'the list frame chess_set' | th2sh | sh
+    $ echo the list frame chess_set | thorn --eval - | th2sh | sh
                                       _:_
               n,_      o    o  o  c  __!__     o      n,_
     __ _ __  /.  \    / \    \v|v/   \_ _/    / \    /.  \  __ _ __
