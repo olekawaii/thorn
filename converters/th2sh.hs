@@ -21,10 +21,10 @@ colorCode Cyan    = "\x1b[36m"
 colorCode White   = "\x1b[37m"
 
 format :: String -> [String] -> String
-format [] _ = []
-format ('%':xs) [] = error xs
+format []       _      = []
+format ('%':xs) []     = error xs
 format ('%':xs) (a:as) = a <> format xs as
-format (x:xs) as = x : format xs as
+format (x:xs)   as     = x : format xs as
 
 get :: (Eq a) => a -> BadMap a b -> Maybe b
 get a (BadMap list) = fmap snd $ find ((== a) . fst) list
@@ -116,9 +116,9 @@ reduce [x] = pure . intercalate [Move Down] . map (map Draw) $ map removeExtraSp
 reduce (x:xs) = reverse . map (uncurry (helper Black)) $ chunksOf2 (x: reverse (x: xs))
   where 
     helper :: Color -> [[Character]] -> [[Character]] -> [Command]
-    helper _ [] []                   = []
-    helper _ ([[]]) ([[]])           = []
-    helper c ([]:xs) ([]:ys)         = Move Down : helper c xs ys
+    helper _ []          []          = []
+    helper _ ([[]])      ([[]])      = []
+    helper c ([]:xs)     ([]:ys)     = Move Down : helper c xs ys
     helper c ((x:xx):xs) ((y:yy):ys) = 
         if x == y 
         then 
@@ -139,7 +139,7 @@ getSize c = \case
         '%'  -> 2
         '\'' -> 3
         '\\' -> 2
-        _ -> 1
+        _    -> 1
 
 getColor = \case
   Space -> Nothing

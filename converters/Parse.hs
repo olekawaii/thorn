@@ -3,29 +3,22 @@
 module Parse where
 
 import System.Exit (die, exitFailure)
-import System.Process (callCommand)
 import System.Environment (getArgs)
 import Control.Applicative (liftA2)
-import Control.Monad ((<=<), (>=>), guard, unless, when)
-import Control.Arrow ((<<<), (>>>), (***), (&&&), (+++), (|||))
-import qualified Data.Map.Strict as Map
 import Data.Bifunctor (first, second, bimap)
-import Data.Either (fromRight, fromLeft)
-import Data.Maybe (isJust, fromJust, listToMaybe, isNothing, fromMaybe)
-import Data.Tuple (swap)
-import Data.List (find, nub, transpose, sortOn, intercalate, singleton)
-import Text.Read (readMaybe)
+import Data.Maybe (fromMaybe)
 
 getVideo :: IO (Int, Int, [[[Character]]], GraphicalOptions)
-getVideo = getContents >>= \s -> if s == "" 
-                                 then exitFailure
-                                 else case parse (words s) of
-    Nothing -> die "error: unsupported input type"
-    Just x  -> pure x
+getVideo = getContents >>= \case
+    "" -> exitFailure
+    s  -> case parse (words s) of
+        Nothing -> die "error: unsupported input type"
+        Just x  -> pure x
 
 data GraphicalOptions = GraphicalOptions String String Int
 
-defaultGraphicalOptions = GraphicalOptions "unifont" "gruvbox_material_dark_hard" 5
+defaultGraphicalOptions = 
+    GraphicalOptions "unifont" "gruvbox_material_dark_hard" 5
 
 data ValidVideoType = ListFrame 
                     | Frame 
@@ -40,37 +33,36 @@ parseType ("with_graphics" : xs)  = first WithGraphics <$> parseType xs
 parseType _                       = Nothing
 
 parseValue :: ValidVideoType -> [String] -> (Int, Int, [[[Character]]], GraphicalOptions)
-parseValue ListFrame xs = (x, y, chars, defaultGraphicalOptions)
-    where (x, y, chars) = changeFormat 
-                        . map convertNewFrame 
-                        . fst 
-                        . parseNewVideo 
-                        $ xs
-
-parseValue Frame xs = (x, y, chars, defaultGraphicalOptions) 
-    where (x, y, chars) = changeFormat 
-                        . pure 
-                        . convertNewFrame 
-                        . fst 
-                        . parseNewFrame 
-                        $ xs
-parseValue Video xs = (x, y, chars, defaultGraphicalOptions) 
-    where (x, y, chars) = parseNewNewVideo xs
-parseValue (WithGraphics t) xs = (x, y, chars, options)
-    where (options, xs')   = parseGraphicalOptions xs
-          (x, y, chars, _) = parseValue t xs'
+parseValue tp xs = case tp of
+    ListFrame -> (x, y, chars, defaultGraphicalOptions)
+        where (x, y, chars) = changeFormat 
+                            . map convertNewFrame 
+                            . fst 
+                            . parseNewVideo 
+                            $ xs
+    Frame -> (x, y, chars, defaultGraphicalOptions) 
+        where (x, y, chars) = changeFormat 
+                            . pure 
+                            . convertNewFrame 
+                            . fst 
+                            . parseNewFrame 
+                            $ xs
+    Video -> (x, y, chars, defaultGraphicalOptions) 
+        where (x, y, chars) = parseNewNewVideo xs
+    WithGraphics t -> (x, y, chars, options)
+        where (options, xs')   = parseGraphicalOptions xs
+              (x, y, chars, _) = parseValue t xs'
 
 parse :: [String] -> Maybe (Int, Int, [[[Character]]], GraphicalOptions)
 parse ("the" : xs) = parseType xs >>= pure . uncurry parseValue
 
 parseNat :: [String] -> (Int, [String])
 parseNat ("one"  : xs) = (1, xs)
-parseNat ("succ" : xs) = (n + 1, xs')
-    where (n, xs') = parseNat xs
-
+parseNat ("succ" : xs) = let (n, xs') = parseNat xs in (n + 1, xs')
 
 parseGraphicalOptions :: [String] -> (GraphicalOptions, [String])
-parseGraphicalOptions ("with_graphics" : "graphical_options" : font : theme : "fps" : xs) = 
+parseGraphicalOptions 
+    ("with_graphics" : "graphical_options" : font : theme : "fps" : xs) = 
     let (n, xs') = parseNat xs in (GraphicalOptions font theme n, xs')
 
 parseNewNewVideo :: [String] -> (Int, Int, [[[Character]]])
@@ -88,40 +80,31 @@ parseNewNewVideo s = let (out, _) = parseListGrid s in
 
 parseListGrid :: [String] -> ([[[Character]]], [String])
 parseListGrid ("nil" : xs) = ([], xs)
-parseListGrid ("cons": xs) =
-    let (out, leftover) = parseGrid xs in
-        first (out :) (parseListGrid leftover)
-parseListGrid (x: _) = error x
+parseListGrid ("cons": xs) = first (out :) (parseListGrid leftover)
+    where (out, leftover) = parseGrid xs
 
 parseGrid :: [String] -> ([[Character]], [String])
 parseGrid ("nil" : xs) = ([], xs)
-parseGrid ("cons": xs) =
-    let (out, leftover) = parseNewRow xs in
-        first (out :) (parseGrid leftover)
+parseGrid ("cons": xs) = first (out :) (parseGrid leftover)
+    where (out, leftover) = parseNewRow xs
 
 parseNewRow :: [String] -> ([Character], [String])
 parseNewRow ("nil" : xs) = ([], xs)
-parseNewRow ("cons": xs) =
-    let (out, leftover) = parseChar xs in
-        first (out :) (parseNewRow leftover)
+parseNewRow ("cons": xs) = first (out :) (parseNewRow leftover)
+    where (out, leftover) = parseChar xs
 
 dimensions :: [Map Coordinate Character] -> (Int, Int, Int, Int)
-dimensions gif = case concatMap (map fst) $ map (filter (\(_, x) -> isSpace x)) gif of
-  [] -> (0, 0, 0, 0)
-  g  -> getDimensions g
-    where
-      getDimensions :: [Coordinate] -> (Int, Int, Int, Int)
-      getDimensions x =
-        let
-          xCoords = map fst x
-          yCoords = map snd x
-        in
-          (
-            minimum xCoords,
-            maximum xCoords,
-            minimum yCoords,
-            maximum yCoords
-          )
+dimensions gif = case concatMap (map fst . filter (isSpace . snd)) gif of
+    [] -> (0, 0, 0, 0)
+    g  -> getDimensions g
+      where
+        getDimensions :: [Coordinate] -> (Int, Int, Int, Int)
+        getDimensions x =
+            (minimum xCoords, maximum xCoords, 
+             minimum yCoords, maximum yCoords)
+            where 
+                xCoords = map fst x
+                yCoords = map snd x
 
 -- check that it's not 0
 changeFormat :: [Map Coordinate Character] -> (Int, Int, [[[Character]]])
@@ -163,8 +146,6 @@ type Horizontal = ([Character], [Character])
 
 type Video = [Frame]
 
-
-
 parseGridCell :: [String] -> (Character, [String])
 parseGridCell ("empty_grid_cell": xs) = (Space, xs)
 parseGridCell ("filter_grid_cell": "<lambda>" : xs) = (Space, xs)
@@ -200,8 +181,6 @@ parseNewVideo :: [String] -> (Video, [String])
 parseNewVideo ("nil" : xs) = ([], xs)
 parseNewVideo ("cons" : xs) = let (frame, other) = parseNewFrame xs in
     first (frame :) (parseNewVideo other)
-parseNewVideo _ = error "\x1b[91mshould be of type video starting with either single or prepend\x1b[0m"
-
 
 convertNewFrame :: Frame -> Map Coordinate Character
 convertNewFrame (a, b) =
@@ -215,121 +194,116 @@ convertNewFrame (a, b) =
       (\(y, (left, right)) -> map (\(a, b) -> ((a, y), b)) (zip [0, -1 ..] left <> zip [1..] right)) $
       zip [0..] b)
 
-
-
 parseChar :: [String] -> (Character, [String])
 parseChar ("cell_space": xs) = (Space, xs)
 parseChar ("cell": char : color : xs) =
   let
     c = case char of
-       "space_char" -> ' '
-       "exclamation_mark" -> '!'
-       "quotation_mark" -> '"'
-       "number_sign" -> '#'
-       "dollar_sign" -> '$'
-       "percent_sign" -> '%'
-       "ampersand" -> '&'
-       "apostrophe" -> '\''
-       "left_paranthesis" -> '('
-       "right_paranthesis" -> ')'
-       "asterisk" -> '*'
-       "plus_sign" -> '+'
-       "comma" -> ','
-       "hyphen_minus" -> '-'
-       "full_stop" -> '.'
-       "solidus" -> '/'
-       "digit_zero" -> '0'
-       "digit_one" -> '1'
-       "digit_two" -> '2'
-       "digit_three" -> '3'
-       "digit_four" -> '4'
-       "digit_five" -> '5'
-       "digit_six" -> '6'
-       "digit_seven" -> '7'
-       "digit_eight" -> '8'
-       "digit_nine" -> '9'
-       "colon" -> ':'
-       "semicolon" -> ';'
-       "less_than_sign" -> '<'
-       "equals_sign" -> '='
-       "greater_than_sign" -> '>'
-       "question_mark" -> '?'
-       "commercial_at" -> '@'
-       "capital_a" -> 'A'
-       "capital_b" -> 'B'
-       "capital_c" -> 'C'
-       "capital_d" -> 'D'
-       "capital_e" -> 'E'
-       "capital_f" -> 'F'
-       "capital_g" -> 'G'
-       "capital_h" -> 'H'
-       "capital_i" -> 'I'
-       "capital_j" -> 'J'
-       "capital_k" -> 'K'
-       "capital_l" -> 'L'
-       "capital_m" -> 'M'
-       "capital_n" -> 'N'
-       "capital_o" -> 'O'
-       "capital_p" -> 'P'
-       "capital_q" -> 'Q'
-       "capital_r" -> 'R'
-       "capital_s" -> 'S'
-       "capital_t" -> 'T'
-       "capital_u" -> 'U'
-       "capital_v" -> 'V'
-       "capital_w" -> 'W'
-       "capital_x" -> 'X'
-       "capital_y" -> 'Y'
-       "capital_z" -> 'Z'
-       "left_square_bracket" -> '['
-       "reverse_solidus" -> '\\'
-       "right_square_bracket" -> ']'
-       "circumflex_accent" -> '^'
-       "low_line" -> '_'
-       "grave_accent" -> '`'
-       "small_a" -> 'a'
-       "small_b" -> 'b'
-       "small_c" -> 'c'
-       "small_d" -> 'd'
-       "small_e" -> 'e'
-       "small_f" -> 'f'
-       "small_g" -> 'g'
-       "small_h" -> 'h'
-       "small_i" -> 'i'
-       "small_j" -> 'j'
-       "small_k" -> 'k'
-       "small_l" -> 'l'
-       "small_m" -> 'm'
-       "small_n" -> 'n'
-       "small_o" -> 'o'
-       "small_p" -> 'p'
-       "small_q" -> 'q'
-       "small_r" -> 'r'
-       "small_s" -> 's'
-       "small_t" -> 't'
-       "small_u" -> 'u'
-       "small_v" -> 'v'
-       "small_w" -> 'w'
-       "small_x" -> 'x'
-       "small_y" -> 'y'
-       "small_z" -> 'z'
-       "left_curly_brace" -> '{'
-       "vertical_line" -> '|'
-       "right_curly_brace" -> '}'
-       "tilde" -> '~'
-       x -> error x
+       "space_char"              -> ' '
+       "exclamation_mark"        -> '!'
+       "quotation_mark"          -> '"'
+       "number_sign"             -> '#'
+       "dollar_sign"             -> '$'
+       "percent_sign"            -> '%'
+       "ampersand"               -> '&'
+       "apostrophe"              -> '\''
+       "left_paranthesis"        -> '('
+       "right_paranthesis"       -> ')'
+       "asterisk"                -> '*'
+       "plus_sign"               -> '+'
+       "comma"                   -> ','
+       "hyphen_minus"            -> '-'
+       "full_stop"               -> '.'
+       "solidus"                 -> '/'
+       "digit_zero"              -> '0'
+       "digit_one"               -> '1'
+       "digit_two"               -> '2'
+       "digit_three"             -> '3'
+       "digit_four"              -> '4'
+       "digit_five"              -> '5'
+       "digit_six"               -> '6'
+       "digit_seven"             -> '7'
+       "digit_eight"             -> '8'
+       "digit_nine"              -> '9'
+       "colon"                   -> ':'
+       "semicolon"               -> ';'
+       "less_than_sign"          -> '<'
+       "equals_sign"             -> '='
+       "greater_than_sign"       -> '>'
+       "question_mark"           -> '?'
+       "commercial_at"           -> '@'
+       "capital_a"               -> 'A'
+       "capital_b"               -> 'B'
+       "capital_c"               -> 'C'
+       "capital_d"               -> 'D'
+       "capital_e"               -> 'E'
+       "capital_f"               -> 'F'
+       "capital_g"               -> 'G'
+       "capital_h"               -> 'H'
+       "capital_i"               -> 'I'
+       "capital_j"               -> 'J'
+       "capital_k"               -> 'K'
+       "capital_l"               -> 'L'
+       "capital_m"               -> 'M'
+       "capital_n"               -> 'N'
+       "capital_o"               -> 'O'
+       "capital_p"               -> 'P'
+       "capital_q"               -> 'Q'
+       "capital_r"               -> 'R'
+       "capital_s"               -> 'S'
+       "capital_t"               -> 'T'
+       "capital_u"               -> 'U'
+       "capital_v"               -> 'V'
+       "capital_w"               -> 'W'
+       "capital_x"               -> 'X'
+       "capital_y"               -> 'Y'
+       "capital_z"               -> 'Z'
+       "left_square_bracket"     -> '['
+       "reverse_solidus"         -> '\\'
+       "right_square_bracket"    -> ']'
+       "circumflex_accent"       -> '^'
+       "low_line"                -> '_'
+       "grave_accent"            -> '`'
+       "small_a"                 -> 'a'
+       "small_b"                 -> 'b'
+       "small_c"                 -> 'c'
+       "small_d"                 -> 'd'
+       "small_e"                 -> 'e'
+       "small_f"                 -> 'f'
+       "small_g"                 -> 'g'
+       "small_h"                 -> 'h'
+       "small_i"                 -> 'i'
+       "small_j"                 -> 'j'
+       "small_k"                 -> 'k'
+       "small_l"                 -> 'l'
+       "small_m"                 -> 'm'
+       "small_n"                 -> 'n'
+       "small_o"                 -> 'o'
+       "small_p"                 -> 'p'
+       "small_q"                 -> 'q'
+       "small_r"                 -> 'r'
+       "small_s"                 -> 's'
+       "small_t"                 -> 't'
+       "small_u"                 -> 'u'
+       "small_v"                 -> 'v'
+       "small_w"                 -> 'w'
+       "small_x"                 -> 'x'
+       "small_y"                 -> 'y'
+       "small_z"                 -> 'z'
+       "left_curly_brace"        -> '{'
+       "vertical_line"           -> '|'
+       "right_curly_brace"       -> '}'
+       "tilde"                   -> '~'
    in
    let
      col = case color of
-        "black" -> Black
-        "red" -> Red
-        "green" -> Green
-        "yellow" -> Yellow
-        "blue" -> Blue
-        "magenta" -> Magenta
-        "cyan" -> Cyan
-        "white" -> White
+        "black"    -> Black
+        "red"      -> Red
+        "green"    -> Green
+        "yellow"   -> Yellow
+        "blue"     -> Blue
+        "magenta"  -> Magenta
+        "cyan"     -> Cyan
+        "white"    -> White
    in
       (Character c col, xs)
-
-parseChar x = error (show (take 3  x))
