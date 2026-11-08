@@ -1,37 +1,5 @@
 include frame
 
-let layer_x_apart the 
-    fn nat fn list frame frame 
-    lambda x lambda f foldr 
-        layer_frames
-        new_frame
-        continuously by x shift east f
-
-let chess_set the list frame match chess_pieces
-    case
-        cons k cons q cons b cons n cons r cons p nil
-        lift_list layer_frames
-            by vi shift north layer_x_apart 
-                viii
-                cons r cons n cons b cons q cons k cons b cons n cons r nil
-            layer_x_apart viii replicate nat_to_whole viii p 
-
-let chess_pieces art vii vii
-  _:_  ..331..       .......       .......
- __!__ .33311.o  o  c3..3..1   o   ...3...
- \_ _/ .33|11. \v|v/ .33311.  / \  ..3|1..
- <...> .33311. <...> .33311. (  /) .3||11.
-  )_(  ..331..  )_(  ..331.. <...> .33311.
- _/ \_ .33|11. _/ \_ .33|11. _/ \_ .33|11.
-(_____)3333111(_____)3333111(_____)3333111
-       .......       .......       .......
-  n,_  ..331..       .......       .......
- /.  \ .33||1.__ _ __33|3|11   _   ...3...
-(_/)  \3333||1[ U U ]3|3|1|1 (  `) .3||11.
-  /  _/..3||11 |  -| .3||11. <...> .33311.
- _/ \_ .33|11. |___| .33311. _/ \_ .33|11.
-(_____)3333111(_____)3333111(_____)3333111
-
 let muchomor art xvi viii
   __c__,___     ..117117111.....
 (_c__O_/\_3_)   1171171111711...
