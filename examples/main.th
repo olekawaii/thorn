@@ -1,33 +1,27 @@
-include 
+include
     graphical_options
-    dragon 
-    sleeping_cat 
-    squish 
+    dragon
+    chess
+    sleeping_cat
+    squish
     drawings
 
---  If you want to quickly test different animations, I 
---  suggest using thorn --eval 'the list frame <name>'
--- 
---  Some animations to try:
---
---      dragon dragon_p_default
---      chess_set
---      squish
---      sleeping_cat
+let main the list frame dragon palette_default
 
-let main the
-    with_graphics list frame                -- type
-    with_graphics 
-        graphical_options
-            unifont                         -- font
-            gruvbox_material_dark_hard      -- theme
-            fps v                           -- fps
-        dragon palette_default              -- video
+--  If you want to pick the options for th2gif, uncomment
 
---  A note about main's return type.
--- 
---  main's type can be whatever you want, but if you want 
---  it to be interpretable by th2sh/th2gif it must be a type
+--  let main the
+--      with_graphics list frame                -- type
+--      with_graphics
+--          graphical_options
+--              unifont                         -- font
+--              gruvbox_material_dark_hard      -- theme
+--              fps v                           -- fps
+--          dragon palette_default              -- video
+
+--  A note about main's return type; main's type can be
+--  whatever you want, but if you want it to be
+--  interpretable by th2sh/th2gif it must be a type
 --  they know. Here's a type representing the known types
 --
 --      type valid_video_type contains
@@ -35,10 +29,6 @@ let main the
 --          (list frame)
 --          video
 --          with_graphics   valid_video_type
---
---  This is possible because main's type is part of
---  thorn's output. This allows th2sh/th2gif to work on 
---  multiple types and to gracefully reject bad ones.
---      
---      let main the list frame dragon dragon_p_default
+
+let make_monochrome the fn list frame list frame entirely dye white
 
