@@ -1,7 +1,7 @@
     Read this file the way it was intended:
     https://codeberg.org/olekawaii/thorn/raw/branch/main/README
 
---------------------------   INTRODUCTION   ----------------------------
+==========================   INTRODUCTION   ============================
          ,.       ,.
        ,A$$$,   .A$$c
       f"Y$$$$ ,&M$$$$L         thorn is a pure, lazy, statically-typed
@@ -20,7 +20,7 @@
      'e.    ,$$;
        "*wew7*"
 
-------------------------------   WHY   ---------------------------------
+==============================   WHY   =================================
 
 What's the point of this language? The point is to have
   * Lovely error messages
@@ -70,7 +70,7 @@ The error messages are lovely because
   * There are no warnings, only errors. Unused variables and bad
     indentation are caught before an ugly error message can surface.
 
---------------------------   INSTALLATION   ----------------------------
+==========================   INSTALLATION   ============================
 
 thorn has few dependencies. Assuming you have cargo and ghc, you can
 build it with
@@ -105,7 +105,7 @@ Note that thorn expects to find a main.th file in the given directory
 or in any of its parent directories. That directory is the root of your
 project.
 
-------------------------   SYNTAX OVERVIEW   ---------------------------
+========================   SYNTAX OVERVIEW   ===========================
 
 --  this is a comment
                             DECLARATIONS
@@ -161,7 +161,7 @@ Instead, we need to do
                                       '---'   ( ___ )  j[]L    ( -o- )
 Indentation acts like paranthesis.     ! !     V   V    JL      `v v
 
-------------------------   ALGEBRAIC TYPES   ---------------------------
+========================   ALGEBRAIC TYPES   ===========================
 
 Thorn has algebraic types and generics. The forall keyword is used to
 declare any type variables. Here's a demo of the list and option types
@@ -200,7 +200,7 @@ output:  some true        (thorn's output, if the above is in main.th)
 
 output:  none
 
--------------------------   DESTRUCTURING   ----------------------------
+=========================   DESTRUCTURING   ============================
 
 Consider the following function that finds the distance between two
 points. Ignore the undefined types/functions.
@@ -230,106 +230,13 @@ In fact, lambda, match, and (in the future) let expressions all share
 the same syntax and semantics for capturing variables. More patterns can
 be found in the syntax overview section.
 
----------------------------   RECURSION   ------------------------------
-
-There is no mutation and therefore there are no loops. The only way to
-loop is to recurse or use a function that recurses.         ,,
-                                                          <')
-    let main the nat sum                                   ( \
-        three                               +--------------YY------+
-        succ one                            | 1 = one        |\    |
-                                            | 2 = succ one         |
-    type nat contains                       | 3 = succ (succ one)  |
-        one                                 | ...                  |
-        succ nat                            +----------------------+
-
-    let three the nat succ succ one
-
-    let sum the fn nat fn nat nat
-        lambda x match x
-            case one         succ
-            case succ a      lambda y succ sum a y     -- recursive
-
-output:  succ succ succ succ one
-
-By the way, if you look at the second to last line, the `one` branch
-returns a `succ` while the 'succ a' branch returs a lambda
-expression. This is because the `succ` data constructor is a function.
-(succ one) is of type (nat) but (succ) is of type (fn nat nat).  All
-data constructors are curried.
-
-------------------   LAZY EVALUATION  &  THE REPL   --------------------
-
-The whole language is lazily evaluated. Expressions are only evaluated
-when patternmatched on and evaluation starts at the main function. Here
-are some examples. I'll use the thorn repl to define and test them.
-
->>> type bool contains
->>>     true
->>>     false                                          _
->>>                                              .="= / \ ="=.
->>> type nat contains                           /\\  //  \  / \
->>>     one                                    /\\\ ///  \\ // \
->>>     succ nat                               \\\   //|\\   ///
->>>                                                   . .
->>> let infinity the nat succ infinity                \ /
->>>                                                   \ /   \
->>> forall a b type tuple contains                    \ /    \________
->>>     tuple a b                                     \ /    /\    /\
->>>
->>> let are_equal the
->>>     fn nat fn nat bool
->>>     lambda x lambda y match tuple x y
->>>         case tuple one    one              true
->>>         case tuple succ a succ b           are_equal a b
->>>         case _                             false
->>>
->>> -- Let's see what happens when we evaluate these expressions
->>>
->>> the bool are_equal              -- Despite infinity being infinitely
->>>     succ succ succ one          -- large, we can still work with it
->>>     infinity                    -- because it's evaluated lazily.
-
-the bool false
-
->>> the bool are_equal              -- The program doesn't eat memory as
->>>     infinity                    -- it hangs.
->>>     infinity                    --
-
-*hangs at runtime*
-
->>> the bool are_equal              -- undefined is a keyword. It can
->>>     succ one                    -- be used in place of any
->>>     succ succ succ undefined    -- expression.
-
-the bool false
-
->>> the bool are_equal              -- If undefined is evaluated, the
->>>     succ succ succ one          -- program crashes with an error
->>>     succ succ undefined         -- pointing to it.
-
-RUNTIME ERROR  in /tmp/thorn-repl.th:3:15
-  |     succ succ succ one          -- program crashes with an error
-3 |     succ succ undefined         -- pointing to it.
-                  ^^^^^^^^^  entered undefined code
-evaluated an undefined expression
-
->>> ^D
-
-You can try all of these interactively in the thorn repl with
-
-    $ thorn --repl
-
-Note that thorn is not a scripting language. The repl just lets you
-use it like one, similar to GHCi for Haskell.
-
----------------------------   ART BLOCKS   -----------------------------
+===========================   ART BLOCKS   =============================
 
 The art macro is expanded into regular thorn code during the
 tokenization phase. This code defines an animation of a swinging tail.
 The animation is 6x4 in size and has 2 frames.
 
-    include video       -- finds and imports video.th
+    include video          -- declare std/art/video.th as a dependency
 
     let main the list frame dragon_tail
 
@@ -423,13 +330,135 @@ custom palette type.
                \  \,A,A  |||s||sbbbb..
                 `----.-' ....ssssssss.
 
-You can see how the core types are implemented in std/ . There are many
-useful functions in video.th, list.th, and frame.th . To find the
-definition of a function, just run
+===========================   RECURSION   ==============================
 
-    $ grep -Rn 'let function_name '
+There is no mutation and therefore there are no loops. The only way to
+loop is to recurse or use a function that recurses.         ,,
+                                                          <')
+    let main the nat sum                                   ( \
+        three                               +--------------YY------+
+        succ one                            | 1 = one        |\    |
+                                            | 2 = succ one         |
+    type nat contains                       | 3 = succ (succ one)  |
+        one                                 | ...                  |
+        succ nat                            +----------------------+
 
------------------------------   OUTPUT   -------------------------------
+    let three the nat succ succ one
+
+    let sum the fn nat fn nat nat
+        lambda x match x
+            case one         succ
+            case succ a      lambda y succ sum a y     -- recursive
+
+output:  succ succ succ succ one
+
+By the way, if you look at the second to last line, the `one` branch
+returns a `succ` while the 'succ a' branch returs a lambda
+expression. This is because the `succ` data constructor is a function.
+(succ one) is of type (nat) but (succ) is of type (fn nat nat).  All
+data constructors are curried.
+
+==================   LAZY EVALUATION  &  THE REPL   ====================
+
+The whole language is lazily evaluated. Expressions are only evaluated
+when patternmatched on and evaluation starts at the main function. Here
+are some examples. I'll use the thorn repl to define and test them.
+
+>>> type bool contains
+>>>     true
+>>>     false                                          _
+>>>                                              .="= / \ ="=.
+>>> type nat contains                           /\\  //  \  / \
+>>>     one                                    /\\\ ///  \\ // \
+>>>     succ nat                               \\\   //|\\   ///
+>>>                                                   . .
+>>> let infinity the nat succ infinity                \ /
+>>>                                                   \ /   \
+>>> forall a b type tuple contains                    \ /    \________
+>>>     tuple a b                                     \ /    /\    /\
+>>>
+>>> let are_equal the
+>>>     fn nat fn nat bool
+>>>     lambda x lambda y match tuple x y
+>>>         case tuple one    one              true
+>>>         case tuple succ a succ b           are_equal a b
+>>>         case _                             false
+>>>
+>>> -- Let's see what happens when we evaluate these expressions
+>>>
+>>> the bool are_equal              -- Despite infinity being infinitely
+>>>     succ succ succ one          -- large, we can still work with it
+>>>     infinity                    -- because it's evaluated lazily.
+
+the bool false
+
+>>> the bool are_equal              -- The program doesn't eat memory as
+>>>     infinity                    -- it hangs.
+>>>     infinity                    --
+
+*hangs at runtime*
+
+>>> the bool are_equal              -- undefined is a keyword. It can
+>>>     succ one                    -- be used in place of any
+>>>     succ succ succ undefined    -- expression.
+
+the bool false
+
+>>> the bool are_equal              -- If undefined is evaluated, the
+>>>     succ succ succ one          -- program crashes with an error
+>>>     succ succ undefined         -- pointing to it.
+
+RUNTIME ERROR  in /tmp/thorn-repl.th:3:15
+  |     succ succ succ one          -- program crashes with an error
+3 |     succ succ undefined         -- pointing to it.
+                  ^^^^^^^^^  entered undefined code
+evaluated an undefined expression
+
+>>> ^D
+
+You can try all of these interactively in the thorn repl with
+
+    $ thorn --repl
+
+Note that thorn is not a scripting language. The repl just lets you
+use it like one, similar to GHCi for Haskell.
+
+========================   PROJECT DIRECTORY   =========================
+
+A project is a directory with main.th at its root. It contains all the
+source files, including a copy of the standard library.
+
+Why is this a good idea?
+    * Fewer compilation variables: no system libraries, your working
+      directory doesn't matter.
+    * With everything under version control, backwords compatability
+      doesn't matter either. You should be able to download a 20-year
+      old project and run it just fine, and without an internet
+      connection...
+    * Being able to find any declaration with a simple grep is very
+      nice. grep -rn 'let function_name '
+
+A project directory allows for a nice import system:
+    * All .th files in a project are included for compilation regardless
+      of what's included with (include name).
+    * include statements just establish a depends-on relationship.
+      Where -> is an include statement and a-c are files, take the graph
+
+                                     +---------+
+                                     |         V
+                     +-----+      +-----+   +-----+
+                     |  a  | ---> |  b  |   |  c  |
+                     +-----+      +-----+   +-----+
+                                     A         |
+                                     +---------+
+
+    * All files implicitly include themselves.
+    * If (a -> b) and (b -> c), (a -> c). This means (a) can use (c)'s
+      functions just by including (b).
+    * Since (b) and (c) include each other, it's equivalent to putting
+      them in the same file. You can easily break up files this way.
+
+=============================   OUTPUT   ===============================
 
 When evaluating a program, the output is the fully-evaluated main
 function, a tree of data constructors, a string of words when printed
