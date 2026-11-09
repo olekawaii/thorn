@@ -940,7 +940,7 @@ fn figure_out_type<'a>(
                 return Err(make_error(CompilationError::CannotInferType, mark.clone()));
             }
             for (a, b) in a1.iter().zip(a2.iter()) {
-                merge_types(b, a.clone(), &mut unknown_generics, mark);
+                merge_types(b, a.clone(), &mut unknown_generics, mark)?;
             }
             if !still_has_unknown_generics(&unknown_generics) {
                 let arg_count = if bt.expect_end().is_ok() {
@@ -1034,7 +1034,7 @@ fn figure_out_type<'a>(
                     break 'success;
                 }
             }
-            merge_types(&t, got_t, &mut unknown_generics, mark);
+            merge_types(&t, got_t, &mut unknown_generics, mark)?;
         }
         let mut total_number_args = number_args_used;
         if let Ok(NextOutput::IndentedBlocks(branches)) = bt.next()
@@ -1073,7 +1073,7 @@ fn figure_out_type<'a>(
                     _ => continue, // add error to vec
                 };
                 // check_compatable(tp, got_t)?;
-                merge_types(&tp, got_t, &mut unknown_generics, mark);
+                merge_types(&tp, got_t, &mut unknown_generics, mark)?;
             }
         }
         if let Some(t) = expected_type
@@ -1081,7 +1081,7 @@ fn figure_out_type<'a>(
             && n == total_number_args.unwrap()
         {
             let temp_t: &Type = cut_off_n(&output, n);
-            merge_types(temp_t, t.clone(), &mut unknown_generics, mark);
+            merge_types(temp_t, t.clone(), &mut unknown_generics, mark)?;
         }
         if still_has_unknown_generics(&unknown_generics) {
             return Err(make_error(CompilationError::CannotInferType, mark.clone()));
