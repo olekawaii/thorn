@@ -72,27 +72,19 @@ The error messages are lovely because
 
 ==========================   INSTALLATION   ============================
 
-thorn has few dependencies. Assuming you have cargo and ghc, you can
-build it with
+If you have nix:
 
-    $ ./scripts/build.sh
+    $ nix profile add .
 
-This installs thorn (the interpreter), th2sh, and th2gif to
-~/.local/bin (make sure it's in your $PATH). It also installs the fonts
-used by th2gif to ~/.local/share/thorn/fonts
-                                              _    ___   _
-                                             / \   \  \ / \
-                                             \  \   \  '  /
-     If you have nix, there's a flake      ---`  `---\   /  ,
-     you can play around with             /___________\  \ / \
-                                             /  /      \  /  /
-         $ nix develop                  /''''  /        \/  '''\
-                                        \--.  /\        /  ----/
-     or install it with                   /  /  \      /  /
-                                          \ / \  \------------
-         $ nix profile add .               `  /   \ ___   __/
-                                             /  ,  \   \  \
-                                             \_/ \__\   \_/
+Otherwise:
+    thorn has few dependencies. Assuming you have cargo and ghc, you can
+    build it with
+
+        $ ./scripts/build.sh
+
+    This installs thorn (the interpreter), th2sh, and th2gif to
+    ~/.local/bin (make sure it's in your $PATH). It also installs the 
+    fonts used by th2gif to ~/.local/share/thorn/fonts
 
 thorn works like a calculator. It parses and compiles the source code
 into an internal representation, but afterwards also executes it,
