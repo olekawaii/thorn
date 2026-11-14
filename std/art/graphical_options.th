@@ -1,4 +1,4 @@
-include char
+include char nat frame
 
 --  This allows you to include theme/font along
 --  with the video output

@@ -197,8 +197,7 @@ output:  none
 Consider the following function that finds the distance between two
 points. Ignore the undefined types/functions.
 
-    type point contains
-        point float float
+    type point contains point float float
 
     let distance the fn point fn point float
         lambda pa lambda pb match tuple pa pb
@@ -292,17 +291,15 @@ custom palette type.
 
     include video
 
-    let main the list frame dragon_roar default_dragon_p
+    let main the list frame dragon_roar dragon_p_default
 
-    type dragon_p contains
-        dragon_p
-            color    -- skin
-            color    -- bone
-            color    -- eye
-            color    -- wing
+    type dragon_p contains dragon_p
+        color    -- skin
+        color    -- bone
+        color    -- eye
+        color    -- wing
 
-    let default_dragon_p the dragon_p
-        dragon_p cyan white yellow green
+    let dragon_p_default the dragon_p dragon_p cyan white yellow green
 
     let dragon_roar the
         fn dragon_p list frame
@@ -366,9 +363,8 @@ are some examples. I'll use the thorn repl to define and test them.
 >>>                                                   . .
 >>> let infinity the nat succ infinity                \ /
 >>>                                                   \ /   \
->>> forall a b type tuple contains                    \ /    \________
->>>     tuple a b                                     \ /    /\    /\
->>>
+>>> forall a b type tuple contains tuple a b          \ /    \________
+>>>                                                   \ /    /\    /\
 >>> let are_equal the
 >>>     fn nat fn nat bool
 >>>     lambda x lambda y match tuple x y

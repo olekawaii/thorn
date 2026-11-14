@@ -1,4 +1,4 @@
-include prelude tuple non_empty
+include tuple non_empty whole
 
 forall a type list contains
     nil

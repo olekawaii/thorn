@@ -7,8 +7,7 @@
 
 include video
 
-type palette contains                      -- the dragon's color palette
-    palette color color color              -- skin, eye, wing
+type palette contains palette color color color         -- skin, eye, wing
 
 let palette_default the palette palette cyan yellow green
 

@@ -1622,47 +1622,56 @@ pub fn parse_data(
     match bt.next()? {
         NextOutput::IndentedBlocks(v) => {
             for branch in v.iter().map(BlockTraversal::new) {
-                let (constructor_name, constructor_mark, bt) = branch.expect_word()?;
-                let mut arg_types: Vec<Type> = Vec::new();
-                match bt.next() {
-                    Ok(NextOutput::IndentedBlocks(ts)) => {
-                        for type_block in ts.iter().map(BlockTraversal::new) {
-                            let (t, leftover_bt) = parse_type(type_block, generics)?;
-                            BlockTraversal::expect_end_option(leftover_bt)?;
-                            arg_types.push(t);
-                        }
-                    }
-                    _ => {
-                        let mut temp_bt = bt;
-                        while matches!(temp_bt.next(), Ok(NextOutput::Token { .. })) {
-                            let (t, leftover_bt) = parse_type(temp_bt, generics)?;
-                            arg_types.push(t);
-                            temp_bt =
-                                BlockTraversal::expect_no_indents(leftover_bt, constructor_mark)?;
-                        }
-                        temp_bt.expect_end()?;
-                    }
-                }
-                let mut args = arg_types.into_iter();
-                output.push((
-                    constructor_name.to_string(),
-                    build_type(
-                        &mut args,
-                        Type::Type {
-                            type_constructor: parent_type,
-                            arguments: generics_to_type(generics),
-                        },
-                    ),
-                    constructor_mark.clone(),
-                ));
+                let x = parse_constructor_branch(branch, parent_type, generics)?;
+                output.push(x);
             }
         }
         NextOutput::Token { .. } => {
-            debug_print_block(bt, 0);
-            todo!();
+            let x = parse_constructor_branch(bt, parent_type, generics)?;
+            output.push(x);
         }
     }
     Ok(output)
+}
+
+pub fn parse_constructor_branch(
+    bt: BlockTraversal,
+    parent_type: u32,
+    generics: &Generics,
+) -> Result<(String, Type, Mark)> {
+    let (constructor_name, constructor_mark, bt) = bt.expect_word()?;
+    let mut arg_types: Vec<Type> = Vec::new();
+    match bt.next() {
+        Ok(NextOutput::IndentedBlocks(ts)) => {
+            for type_block in ts.iter().map(BlockTraversal::new) {
+                let (t, leftover_bt) = parse_type(type_block, generics)?;
+                BlockTraversal::expect_end_option(leftover_bt)?;
+                arg_types.push(t);
+            }
+        }
+        _ => {
+            let mut temp_bt = bt;
+            while matches!(temp_bt.next(), Ok(NextOutput::Token { .. })) {
+                let (t, leftover_bt) = parse_type(temp_bt, generics)?;
+                arg_types.push(t);
+                temp_bt =
+                    BlockTraversal::expect_no_indents(leftover_bt, constructor_mark)?;
+            }
+            temp_bt.expect_end()?;
+        }
+    }
+    let mut args = arg_types.into_iter();
+    Ok((
+        constructor_name.to_string(),
+        build_type(
+            &mut args,
+            Type::Type {
+                type_constructor: parent_type,
+                arguments: generics_to_type(generics),
+            },
+        ),
+        constructor_mark.clone(),
+    ))
 }
 
 fn generics_to_type(generics: &Generics) -> Vec<Type> {
